@@ -7,7 +7,7 @@ import React, { useState, useMemo } from "react";
 import {
   Home, Users, ClipboardCheck, FileText, BookOpen, Award, Calendar,
   MessageSquare, Star, User, Settings, Bell, ChevronRight, UserCheck,
-  CalendarPlus, Sparkles, HelpCircle, LogOut
+  CalendarPlus, Sparkles, HelpCircle, LogOut, Clock
 } from "lucide-react";
 import { Student, Tutor, Assignment, Review, Message, TestScore } from "../types";
 
@@ -50,17 +50,8 @@ function getCourse(s: Student): string {
 function StudentAvatar({ name }: { name: string }) {
   const initial = name.charAt(0).toUpperCase();
   return (
-    <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-xs font-black">
+    <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-750 dark:text-emerald-300 flex items-center justify-center text-xs font-black">
       {initial}
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm">
-      <p className="text-[10px] uppercase font-black tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">{value}</p>
     </div>
   );
 }
@@ -68,7 +59,7 @@ function StatCard({ label, value }: { label: string; value: React.ReactNode }) {
 function ProgressBar({ value }: { value: number }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+      <div className="flex-grow h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
         <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${value}%` }} />
       </div>
       <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 w-8 text-right">{value}%</span>
@@ -205,161 +196,173 @@ export function TutorDashboard({
   const firstName = currentTutor.name.split(" ").slice(-1)[0] || currentTutor.name;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-      <div className="mx-auto max-w-7xl flex flex-col lg:flex-row gap-4 p-4 sm:p-6 lg:p-8">
-
-        {/* SIDEBAR */}
-        <aside className="lg:w-64 lg:shrink-0">
-          <div className="bg-emerald-700 dark:bg-emerald-800 rounded-3xl p-4 sticky top-4 flex flex-col gap-2 text-white">
-            <div className="bg-white text-emerald-700 font-black uppercase tracking-wider text-center py-2.5 rounded-xl text-xs mb-2">
-              Tutor Dashboard
-            </div>
-
-            <nav className="flex flex-col gap-1">
-              {NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeView === item.key;
-                const showBadge = item.key === "messages" && unreadCount > 0;
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => setActiveView(item.key)}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${isActive
-                        ? "bg-white/20 text-white shadow-inner"
-                        : "text-emerald-100 hover:bg-white/10"
-                      }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {showBadge && (
-                      <span className="bg-red-500 text-white text-[9px] font-black rounded-full px-1.5 py-0.5">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-
-            <div className="mt-4 pt-4 border-t border-emerald-600 flex items-center gap-3 px-2">
-              <img
-                src={currentTutor.image}
-                alt={currentTutor.name}
-                className="h-10 w-10 rounded-full object-cover border-2 border-white"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-black truncate">{currentTutor.name}</p>
-                <p className="text-[10px] text-emerald-200">Tutor</p>
-              </div>
-              <button
-                onClick={onLogout}
-                title="Log out"
-                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-              </button>
-            </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
+      
+      {/* Sidebar Navigation */}
+      <aside className="w-full md:w-64 bg-[#133d27] dark:bg-[#071b11] text-emerald-50 flex flex-col justify-between p-5 border-r border-[#194b30] shrink-0">
+        <div className="space-y-6">
+          {/* Logo brand */}
+          <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
+            <span className="p-2 bg-[#10b981] rounded-xl text-white shadow-lg animate-pulse">
+              <BookOpen className="h-5 w-5" />
+            </span>
+            <span className="font-extrabold text-sm tracking-widest text-white uppercase">
+              Tutors Lounge
+            </span>
           </div>
-        </aside>
 
-        {/* MAIN */}
-        <main className="flex-1 space-y-6 text-left">
+          {/* Navigation Links */}
+          <nav className="space-y-1 text-left">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeView === item.key;
+              const showBadge = item.key === "messages" && unreadCount > 0;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => setActiveView(item.key)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
+                    isActive 
+                      ? "bg-[#10b981] text-white shadow-md transform scale-[1.02]" 
+                      : "text-emerald-100/70 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Icon className="h-4.5 w-4.5 shrink-0" />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {showBadge && (
+                    <span className="bg-red-500 text-white text-[9px] font-black rounded-full px-1.5 py-0.5 animate-bounce">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* User Card Profile Footer */}
+        <div className="pt-4 border-t border-white/10 mt-6 flex items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-2">
+            <img 
+              src={currentTutor.image} 
+              alt={currentTutor.name} 
+              className="h-9 w-9 rounded-full object-cover border border-emerald-400"
+            />
             <div>
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white">
-                Welcome back, {firstName} <span aria-hidden>👋</span>
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                Here's your class and student activity overview.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300">
-                {todayStr}
-              </span>
-              <button className="relative p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                <Bell className="h-4 w-4 text-slate-600 dark:text-slate-300" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black rounded-full px-1.5 py-0.5">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
+              <p className="text-xs font-black text-white leading-tight">{currentTutor.name}</p>
+              <p className="text-[10px] text-emerald-200/50">Tutor Staff</p>
             </div>
           </div>
+          <button 
+            onClick={onLogout}
+            className="text-[10px] uppercase font-black tracking-wider text-emerald-350 hover:text-white transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </aside>
 
-          {notif && (
-            <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-4 rounded-xl text-xs text-sky-700 dark:text-sky-300 font-bold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-sky-500" />
-              <span>{notif}</span>
-            </div>
-          )}
+      {/* Main Panel Content Area */}
+      <main className="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto">
+        
+        {/* Portal Greeting Board */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+              Welcome back, {firstName} 👋
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Here's your class and student activity overview.
+            </p>
+          </div>
 
-          {activeView === "dashboard" && (
-            <DashboardView
-              myStudents={myStudents}
-              todaysClasses={todaysClasses}
-              myTests={myTests}
-              myReviews={myReviews}
-              myMessages={myMessages}
-              stats={{ totalStudents, todaysClassCount, pendingTests, avgAttendance }}
-              onJumpView={setActiveView}
-            />
-          )}
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-xs font-extrabold text-slate-700 dark:text-slate-350">
+              {todayStr}
+            </span>
+            <button className="relative p-2.5 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850">
+              <Bell className="h-4 w-4 text-slate-700 dark:text-slate-350" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black rounded-full px-1 py-0.5 shrink-0">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
 
-          {activeView === "students" && <StudentsView students={myStudents} />}
+        {notif && (
+          <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-4 rounded-xl text-xs text-sky-700 dark:text-sky-300 font-bold flex items-center gap-2 text-left">
+            <Sparkles className="h-5 w-5 text-sky-500 shrink-0" />
+            <span>{notif}</span>
+          </div>
+        )}
 
-          {activeView === "attendance" && (
-            <AttendanceView students={myStudents} onMark={handleToggleAttendance} />
-          )}
+        {/* Dynamic Navigation Content views */}
+        {activeView === "dashboard" && (
+          <DashboardView
+            myStudents={myStudents}
+            todaysClasses={todaysClasses}
+            myTests={myTests}
+            myReviews={myReviews}
+            myMessages={myMessages}
+            stats={{ totalStudents, todaysClassCount, pendingTests, avgAttendance }}
+            onJumpView={setActiveView}
+          />
+        )}
 
-          {activeView === "tests" && <TestsView tests={myTests} />}
+        {activeView === "students" && <StudentsView students={myStudents} />}
 
-          {activeView === "assignments" && (
-            <AssignmentsView
-              assignments={assignments}
-              newTitle={newTitle} setNewTitle={setNewTitle}
-              newSubj={newSubj} setNewSubj={setNewSubj}
-              newDue={newDue} setNewDue={setNewDue}
-              onCreate={handleCreateAssignment}
-            />
-          )}
+        {activeView === "attendance" && (
+          <AttendanceView students={myStudents} onMark={handleToggleAttendance} />
+        )}
 
-          {activeView === "results" && (
-            <ResultsView
-              students={myStudents}
-              activeStudent={activeStudent}
-              selectedStudentId={selectedStudentId}
-              setSelectedStudentId={setSelectedStudentId}
-              mathsVal={mathsVal} setMathsVal={setMathsVal}
-              physicsVal={physicsVal} setPhysicsVal={setPhysicsVal}
-              litVal={litVal} setLitVal={setLitVal}
-              onSubmit={handleUpdateScores}
-            />
-          )}
+        {activeView === "tests" && <TestsView tests={myTests} />}
 
-          {activeView === "schedule" && <ScheduleView students={myStudents} />}
+        {activeView === "assignments" && (
+          <AssignmentsView
+            assignments={assignments}
+            newTitle={newTitle} setNewTitle={setNewTitle}
+            newSubj={newSubj} setNewSubj={setNewSubj}
+            newDue={newDue} setNewDue={setNewDue}
+            onCreate={handleCreateAssignment}
+          />
+        )}
 
-          {activeView === "messages" && (
-            <MessagesView messages={myMessages} onMarkRead={handleMarkMessageRead} />
-          )}
+        {activeView === "results" && (
+          <ResultsView
+            students={myStudents}
+            activeStudent={activeStudent}
+            selectedStudentId={selectedStudentId}
+            setSelectedStudentId={setSelectedStudentId}
+            mathsVal={mathsVal} setMathsVal={setMathsVal}
+            physicsVal={physicsVal} setPhysicsVal={setPhysicsVal}
+            litVal={litVal} setLitVal={setLitVal}
+            onSubmit={handleUpdateScores}
+          />
+        )}
 
-          {activeView === "reviews" && <ReviewsView reviews={myReviews} />}
+        {activeView === "schedule" && <ScheduleView students={myStudents} />}
 
-          {activeView === "profile" && (
-            <ProfileView tutor={currentTutor} studentCount={totalStudents} />
-          )}
+        {activeView === "messages" && (
+          <MessagesView messages={myMessages} onMarkRead={handleMarkMessageRead} />
+        )}
 
-          {activeView === "settings" && <SettingsView />}
+        {activeView === "reviews" && <ReviewsView reviews={myReviews} />}
 
-        </main>
-      </div>
+        {activeView === "profile" && (
+          <ProfileView tutor={currentTutor} studentCount={totalStudents} />
+        )}
+
+        {activeView === "settings" && <SettingsView />}
+
+      </main>
+
     </div>
   );
 }
 
-/* ---------- Sub-views ---------- */
+/* ---------- Dashboard sub-view redrawn based on mockup image ---------- */
 
 function DashboardView({
   myStudents, todaysClasses, myTests, myReviews, myMessages, stats, onJumpView
@@ -374,94 +377,181 @@ function DashboardView({
 }) {
   return (
     <>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Students" value={stats.totalStudents} />
-        <StatCard label="Today's Classes" value={stats.todaysClassCount} />
-        <StatCard label="Pending Tests" value={stats.pendingTests} />
-        <StatCard label="Attendance" value={`${stats.avgAttendance}%`} />
-      </div>
-
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black text-slate-900 dark:text-white">My Students</h3>
-          <button
-            onClick={() => onJumpView("students")}
-            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
-          >
-            View All Students <ChevronRight className="h-3 w-3" />
-          </button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
-                <th className="text-left font-bold py-2">Student Name</th>
-                <th className="text-left font-bold py-2">Course</th>
-                <th className="text-left font-bold py-2">Attendance</th>
-                <th className="text-left font-bold py-2">Progress</th>
-              </tr>
-            </thead>
-            <tbody>
-              {myStudents.slice(0, 5).map((s) => {
-                const progress = s.learningSubjects[0]?.completedPercentage || 0;
-                return (
-                  <tr key={s.id} className="border-b border-slate-50 dark:border-slate-800/50">
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <StudentAvatar name={s.name} />
-                        <span className="font-bold text-slate-800 dark:text-white">{s.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 text-slate-600 dark:text-slate-300 font-semibold">{getCourse(s)}</td>
-                    <td className="py-3 font-bold text-slate-700 dark:text-slate-200">{s.attendanceRate}%</td>
-                    <td className="py-3 w-48"><ProgressBar value={progress} /></td>
-                  </tr>
-                );
-              })}
-              {myStudents.length === 0 && (
-                <tr><td colSpan={4} className="py-6 text-center text-slate-500">No students assigned yet.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-          <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Today's Classes</h3>
-          <div className="space-y-3">
-            {todaysClasses.map((c, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-300 flex items-center justify-center">
-                  <BookOpen className="h-4 w-4" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-slate-800 dark:text-white">{c.subject}</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{c.time} • {c.mode}</p>
-                </div>
-              </div>
-            ))}
-            {todaysClasses.length === 0 && <p className="text-xs text-slate-500">No classes scheduled.</p>}
+      {/* 4 Stats Cards Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+        {/* Card 1: Total Students */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+          <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Total Students</span>
+          <div className="flex items-baseline mt-2">
+            <span className="text-3xl font-black text-slate-900 dark:text-white">
+              {stats.totalStudents}
+            </span>
           </div>
+        </div>
+
+        {/* Card 2: Today's Classes */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+          <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Today's Classes</span>
+          <div className="flex items-baseline mt-2">
+            <span className="text-3xl font-black text-slate-900 dark:text-white">
+              {stats.todaysClassCount}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Pending Tests */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+          <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Pending Tests</span>
+          <div className="flex items-baseline mt-2">
+            <span className="text-3xl font-black text-slate-900 dark:text-white">
+              {stats.pendingTests}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Attendance */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+          <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Attendance</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
+              {stats.avgAttendance}%
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 font-bold">
+              Good
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
+        
+        {/* Left Card: My Students (Col 7) */}
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">My Students</h3>
+            <button
+              onClick={() => onJumpView("students")}
+              className="text-xs font-extrabold text-[#10b981] hover:underline flex items-center gap-0.5 cursor-pointer"
+            >
+              <span>View All Students</span>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-slate-105">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-[9px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold">
+                  <th className="text-left px-4 py-2">Student Name</th>
+                  <th className="text-left px-4 py-2">Course</th>
+                  <th className="text-left px-4 py-2">Attendance</th>
+                  <th className="text-left px-4 py-2">Progress</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
+                {myStudents.slice(0, 5).map((s) => {
+                  const progress = s.learningSubjects[0]?.completedPercentage || 0;
+                  return (
+                    <tr key={s.id} className="hover:bg-slate-50/50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <StudentAvatar name={s.name} />
+                          <span className="font-bold text-slate-900 dark:text-white">{s.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">{getCourse(s)}</td>
+                      <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{s.attendanceRate}%</td>
+                      <td className="px-4 py-3 min-w-[120px]"><ProgressBar value={progress} /></td>
+                    </tr>
+                  );
+                })}
+                {myStudents.length === 0 && (
+                  <tr><td colSpan={4} className="py-6 text-center text-slate-500">No students assigned yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Right Card: Today's Classes (Col 5) */}
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+          <div className="space-y-4">
+            <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Today's Classes</h3>
+            <div className="space-y-3">
+              {todaysClasses.map((c, idx) => (
+                <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex items-center justify-between">
+                  <div className="text-left space-y-0.5">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{c.subject}</p>
+                    <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-1">
+                      <Clock className="h-3 w-3 shrink-0" />
+                      <span>{c.time}</span>
+                    </p>
+                  </div>
+                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-tight bg-indigo-50 dark:bg-indigo-950/45 text-indigo-650 dark:text-indigo-400 rounded-lg">
+                    {c.mode}
+                  </span>
+                </div>
+              ))}
+              {todaysClasses.length === 0 && <p className="text-xs text-slate-500">No classes scheduled.</p>}
+            </div>
+          </div>
+
           <button
             onClick={() => onJumpView("schedule")}
-            className="mt-4 w-full text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+            className="mt-4 w-full text-center text-xs font-bold text-[#10b981] hover:underline block pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer"
           >
             View Schedule
           </button>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-          <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Recent Tests</h3>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left">
+        
+        {/* Student Reviews */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+          <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Student Reviews</h3>
+          <div className="space-y-4">
+            {myReviews.slice(0, 2).map((r) => (
+              <div key={r.id} className="p-3.5 bg-slate-50 dark:bg-slate-955 rounded-2xl border border-slate-100 dark:border-slate-850 flex items-start gap-3">
+                <StudentAvatar name={r.studentName} />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-slate-900 dark:text-whiteleading-none">{r.studentName}</p>
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400">{r.date}</p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-350 italic font-medium pt-1">"{r.comment}"</p>
+                </div>
+              </div>
+            ))}
+            {myReviews.length === 0 && <p className="text-xs text-slate-500">No reviews yet.</p>}
+          </div>
+          <button
+            onClick={() => onJumpView("reviews")}
+            className="w-full text-center text-xs font-bold text-[#10b981] hover:underline block pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer"
+          >
+            View All Reviews
+          </button>
+        </div>
+
+        {/* Recent Tests & Messages Inbox */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+          <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Tests</h3>
           <div className="space-y-3">
             {myTests.slice(0, 3).map((t) => (
-              <div key={t.id} className="flex items-center justify-between">
+              <div key={t.id} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-white">{t.title}</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{t.date}</p>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{t.title}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">{t.subject} • {t.date}</p>
                 </div>
-                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg">
                   {t.score}/{t.total}
                 </span>
               </div>
@@ -470,100 +560,49 @@ function DashboardView({
           </div>
           <button
             onClick={() => onJumpView("tests")}
-            className="mt-4 w-full text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+            className="w-full text-center text-xs font-bold text-[#10b981] hover:underline block pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer"
           >
             View All Tests
           </button>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-          <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Student Reviews</h3>
-          <div className="space-y-4">
-            {myReviews.slice(0, 2).map((r) => (
-              <div key={r.id} className="flex items-start gap-3">
-                <StudentAvatar name={r.studentName} />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold text-slate-800 dark:text-white">{r.studentName}</p>
-                    <div className="flex">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1 italic">"{r.comment}"</p>
-                </div>
-              </div>
-            ))}
-            {myReviews.length === 0 && <p className="text-xs text-slate-500">No reviews yet.</p>}
-          </div>
-          <button
-            onClick={() => onJumpView("reviews")}
-            className="mt-4 w-full text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-          >
-            View All Reviews
-          </button>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-          <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Messages</h3>
-          <div className="space-y-3">
-            {myMessages.slice(0, 3).map((m) => (
-              <div key={m.id} className="flex items-center gap-3">
-                <StudentAvatar name={m.fromName} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-slate-800 dark:text-white">{m.fromName}</p>
-                  <p className="text-[10px] text-slate-500 truncate">{m.preview}</p>
-                </div>
-                <span className="text-[10px] text-slate-400 font-semibold">{m.time}</span>
-              </div>
-            ))}
-            {myMessages.length === 0 && <p className="text-xs text-slate-500">No messages.</p>}
-          </div>
-          <button
-            onClick={() => onJumpView("messages")}
-            className="mt-4 w-full text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-          >
-            View All Messages
-          </button>
-        </div>
       </div>
     </>
   );
 }
 
+/* ---------- Sub-views ---------- */
+
 function StudentsView({ students }: { students: Student[] }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-      <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">My Students ({students.length})</h3>
-      <div className="overflow-x-auto">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+      <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">My Students ({students.length})</h3>
+      <div className="overflow-x-auto rounded-2xl border border-slate-105">
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
-              <th className="text-left font-bold py-2">Student</th>
-              <th className="text-left font-bold py-2">Grade</th>
-              <th className="text-left font-bold py-2">Course</th>
-              <th className="text-left font-bold py-2">Attendance</th>
-              <th className="text-left font-bold py-2">Progress</th>
+            <tr className="text-[9px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold">
+              <th className="text-left px-4 py-2">Student</th>
+              <th className="text-left px-4 py-2">Grade</th>
+              <th className="text-left px-4 py-2">Course</th>
+              <th className="text-left px-4 py-2">Attendance</th>
+              <th className="text-left px-4 py-2">Progress</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
             {students.map((s) => {
               const progress = s.learningSubjects[0]?.completedPercentage || 0;
               return (
-                <tr key={s.id} className="border-b border-slate-50 dark:border-slate-800/50">
-                  <td className="py-3">
+                <tr key={s.id} className="hover:bg-slate-50/50">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <StudentAvatar name={s.name} />
-                      <span className="font-bold text-slate-800 dark:text-white">{s.name}</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{s.name}</span>
                     </div>
                   </td>
-                  <td className="py-3 text-slate-600 dark:text-slate-300 font-semibold">{s.grade}</td>
-                  <td className="py-3 text-slate-600 dark:text-slate-300 font-semibold">{getCourse(s)}</td>
-                  <td className="py-3 font-bold">{s.attendanceRate}%</td>
-                  <td className="py-3 w-48"><ProgressBar value={progress} /></td>
+                  <td className="px-4 py-3">{s.grade}</td>
+                  <td className="px-4 py-3">{getCourse(s)}</td>
+                  <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{s.attendanceRate}%</td>
+                  <td className="px-4 py-3 min-w-[120px]"><ProgressBar value={progress} /></td>
                 </tr>
               );
             })}
@@ -576,24 +615,24 @@ function StudentsView({ students }: { students: Student[] }) {
 
 function AttendanceView({ students, onMark }: { students: Student[]; onMark: (id: string) => void }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-      <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Attendance Log</h3>
-      <div className="space-y-3">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+      <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Attendance Log</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {students.map((s) => (
-          <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+          <div key={s.id} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <StudentAvatar name={s.name} />
               <div>
-                <p className="text-xs font-bold text-slate-800 dark:text-white">{s.name}</p>
-                <p className="text-[10px] text-slate-500">{s.attendanceRate}% • {s.presentCount} present, {s.absentCount} absent</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{s.name}</p>
+                <p className="text-[10px] text-slate-500 mt-1">{s.attendanceRate}% • {s.presentCount} present, {s.absentCount} absent</p>
               </div>
             </div>
             <button
               onClick={() => onMark(s.id)}
-              className="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-xl text-[10px] font-bold hover:bg-emerald-100 inline-flex items-center gap-1"
+              className="px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-250 rounded-xl text-[10px] font-bold hover:bg-emerald-100 inline-flex items-center gap-1.5 cursor-pointer"
             >
-              <UserCheck className="h-3.5 w-3.5" />
-              Mark Present
+              <UserCheck className="h-4 w-4 shrink-0" />
+              <span>Present</span>
             </button>
           </div>
         ))}
@@ -604,16 +643,18 @@ function AttendanceView({ students, onMark }: { students: Student[]; onMark: (id
 
 function TestsView({ tests }: { tests: TestScore[] }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-      <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Test Records</h3>
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+      <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Test Records</h3>
       <div className="space-y-3">
         {tests.map((t) => (
-          <div key={t.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+          <div key={t.id} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-955 rounded-2xl border border-slate-100 dark:border-slate-850">
             <div>
-              <p className="text-xs font-bold text-slate-800 dark:text-white">{t.title}</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">{t.studentName} • {t.subject} • {t.date}</p>
+              <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{t.title}</p>
+              <p className="text-[10px] text-slate-500 mt-1">{t.studentName} • {t.subject} • {t.date}</p>
             </div>
-            <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{t.score}/{t.total}</span>
+            <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg shrink-0">
+              {t.score}/{t.total}
+            </span>
           </div>
         ))}
         {tests.length === 0 && <p className="text-xs text-slate-500">No tests recorded.</p>}
@@ -632,7 +673,7 @@ function AssignmentsView({
   onCreate: (e: React.FormEvent) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left">
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
         <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Create Assignment</h3>
         <form onSubmit={onCreate} className="space-y-4 text-xs font-semibold">
@@ -673,10 +714,10 @@ function AssignmentsView({
           </div>
           <button
             type="submit"
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1"
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
           >
-            <CalendarPlus className="h-4 w-4" />
-            Publish Assignment
+            <CalendarPlus className="h-4 w-4 shrink-0" />
+            <span>Publish Assignment</span>
           </button>
         </form>
       </div>
@@ -690,7 +731,7 @@ function AssignmentsView({
                 <p className="font-bold text-slate-800 dark:text-white leading-tight">{a.title}</p>
                 <p className="text-[10px] text-slate-500 mt-1">{a.subject} • Due: {a.dueDate}</p>
               </div>
-              <span className="text-[9px] uppercase font-black tracking-wider bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
+              <span className="text-[9px] uppercase font-black tracking-wider bg-orange-100 text-orange-700 px-2 py-0.5 rounded shrink-0">
                 {a.submissionsPending} pending
               </span>
             </div>
@@ -715,7 +756,7 @@ function ResultsView({
   onSubmit: (e: React.FormEvent) => void;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
       <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">
         Record Assessment Scores
       </h3>
@@ -725,7 +766,7 @@ function ResultsView({
           <button
             key={s.id}
             onClick={() => setSelectedStudentId(s.id)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedStudentId === s.id
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${selectedStudentId === s.id
                 ? "bg-emerald-600 text-white shadow"
                 : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200"
               }`}
@@ -739,19 +780,19 @@ function ResultsView({
         <form onSubmit={onSubmit} className="space-y-4 text-xs font-semibold">
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <label className="text-slate-600">Mathematics (%)</label>
+              <label className="text-slate-650">Mathematics (%)</label>
               <input type="number" min="0" max="100" value={mathsVal}
                 onChange={(e) => setMathsVal(Number(e.target.value))}
                 className="w-full p-2.5 rounded-xl border border-slate-200 dark:bg-slate-950 dark:border-slate-700" required />
             </div>
             <div className="space-y-1.5">
-              <label className="text-slate-600">Physics (%)</label>
+              <label className="text-slate-650">Physics (%)</label>
               <input type="number" min="0" max="100" value={physicsVal}
                 onChange={(e) => setPhysicsVal(Number(e.target.value))}
                 className="w-full p-2.5 rounded-xl border border-slate-200 dark:bg-slate-950 dark:border-slate-700" required />
             </div>
             <div className="space-y-1.5">
-              <label className="text-slate-600">Literature (%)</label>
+              <label className="text-slate-650">Literature (%)</label>
               <input type="number" min="0" max="100" value={litVal}
                 onChange={(e) => setLitVal(Number(e.target.value))}
                 className="w-full p-2.5 rounded-xl border border-slate-200 dark:bg-slate-950 dark:border-slate-700" required />
@@ -760,14 +801,14 @@ function ResultsView({
 
           <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl flex justify-between items-center text-xs border border-slate-100 dark:border-slate-800">
             <span className="text-slate-500 font-bold">Computed GPA:</span>
-            <strong className="text-emerald-600 dark:text-emerald-400 text-sm">
+            <strong className="text-emerald-600 dark:text-emerald-450 text-sm">
               {((mathsVal + physicsVal + litVal) / 3 / 25).toFixed(2)} / 4.0
             </strong>
           </div>
 
           <button
             type="submit"
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl text-xs transition-all active:scale-95"
+            className="w-full bg-[#10b981] hover:opacity-90 text-white font-black py-3 rounded-xl text-xs transition-all active:scale-95 cursor-pointer"
           >
             Save & Update Results
           </button>
@@ -782,35 +823,35 @@ function ScheduleView({ students }: { students: Student[] }) {
     s.classTimings.map((c) => ({ ...c, student: s.name }))
   );
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-      <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Class Schedule</h3>
-      <div className="overflow-x-auto">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+      <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Class Schedule</h3>
+      <div className="overflow-x-auto rounded-2xl border border-slate-105">
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
-              <th className="text-left font-bold py-2">Subject</th>
-              <th className="text-left font-bold py-2">Student</th>
-              <th className="text-left font-bold py-2">Day</th>
-              <th className="text-left font-bold py-2">Time</th>
-              <th className="text-left font-bold py-2">Mode</th>
+            <tr className="text-[9px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold">
+              <th className="text-left px-4 py-2">Subject</th>
+              <th className="text-left px-4 py-2">Student</th>
+              <th className="text-left px-4 py-2">Day</th>
+              <th className="text-left px-4 py-2">Time</th>
+              <th className="text-left px-4 py-2">Mode</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
             {all.map((c, idx) => (
-              <tr key={idx} className="border-b border-slate-50 dark:border-slate-800/50">
-                <td className="py-3 font-bold text-slate-800 dark:text-white">{c.subject}</td>
-                <td className="py-3 text-slate-600 dark:text-slate-300">{c.student}</td>
-                <td className="py-3 text-slate-600 dark:text-slate-300">{c.day}</td>
-                <td className="py-3 text-slate-600 dark:text-slate-300">{c.time}</td>
-                <td className="py-3">
-                  <span className="text-[9px] uppercase font-black px-2 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+              <tr key={idx} className="hover:bg-slate-50/50">
+                <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{c.subject}</td>
+                <td className="px-4 py-3">{c.student}</td>
+                <td className="px-4 py-3">{c.day}</td>
+                <td className="px-4 py-3">{c.time}</td>
+                <td className="px-4 py-3">
+                  <span className="text-[9px] uppercase font-black px-2.5 py-1 rounded-lg bg-sky-100 text-sky-700 dark:bg-sky-950/45 dark:text-sky-300 shrink-0">
                     {c.mode}
                   </span>
                 </td>
               </tr>
             ))}
             {all.length === 0 && (
-              <tr><td colSpan={5} className="py-6 text-center text-slate-500">No classes scheduled.</td></tr>
+              <tr><td colSpan={5} className="py-6 text-center text-slate-550">No classes scheduled.</td></tr>
             )}
           </tbody>
         </table>
@@ -821,28 +862,28 @@ function ScheduleView({ students }: { students: Student[] }) {
 
 function MessagesView({ messages, onMarkRead }: { messages: Message[]; onMarkRead: (id: string) => void }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-      <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Messages</h3>
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+      <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Messages</h3>
       <div className="space-y-3">
         {messages.map((m) => (
           <div
             key={m.id}
-            className={`flex items-center gap-3 p-3 rounded-xl border ${m.unread
+            className={`flex items-center gap-3 p-3 rounded-2xl border ${m.unread
                 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900"
                 : "bg-slate-50 border-slate-100 dark:bg-slate-950 dark:border-slate-800"
               }`}
           >
             <StudentAvatar name={m.fromName} />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-800 dark:text-white">{m.fromName}</p>
-              <p className="text-[11px] text-slate-500 truncate">{m.preview}</p>
+              <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{m.fromName}</p>
+              <p className="text-[11px] text-slate-500 truncate mt-0.5">{m.preview}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-slate-400 font-semibold">{m.time}</span>
+              <span className="text-[10px] text-slate-450 font-semibold">{m.time}</span>
               {m.unread && (
                 <button
                   onClick={() => onMarkRead(m.id)}
-                  className="text-[10px] font-bold text-emerald-600 hover:underline"
+                  className="text-[10px] font-black text-emerald-600 hover:underline cursor-pointer"
                 >
                   Mark read
                 </button>
@@ -858,23 +899,23 @@ function MessagesView({ messages, onMarkRead }: { messages: Message[]; onMarkRea
 
 function ReviewsView({ reviews }: { reviews: Review[] }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-      <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Student Reviews</h3>
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+      <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Student Reviews</h3>
       <div className="space-y-4">
         {reviews.map((r) => (
-          <div key={r.id} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800 flex items-start gap-3">
+          <div key={r.id} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-850 flex items-start gap-3">
             <StudentAvatar name={r.studentName} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-slate-800 dark:text-white">{r.studentName}</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-white leading-none">{r.studentName}</p>
                 <span className="text-[10px] text-slate-400">{r.date}</span>
               </div>
-              <div className="flex mt-1">
+              <div className="flex mt-1 gap-0.5">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
                 ))}
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 italic">"{r.comment}"</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-350 mt-2 italic font-medium">"{r.comment}"</p>
             </div>
           </div>
         ))}
@@ -890,10 +931,10 @@ function ProfileView({ tutor, studentCount }: { tutor: Tutor; studentCount: numb
     window.open(`https://wa.me/916300227011?text=${txt}`, "_blank");
   };
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-      <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Profile</h3>
-      <div className="flex items-center gap-4 mb-6">
-        <img src={tutor.image} alt={tutor.name} className="h-20 w-20 rounded-2xl object-cover border-2 border-emerald-200" />
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left space-y-5">
+      <h3 className="text-sm font-black uppercase tracking-wider text-slate-400">Profile</h3>
+      <div className="flex items-center gap-4 border-b border-slate-100 dark:border-slate-850 pb-5">
+        <img src={tutor.image} alt={tutor.name} className="h-20 w-20 rounded-2xl object-cover border border-emerald-450" />
         <div>
           <p className="text-lg font-black text-slate-900 dark:text-white">{tutor.name}</p>
           <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{tutor.specialty}</p>
@@ -901,17 +942,23 @@ function ProfileView({ tutor, studentCount }: { tutor: Tutor; studentCount: numb
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <StatCard label="Tutor ID" value={tutor.id} />
-        <StatCard label="Assigned Students" value={studentCount} />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850">
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">Tutor ID</span>
+          <span className="text-base font-black text-slate-905 mt-1 block">{tutor.id}</span>
+        </div>
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-955 border border-slate-100 dark:border-slate-850">
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">Assigned Students</span>
+          <span className="text-base font-black text-slate-905 mt-1 block">{studentCount} pupils</span>
+        </div>
       </div>
 
       <button
         onClick={handleAdminContact}
-        className="w-full bg-slate-900 dark:bg-emerald-600 text-white font-black py-3 rounded-xl text-xs inline-flex items-center justify-center gap-2 hover:opacity-90"
+        className="w-full bg-[#133d27] hover:opacity-90 text-white font-black py-3.5 rounded-2xl text-xs inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
       >
         <HelpCircle className="h-4 w-4" />
-        Contact Admin Hotline
+        <span>Contact Admin Hotline desk</span>
       </button>
     </div>
   );
@@ -925,36 +972,36 @@ function SettingsView() {
   const Toggle = ({ on, onChange }: { on: boolean; onChange: () => void }) => (
     <button
       onClick={onChange}
-      className={`w-10 h-5 rounded-full transition-colors ${on ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}
+      className={`w-10 h-5 rounded-full transition-colors flex items-center cursor-pointer ${on ? "bg-emerald-500" : "bg-slate-350 dark:bg-slate-700"}`}
     >
-      <span className={`block h-4 w-4 bg-white rounded-full transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
+      <span className={`block h-4 w-4 bg-white rounded-full transition-transform ${on ? "translate-x-5.5" : "translate-x-0.5"}`} />
     </button>
   );
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-      <h3 className="text-base font-black text-slate-900 dark:text-white">Settings</h3>
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 text-left">
+      <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Settings</h3>
 
-      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
         <div>
-          <p className="text-xs font-bold text-slate-800 dark:text-white">Email Notifications</p>
-          <p className="text-[10px] text-slate-500">Get assignment & message updates via email</p>
+          <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Email Notifications</p>
+          <p className="text-[10px] text-slate-500 mt-1">Get assignment & message updates via email</p>
         </div>
         <Toggle on={emailNotif} onChange={() => setEmailNotif(!emailNotif)} />
       </div>
 
-      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
         <div>
-          <p className="text-xs font-bold text-slate-800 dark:text-white">SMS Alerts</p>
-          <p className="text-[10px] text-slate-500">Get urgent alerts on your registered number</p>
+          <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">SMS Alerts</p>
+          <p className="text-[10px] text-slate-500 mt-1">Get urgent alerts on your registered number</p>
         </div>
         <Toggle on={smsNotif} onChange={() => setSmsNotif(!smsNotif)} />
       </div>
 
-      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-955 rounded-2xl border border-slate-100 dark:border-slate-800">
         <div>
-          <p className="text-xs font-bold text-slate-800 dark:text-white">Auto-mark Attendance</p>
-          <p className="text-[10px] text-slate-500">Automatically mark present on class start</p>
+          <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Auto-mark Attendance</p>
+          <p className="text-[10px] text-slate-500 mt-1">Automatically mark present on class start</p>
         </div>
         <Toggle on={autoMark} onChange={() => setAutoMark(!autoMark)} />
       </div>

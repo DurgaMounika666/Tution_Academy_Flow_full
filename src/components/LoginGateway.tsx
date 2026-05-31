@@ -6,6 +6,8 @@
 import React, { useState } from "react";
 import { GraduationCap, Users, ShieldAlert, Notebook, Shield, Key, Eye, EyeOff, Check, UserPlus } from "lucide-react";
 
+import { Tutor } from "../types";
+
 interface LoginGatewayProps {
   onLoginSuccess: (
     role: "student" | "parent" | "tutor" | "admin",
@@ -13,13 +15,14 @@ interface LoginGatewayProps {
   ) => void;
   onOpenRegister: () => void;
   registeredParents: Array<{ email: string; pass: string }>;
+  tutors: Tutor[];
 }
 
-export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents }: LoginGatewayProps) {
+export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents, tutors }: LoginGatewayProps) {
   const [studentId, setStudentId] = useState("ST-101");
   const [parentEmail, setParentEmail] = useState("parent@example.com");
   const [parentPassword, setParentPassword] = useState("password");
-  const [tutorEmail, setTutorEmail] = useState("tutor@example.com");
+  const [tutorEmail, setTutorEmail] = useState("elena.vance@academyflow.com");
   const [tutorPassword, setTutorPassword] = useState("password");
   const [adminEmail, setAdminEmail] = useState("admin@example.com");
   const [adminPassword, setAdminPassword] = useState("password");
@@ -66,7 +69,22 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
 
   const handleTutorSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLoginSuccess("tutor");
+    if (!tutorEmail.trim() || !tutorPassword.trim()) {
+      setErrorMessage("Email and Password are required parameters.");
+      return;
+    }
+
+    // Check if the email belongs to our official tutor roster (prevent external source domains/logins)
+    const matchedTutor = tutors.find(
+      (t) => t.email.toLowerCase() === tutorEmail.trim().toLowerCase()
+    );
+
+    if (matchedTutor) {
+      setErrorMessage("");
+      onLoginSuccess("tutor", matchedTutor.id);
+    } else {
+      setErrorMessage("Access Denied: Email domain or address is from an unauthorized external source.");
+    }
   };
 
   const handleAdminSubmit = (e: React.FormEvent) => {
@@ -300,14 +318,21 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
 
               {/* Demo selector */}
               <div className="bg-sky-50/50 dark:bg-sky-950/30 rounded-xl p-3 border border-sky-100 dark:border-slate-900 space-y-1">
-                <span className="text-[9px] uppercase font-extrabold tracking-wider text-sky-700 dark:text-sky-300">Tutors:</span>
-                <div className="flex gap-2">
+                <span className="text-[9px] uppercase font-extrabold tracking-wider text-sky-700 dark:text-sky-300">Demo Instant IDs:</span>
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => { setTutorEmail("tutor@example.com"); setTutorPassword("password"); }}
+                    onClick={() => { setTutorEmail("elena.vance@academyflow.com"); setTutorPassword("password"); }}
                     className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
                   >
-                    Dr. Julian Thorne (Physics)
+                    Dr. Elena Vance (Maths)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTutorEmail("julian.thorne@academyflow.com"); setTutorPassword("password"); }}
+                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
+                  >
+                    Prof. Julian Thorne (Physics)
                   </button>
                 </div>
               </div>
