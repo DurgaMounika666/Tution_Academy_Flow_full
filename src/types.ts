@@ -82,3 +82,32 @@ export interface Assignment {
   submissionsPending: number;
   status: "Active" | "Completed" | "On Hold";
 }
+
+export interface Review {
+  id: string;
+  studentId: string;
+  studentName: string;
+  rating: number; // 1-5
+  comment: string;
+  date: string;
+}
+
+export interface Message {
+  id: string;
+  fromStudentId: string;
+  fromName: string;
+  preview: string;
+  time: string; // e.g. "10:30 AM"
+  unread: boolean;
+}
+
+export interface TestScore {
+  id: string;
+  studentId: string;
+  studentName: string;
+  title: string; // e.g. "React JS Test"
+  subject: string;
+  score: number;
+  total: number;
+  date: string; // e.g. "May 18, 2026"
+}

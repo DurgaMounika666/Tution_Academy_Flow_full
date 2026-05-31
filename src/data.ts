@@ -304,3 +304,92 @@ export const SUBJECTS_BY_CLASS: { [key: string]: string[] } = {
   "9th Class": ["Calculus Prep", "Organic Chemistry", "Classical Mechanics", "Sanskrit Elective"],
   "10th Class": ["Advanced Calculus", "Nuclear Physics", "Molecular Biology", "Civics & Economics"]
 };
+
+import { Review, Message, TestScore } from "./types";
+
+export const INITIAL_REVIEWS: Review[] = [
+  {
+    id: "RV-701",
+    studentId: "ST-101",
+    studentName: "Alex Johnson",
+    rating: 4,
+    comment: "Excellent teaching skills and very helpful!",
+    date: "2026-05-20"
+  },
+  {
+    id: "RV-702",
+    studentId: "ST-102",
+    studentName: "Leo Henderson",
+    rating: 4,
+    comment: "Explains concepts very clearly.",
+    date: "2026-05-18"
+  },
+  {
+    id: "RV-703",
+    studentId: "ST-103",
+    studentName: "Eleanor Lance",
+    rating: 5,
+    comment: "Patient and thorough with every doubt.",
+    date: "2026-05-15"
+  }
+];
+
+export const INITIAL_MESSAGES: Message[] = [
+  {
+    id: "MSG-801",
+    fromStudentId: "ST-101",
+    fromName: "Alex Johnson",
+    preview: "Thank you for the extra session!",
+    time: "10:30 AM",
+    unread: true
+  },
+  {
+    id: "MSG-802",
+    fromStudentId: "ST-103",
+    fromName: "Eleanor Lance",
+    preview: "When is the next test?",
+    time: "09:45 AM",
+    unread: true
+  },
+  {
+    id: "MSG-803",
+    fromStudentId: "ST-102",
+    fromName: "Leo Henderson",
+    preview: "Please share assignment.",
+    time: "Yesterday",
+    unread: true
+  }
+];
+
+export const INITIAL_TESTS: TestScore[] = [
+  {
+    id: "TS-601",
+    studentId: "ST-101",
+    studentName: "Alex Johnson",
+    title: "React JS Test",
+    subject: "Comp Sci Principles",
+    score: 23,
+    total: 25,
+    date: "2026-05-19"
+  },
+  {
+    id: "TS-602",
+    studentId: "ST-102",
+    studentName: "Leo Henderson",
+    title: "UI Design Principles",
+    subject: "Algebra II",
+    score: 25,
+    total: 30,
+    date: "2026-05-18"
+  },
+  {
+    id: "TS-603",
+    studentId: "ST-103",
+    studentName: "Eleanor Lance",
+    title: "Python Basics",
+    subject: "Geometry Essentials",
+    score: 26,
+    total: 29,
+    date: "2026-05-16"
+  }
+];

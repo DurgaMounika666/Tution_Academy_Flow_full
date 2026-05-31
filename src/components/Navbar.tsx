@@ -4,18 +4,19 @@
  */
 
 import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { BookOpen, Menu, X, Sun, Moon, LogIn, LogOut, ChevronDown, UserPlus, PhoneIncoming } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
 interface NavbarProps {
-  currentRole: "landing" | "student" | "parent" | "tutor" | "admin";
-  onRoleChange: (role: "landing" | "student" | "parent" | "tutor" | "admin" | "login_select") => void;
   onOpenRegister: () => void;
   activeStandard: string;
   onSelectStandard: (std: string) => void;
 }
 
-export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStandard, onSelectStandard }: NavbarProps) {
+export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: NavbarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { darkMode, toggleDarkMode } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [standardsDropdownOpen, setStandardsDropdownOpen] = useState(false);
@@ -26,6 +27,12 @@ export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStanda
   const [selectedClassType, setSelectedClassType] = useState("Online & Offline");
 
   const standards = Array.from({ length: 10 }, (_, i) => `${i + 1}${i === 0 ? "st" : i === 1 ? "nd" : i === 2 ? "rd" : "th"} Class`);
+
+  // Derive current role from URL path
+  const pathSegment = location.pathname.split("/")[1] || "landing";
+  const isLanding = pathSegment === "" || pathSegment === "landing";
+  const isDashboard = ["student", "parent", "tutor", "admin"].includes(pathSegment);
+  const currentRoleLabel = isDashboard ? pathSegment : isLanding ? "landing" : pathSegment;
 
   const handleStandardClick = (std: string) => {
     onSelectStandard(std);
@@ -44,7 +51,7 @@ export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStanda
         <div className="flex h-16 items-center justify-between">
           
           {/* Logo Brand */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => onRoleChange("landing")}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 shadow-md">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
@@ -57,10 +64,10 @@ export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStanda
           </div>
 
           {/* Desktop Navigation */}
-          {currentRole === "landing" ? (
+          {isLanding ? (
             <div className="hidden lg:flex items-center gap-6">
               <button 
-                onClick={() => onRoleChange("landing")}
+                onClick={() => navigate("/")}
                 className="text-sm font-semibold text-sky-500 dark:text-sky-400"
               >
                 Home
@@ -155,10 +162,10 @@ export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStanda
             /* Dashboard status indicator */
             <div className="hidden md:flex items-center gap-3">
               <span className="rounded-full bg-sky-100 dark:bg-sky-950/50 px-3.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-300">
-                Logged in as: <strong className="capitalize">{currentRole} portal</strong>
+                Logged in as: <strong className="capitalize">{currentRoleLabel} portal</strong>
               </span>
               <button 
-                onClick={() => onRoleChange("landing")}
+                onClick={() => navigate("/")}
                 className="text-xs font-semibold text-slate-500 hover:text-sky-500 dark:text-slate-400 dark:hover:text-white"
               >
                 Go to Landing Page
@@ -190,7 +197,7 @@ export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStanda
             </a>
 
             {/* Auth Actions */}
-            {currentRole === "landing" ? (
+            {isLanding ? (
               <div className="flex items-center gap-2">
                 <button 
                   onClick={onOpenRegister}
@@ -200,7 +207,7 @@ export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStanda
                   <span>Register</span>
                 </button>
                 <button
-                  onClick={() => onRoleChange("login_select")}
+                  onClick={() => navigate("/login")}
                   className="flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-white dark:bg-sky-500 dark:hover:bg-sky-400 dark:text-slate-950 px-4.5 py-2.5 text-sm font-bold transition-all active:scale-95 shadow-md"
                 >
                   <LogIn className="h-4 w-4" />
@@ -209,7 +216,7 @@ export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStanda
               </div>
             ) : (
               <button
-                onClick={() => onRoleChange("login_select")}
+                onClick={() => navigate("/login")}
                 className="flex items-center gap-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white px-4 py-2.5 text-sm font-bold transition-all active:scale-95 shadow-sm"
               >
                 <LogOut className="h-4 w-4" />
@@ -234,7 +241,7 @@ export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStanda
         <div className="lg:hidden w-full bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 px-4 py-4 space-y-4">
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => { onRoleChange("landing"); setMobileMenuOpen(false); }}
+              onClick={() => { navigate("/"); setMobileMenuOpen(false); }}
               className="w-full text-left font-semibold text-slate-900 dark:text-white py-2 text-sm border-b border-slate-100 dark:border-slate-900"
             >
               Home
@@ -308,7 +315,7 @@ export function Navbar({ currentRole, onRoleChange, onOpenRegister, activeStanda
             </button>
 
             <button
-              onClick={() => { onRoleChange("login_select"); setMobileMenuOpen(false); }}
+              onClick={() => { navigate("/login"); setMobileMenuOpen(false); }}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-900 text-white dark:bg-slate-800 dark:text-white font-bold py-3 text-sm shadow"
             >
               <LogIn className="h-4.5 w-4.5" />

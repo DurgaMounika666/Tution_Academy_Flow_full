@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
@@ -17,26 +18,28 @@ import { TutorDashboard } from "./components/TutorDashboard";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { RegisterModal } from "./components/RegisterModal";
 
-import { 
-  INITIAL_STUDENTS, INITIAL_TUTORS, INITIAL_FEES, INITIAL_ASSIGNMENTS 
+import {
+  INITIAL_STUDENTS, INITIAL_TUTORS, INITIAL_FEES, INITIAL_ASSIGNMENTS,
+  INITIAL_REVIEWS, INITIAL_MESSAGES, INITIAL_TESTS
 } from "./data";
-import { Student, Tutor, FeePayment, Assignment } from "./types";
+import { Student, Tutor, FeePayment, Assignment, Review, Message, TestScore } from "./types";
 
 export default function App() {
-  // Navigation / Roles tracker state
-  const [currentRole, setCurrentRole] = useState<
-    "landing" | "login_select" | "student" | "parent" | "tutor" | "admin"
-  >("landing");
+  const navigate = useNavigate();
 
   // Global Memory state allowing bidirectional edits in-sandbox
   const [studentsState, setStudentsState] = useState<Student[]>(INITIAL_STUDENTS);
   const [tutorsState, setTutorsState] = useState<Tutor[]>(INITIAL_TUTORS);
   const [feesState, setFeesState] = useState<FeePayment[]>(INITIAL_FEES);
   const [assignmentsState, setAssignmentsState] = useState<Assignment[]>(INITIAL_ASSIGNMENTS);
+  const [reviewsState] = useState<Review[]>(INITIAL_REVIEWS);
+  const [messagesState, setMessagesState] = useState<Message[]>(INITIAL_MESSAGES);
+  const [testsState, setTestsState] = useState<TestScore[]>(INITIAL_TESTS);
 
   // Authentication Context trackers
   const [activeStudentId, setActiveStudentId] = useState("ST-101");
   const [activeParentEmail, setActiveParentEmail] = useState("parent@example.com");
+  const [activeTutorId, setActiveTutorId] = useState("T-201");
 
   // Standard dropdown selections state from Navbar/Hero
   const [activeStandard, setActiveStandard] = useState("9th Class");
@@ -48,7 +51,7 @@ export default function App() {
   const handleRegisterSuccess = (email: string, pass: string, childName: string, childGrade: string) => {
     // Add parent credentials to lookup registry
     setRegisteredParents([...registeredParents, { email, pass }]);
-    
+
     // Inject the new student child dynamically to student state
     const nextId = `ST-${100 + studentsState.length + 1}`;
     const newStudent: Student = {
@@ -101,7 +104,7 @@ export default function App() {
       const match = studentsState.find((s) => s.id.toLowerCase() === userId.toLowerCase());
       if (match) {
         setActiveStudentId(match.id);
-        setCurrentRole("student");
+        navigate("/student");
       } else {
         alert("Student ID not found in institutional rosters. Try ST-101 or ST-102!");
       }
@@ -112,9 +115,9 @@ export default function App() {
       if (matchChild) {
         setActiveStudentId(matchChild.id);
       }
-      setCurrentRole("parent");
+      navigate("/parent");
     } else {
-      setCurrentRole(role);
+      navigate(`/${role}`);
     }
   };
 
@@ -125,20 +128,19 @@ export default function App() {
       setActiveParentEmail("parent@example.com");
       setActiveStudentId("ST-102"); // Mrs. Henderson child (Leo)
     }
-    setCurrentRole(role);
+    navigate(`/${role}`);
   };
 
   // Get matching current logged in Student
   const currentStudent = studentsState.find((s) => s.id === activeStudentId) || studentsState[0];
+  const currentTutor = tutorsState.find((t) => t.id === activeTutorId) || tutorsState[0];
 
   return (
     <ThemeProvider>
       <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 dark:bg-[#0b1329] dark:text-slate-100 transition-colors duration-300">
-        
+
         {/* Sticky Global Top Header */}
-        <Navbar 
-          currentRole={currentRole}
-          onRoleChange={setCurrentRole}
+        <Navbar
           onOpenRegister={() => setRegisterOpen(true)}
           activeStandard={activeStandard}
           onSelectStandard={setActiveStandard}
@@ -146,70 +148,87 @@ export default function App() {
 
         {/* Dynamic Route Rendering Grid with Fade transitions */}
         <main className="flex-grow">
-          {currentRole === "landing" && (
-            <div className="animate-fade-in">
-              <Hero 
-                onRoleChange={setCurrentRole}
-                selectedStandard={activeStandard}
-                onSelectStandard={setActiveStandard}
+          <Routes>
+            {/* Landing Page */}
+            <Route path="/" element={
+              <div className="animate-fade-in">
+                <Hero
+                  onRoleChange={(role) => navigate(role === "login_select" ? "/login" : role === "parent" ? "/parent" : "/")}
+                  selectedStandard={activeStandard}
+                  onSelectStandard={setActiveStandard}
+                />
+                <WhyChooseUs />
+                <Reviews />
+              </div>
+            } />
+
+            {/* Login Gateway */}
+            <Route path="/login" element={
+              <LoginGateway
+                onLoginSuccess={handleLoginSuccess}
+                onOpenRegister={() => setRegisterOpen(true)}
+                registeredParents={registeredParents}
               />
-              <WhyChooseUs />
-              <Reviews />
-            </div>
-          )}
+            } />
 
-          {currentRole === "login_select" && (
-            <LoginGateway 
-              onLoginSuccess={handleLoginSuccess}
-              onOpenRegister={() => setRegisterOpen(true)}
-              registeredParents={registeredParents}
-            />
-          )}
+            {/* Student Dashboard */}
+            <Route path="/student" element={
+              <StudentDashboard
+                currentStudent={currentStudent}
+                onLogout={() => navigate("/login")}
+              />
+            } />
 
-          {currentRole === "student" && (
-            <StudentDashboard 
-              currentStudent={currentStudent}
-              onLogout={() => setCurrentRole("login_select")}
-            />
-          )}
+            {/* Parent Dashboard */}
+            <Route path="/parent" element={
+              <ParentDashboard
+                students={studentsState}
+                tutors={tutorsState}
+                fees={feesState}
+                onUpdateFees={setFeesState}
+                onUpdateStudents={setStudentsState}
+                onLogout={() => navigate("/login")}
+              />
+            } />
 
-          {currentRole === "parent" && (
-            <ParentDashboard 
-              students={studentsState}
-              tutors={tutorsState}
-              fees={feesState}
-              onUpdateFees={setFeesState}
-              onUpdateStudents={setStudentsState}
-              onLogout={() => setCurrentRole("login_select")}
-            />
-          )}
+            {/* Tutor Dashboard */}
+            <Route path="/tutor" element={
+              <TutorDashboard
+                currentTutor={currentTutor}
+                students={studentsState}
+                assignments={assignmentsState}
+                reviews={reviewsState}
+                messages={messagesState}
+                tests={testsState}
+                onUpdateStudents={setStudentsState}
+                onUpdateAssignments={setAssignmentsState}
+                onUpdateMessages={setMessagesState}
+                onUpdateTests={setTestsState}
+                onLogout={() => navigate("/login")}
+              />
+            } />
 
-          {currentRole === "tutor" && (
-            <TutorDashboard 
-              students={studentsState}
-              assignments={assignmentsState}
-              onUpdateStudents={setStudentsState}
-              onUpdateAssignments={setAssignmentsState}
-              onLogout={() => setCurrentRole("login_select")}
-            />
-          )}
+            {/* Admin Dashboard */}
+            <Route path="/admin" element={
+              <AdminDashboard
+                students={studentsState}
+                tutors={tutorsState}
+                fees={feesState}
+                onBypassLogin={handleBypassLogin}
+                onLogout={() => navigate("/login")}
+              />
+            } />
 
-          {currentRole === "admin" && (
-            <AdminDashboard 
-              students={studentsState}
-              tutors={tutorsState}
-              fees={feesState}
-              onBypassLogin={handleBypassLogin}
-              onLogout={() => setCurrentRole("login_select")}
-            />
-          )}
+            {/* Catch-all: redirect to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </main>
 
         {/* Global Footer info bar layout */}
-        <Footer onRoleChange={setCurrentRole} />
+        <Footer />
 
         {/* Dynamic Modal Registrations */}
-        <RegisterModal 
+        <RegisterModal
           isOpen={registerOpen}
           onClose={() => setRegisterOpen(false)}
           onRegisterSuccess={handleRegisterSuccess}

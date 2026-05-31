@@ -4,13 +4,12 @@
  */
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { BookOpen, Phone, MapPin, Mail, Instagram, Youtube, HelpCircle, Shield, FileText } from "lucide-react";
 
-interface FooterProps {
-  onRoleChange: (role: "landing" | "student" | "parent" | "tutor" | "admin" | "login_select") => void;
-}
+export function Footer() {
+  const navigate = useNavigate();
 
-export function Footer({ onRoleChange }: FooterProps) {
   return (
     <footer id="footer" className="bg-slate-900 text-white dark:bg-slate-950 border-t border-slate-800 pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="mx-auto max-w-7xl">
@@ -18,7 +17,7 @@ export function Footer({ onRoleChange }: FooterProps) {
           
           {/* Logo brand & text (Col 4) */}
           <div className="md:col-span-4 space-y-4 text-left">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => onRoleChange("landing")}>
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 shadow-md">
                 <BookOpen className="h-5 w-5 text-slate-950" />
               </div>
@@ -64,11 +63,11 @@ export function Footer({ onRoleChange }: FooterProps) {
                 <FileText className="h-3.5 w-3.5 text-sky-400" />
                 <span>Terms of Service</span>
               </a>
-              <a href="#" onClick={(e) => { e.preventDefault(); onRoleChange("landing"); }} className="hover:text-white flex items-center gap-1.5 transition-colors">
+              <a href="#" onClick={(e) => { e.preventDefault(); navigate("/"); }} className="hover:text-white flex items-center gap-1.5 transition-colors">
                 <HelpCircle className="h-3.5 w-3.5 text-sky-400" />
                 <span>About Us</span>
               </a>
-              <a href="#" onClick={(e) => { e.preventDefault(); onRoleChange("login_select"); }} className="hover:text-white flex items-center gap-1.5 transition-colors">
+              <a href="#" onClick={(e) => { e.preventDefault(); navigate("/login"); }} className="hover:text-white flex items-center gap-1.5 transition-colors">
                 <BookOpen className="h-3.5 w-3.5 text-sky-400" />
                 <span>Tutors Registry</span>
               </a>
