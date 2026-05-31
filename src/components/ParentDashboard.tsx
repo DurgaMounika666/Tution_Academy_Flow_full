@@ -7,7 +7,8 @@ import React, { useState } from "react";
 import { 
   Users, MapPin, PhoneCall, DollarSign, CheckCircle2, AlertCircle, 
   HelpCircle, ChevronRight, BookOpen, GraduationCap, Clock, PlusCircle,
-  TrendingUp, CreditCard, Sparkles, X, ToggleLeft, ArrowRight
+  TrendingUp, CreditCard, Sparkles, X, ToggleLeft, ArrowRight,
+  MessageSquare, Bell, Settings, Award, Calendar, FileText, User, LayoutDashboard, Send
 } from "lucide-react";
 import { Student, Tutor, FeePayment } from "../types";
 import { SUBJECTS_BY_CLASS, STANDARDS, LOCATIONS } from "../data";
@@ -26,8 +27,11 @@ export function ParentDashboard({
 }: ParentDashboardProps) {
   
   // Choose which child is viewing
-  const [selectedStudentId, setSelectedStudentId] = useState("ST-102"); // Leo Henderson by default
+  const [selectedStudentId, setSelectedStudentId] = useState("ST-101"); // Default to ST-101 (Alex Johnson) or first available
   const activeStudent = students.find((s) => s.id === selectedStudentId) || students[0];
+
+  // Active Tab/Menu state for the Sidebar
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
 
   // Roll out subjects Wizard State
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -162,223 +166,291 @@ export function ParentDashboard({
 
   // Get children from user's standard lists
   const currentChildFees = fees.filter((f) => f.studentId === activeStudent.id);
+  const pendingFeesAmount = currentChildFees.filter(f => f.status === "Pending").reduce((acc, curr) => acc + curr.amount, 0);
+  const paidFeesAmount = currentChildFees.filter(f => f.status === "Paid").reduce((acc, curr) => acc + curr.amount, 0);
+
   const activeStudentTutors = tutors.filter((t) => activeStudent.assignedTutorIds.includes(t.id));
 
+  // Predefined parent name from greeting mockup
+  const parentName = "Robert Johnson";
+
+  // Sidebar Menu Items
+  const sidebarItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "my-child", label: "My Child", icon: User },
+    { id: "attendance", label: "Attendance", icon: Clock },
+    { id: "results", label: "Results", icon: Award },
+    { id: "fees", label: "Fee Payments", icon: DollarSign },
+    { id: "tutors", label: "Tutor Details", icon: BookOpen },
+    { id: "schedule", label: "Schedule", icon: Calendar },
+    { id: "messages", label: "Messages", icon: MessageSquare },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "support", label: "Support", icon: HelpCircle },
+    { id: "profile", label: "Profile", icon: User },
+    { id: "settings", label: "Settings", icon: Settings },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8 transition-colors duration-300">
-      <div className="mx-auto max-w-7xl space-y-6 text-left">
-        
-        {/* Portal Greeting Board */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/45 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider">
-              <Users className="h-4.5 w-4.5" />
-              <span>Parent Central Dashboard</span>
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-1">Hello, Academy Flow Parent!</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Manage learning pathways, inspect results, and configure customized coaching profiles live.</p>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
+      
+      {/* Sidebar Navigation */}
+      <aside className="w-full md:w-64 bg-[#3f2115] dark:bg-[#20100a] text-amber-50 flex flex-col justify-between p-5 border-r border-[#4e2c1e] shrink-0">
+        <div className="space-y-6">
+          {/* Logo Brand Header */}
+          <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
+            <span className="p-2 bg-[#f27a3d] rounded-xl text-white shadow-lg">
+              <Users className="h-5 w-5" />
+            </span>
+            <span className="font-extrabold text-sm tracking-widest text-white uppercase">
+              Institution CRM
+            </span>
           </div>
 
-          <div className="flex gap-2">
+          {/* Navigation Links */}
+          <nav className="space-y-1 text-left">
+            {sidebarItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    if (item.id === "support") {
+                      // Trigger support or alert
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
+                    isActive 
+                      ? "bg-[#f27a3d] text-white shadow-md transform scale-[1.02]" 
+                      : "text-amber-200/70 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Icon className="h-4.5 w-4.5 shrink-0" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* User Card Profile Footer */}
+        <div className="pt-4 border-t border-white/10 mt-6 flex items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-9 rounded-full bg-[#f27a3d]/20 text-[#f27a3d] flex items-center justify-center font-bold text-sm border border-[#f27a3d]/30">
+              RJ
+            </div>
+            <div>
+              <p className="text-xs font-black text-white leading-tight">{parentName}</p>
+              <p className="text-[10px] text-amber-200/50">Parent Member</p>
+            </div>
+          </div>
+          <button 
+            onClick={onLogout}
+            className="text-[10px] uppercase font-black tracking-wider text-amber-200/60 hover:text-[#f27a3d] transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Panel Content Area */}
+      <main className="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto">
+        
+        {/* Portal Greeting Board */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+              Welcome back, {parentName.split(" ")[0]} 👋
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Here's your child's progress overview.
+            </p>
+          </div>
+
+          {/* Child Selection Dropdown */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Select Child:</label>
+              <select
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-extrabold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-[#f27a3d]/20 transition-all cursor-pointer"
+              >
+                {students.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.grade})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Premium "Roll Out New Subjects" Action Button */}
             <button
-              onClick={onLogout}
-              className="rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 dark:border-slate-800 dark:text-slate-350 dark:hover:bg-slate-850 font-bold px-4 py-3 text-xs tracking-tight transition-colors"
+              onClick={() => { setWizardStep(1); setWizardOpen(true); }}
+              className="px-4.5 py-2.5 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 hover:from-sky-450 hover:to-indigo-500 font-extrabold text-white text-xs tracking-tight shadow-md hover:shadow-lg transform active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+              title="Roll out custom subjects configuration"
             >
-              Sign Out of Parent Dashboard
+              <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
+              <span>Roll Out New Subjects</span>
             </button>
           </div>
         </div>
 
         {paymentSuccessMsg && (
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 p-4 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-2">
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 p-4 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-2 text-left">
             <CheckCircle2 className="h-5 w-5 animate-pulse text-emerald-500 shrink-0" />
             <span>{paymentSuccessMsg}</span>
           </div>
         )}
 
-        {/* Child selection & Subject Rollout button bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-black uppercase text-slate-500">Pick Student Child:</span>
-            <div className="flex gap-2">
-              {students.slice(0, 2).map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedStudentId(s.id)}
-                  className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all ${
-                    selectedStudentId === s.id 
-                      ? "bg-slate-900 text-white dark:bg-sky-500 dark:text-slate-950 shadow" 
-                      : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200"
-                  }`}
-                >
-                  {s.name} ({s.grade})
-                </button>
-              ))}
+        {/* 4 Stats Cards Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+          {/* Card 1: Attendance */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Attendance</span>
+            <div className="flex items-baseline justify-between mt-2">
+              <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                {activeStudent.attendanceRate}%
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 font-bold">
+                Good
+              </span>
             </div>
           </div>
 
-          {/* CRITICAL FEATURE: "Roll out new subjects" 3D Hover/Shadow Button */}
-          <button
-            onClick={() => { setWizardStep(1); setWizardOpen(true); }}
-            className="group relative cursor-pointer px-6 py-3 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-650 hover:from-sky-450 hover:to-indigo-600 font-extrabold text-white text-xs tracking-tight shadow-[0_5px_15px_rgba(14,165,233,0.3)] hover:shadow-[0_8px_25px_rgba(14,165,233,0.5)] transform hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2"
-            title="Wizard to configure custom subject rollout configurations"
-          >
-            <Sparkles className="h-4.5 w-4.5 text-yellow-300 group-hover:rotate-12 transition-transform" />
-            <span>Roll Out New Subjects (3D Control Setup)</span>
-          </button>
+          {/* Card 2: Latest Result */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Latest Result</span>
+            <div className="flex items-baseline justify-between mt-2">
+              <span className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400">
+                A+
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 font-bold">
+                Top Rank
+              </span>
+            </div>
+          </div>
+
+          {/* Card 3: Pending Fees */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Pending Fees</span>
+            <div className="flex items-baseline justify-between mt-2">
+              <span className="text-2xl sm:text-3xl font-black text-rose-500">
+                ${pendingFeesAmount}
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-455 font-bold">
+                Due
+              </span>
+            </div>
+          </div>
+
+          {/* Card 4: Today's Class */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Today's Class</span>
+            <div className="mt-2 text-left">
+              <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white block leading-tight">
+                {activeStudent.classTimings?.[0]?.time || "10:00 AM"}
+              </span>
+              <span className="text-[10px] text-slate-500 font-bold block truncate">
+                {activeStudent.classTimings?.[0]?.subject || "Web Development"}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Inner Dashboard Layout grids */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Dashboard Panels Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
           
-          {/* LEFT: Child Stats, growth metrics and Assigned Tutors (Col 8) */}
-          <div className="lg:col-span-8 space-y-6">
+          {/* Left Column (Col-7) */}
+          <div className="lg:col-span-7 space-y-6">
             
-            {/* Child Specific Academic Logs */}
+            {/* Child Overview Details */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
-              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-400">Class Progress — {activeStudent.name}</h3>
-                  <p className="text-xs text-slate-500">Real-time attendance scores & term average grades</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 block">Attendance Rate</span>
-                  <span className="text-lg font-black text-slate-900 dark:text-white">{activeStudent.attendanceRate}%</span>
-                </div>
-              </div>
-
-              {/* Grid with GPA log history */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850">
-                  <p className="text-[10px] uppercase font-bold text-slate-450">Current Evaluation GPA</p>
-                  <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
-                    {activeStudent.results?.[activeStudent.results.length - 1]?.gpa || 3.5} / 4.0
-                  </p>
-                  <span className="text-[10px] text-emerald-600 font-bold">Excellent Standing</span>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850">
-                  <p className="text-[10px] uppercase font-bold text-slate-450">Active Courses</p>
-                  <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
-                    {activeStudent.learningSubjects.length} Courses
-                  </p>
-                  <span className="text-[10px] text-indigo-550 font-bold">Concept-Oriented Syllabus</span>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850">
-                  <p className="text-[10px] uppercase font-bold text-slate-450">School Location</p>
-                  <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
-                    #HYD Center
-                  </p>
-                  <span className="text-[10px] text-slate-500 font-bold">Telangana Regional Hub</span>
-                </div>
-              </div>
-
-              {/* Visual mini-grades table */}
-              <div className="space-y-2">
-                <p className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Grade Card results history:</p>
-                <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
-                  <table className="w-full text-left text-xs text-slate-500 dark:text-slate-400">
-                    <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase text-slate-400">
-                      <tr>
-                        <th className="px-4 py-2 border-r border-slate-100 dark:border-slate-850">Evaluation Term</th>
-                        <th className="px-4 py-2 border-r border-slate-100 dark:border-slate-850">Maths Score</th>
-                        <th className="px-4 py-2 border-r border-slate-100 dark:border-slate-850">Physics</th>
-                        <th className="px-4 py-2 border-r border-slate-100 dark:border-slate-850">Literature</th>
-                        <th className="px-4 py-2">Syllabus GPA</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-705 dark:text-slate-300">
-                      {activeStudent.results.map((res, i) => (
-                        <tr key={i}>
-                          <td className="px-4 py-2 border-r border-slate-100 dark:border-slate-850 bg-slate-50/40">{res.term}</td>
-                          <td className="px-4 py-2 border-r border-slate-100 dark:border-slate-850">{res.mathsScore || 82}%</td>
-                          <td className="px-4 py-2 border-r border-slate-100 dark:border-slate-850">{res.physicsScore || 78}%</td>
-                          <td className="px-4 py-2 border-r border-slate-100 dark:border-slate-850">{res.literatureScore || 85}%</td>
-                          <td className="px-4 py-2 text-sky-600 dark:text-sky-400">{res.gpa}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            {/* Assigned Tutors Grid */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-400">Assigned Tutors for {activeStudent.name}</h3>
-                <p className="text-xs text-slate-500">Authorized instructors coordinating lessons</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {activeStudentTutors.map((t) => (
-                  <div key={t.id} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <img 
-                        src={t.image} 
-                        alt={t.name} 
-                        className="h-10 w-10 rounded-full object-cover border border-slate-205"
-                      />
-                      <div className="text-left space-y-0.5">
-                        <h4 className="text-xs font-bold text-slate-800 dark:text-white leading-tight">{t.name}</h4>
-                        <p className="text-[10px] text-slate-500 font-medium">{t.specialty}</p>
-                      </div>
-                    </div>
-
-                    <a 
-                      href={`https://wa.me/91954239546?text=Hello%20${encodeURIComponent(t.name)}!%20This%20is%20the%20parent%20of%20${encodeURIComponent(activeStudent.name)}.`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-xl hover:bg-slate-150 dark:hover:bg-slate-800 text-emerald-600 border border-emerald-100 dark:border-emerald-950 hover:shadow"
-                      title="Enquire via WhatsApp with tutor"
-                    >
-                      <PhoneCall className="h-4 w-4" />
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
-          {/* RIGHT: Fees summary, WhatsApp Desk, policies (Col 4) */}
-          <div className="lg:col-span-4 space-y-6">
-            
-            {/* Direct Fee pay details */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-400">Tuition Invoices ledger</h3>
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Child Overview</h3>
               
-              <div className="space-y-3">
-                {currentChildFees.map((fee) => (
-                  <div key={fee.id} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-10) space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-xs font-extrabold text-slate-800 dark:text-white leading-tight">{fee.title}</h4>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Due date: {fee.dueDate}</p>
+              <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                  <div className="h-16 w-16 rounded-full bg-[#f27a3d]/10 text-[#f27a3d] border-2 border-[#f27a3d]/20 flex items-center justify-center font-extrabold text-xl overflow-hidden shadow-sm">
+                    {activeStudent.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black text-slate-900 dark:text-white leading-tight">{activeStudent.name}</h4>
+                    <p className="text-xs text-slate-500 mt-1">{activeStudent.grade} — {activeStudent.section || "STEM"}</p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">Parent Ledger Address: {activeStudent.parentEmail}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-850 shrink-0">
+                  <div className="text-center px-3.5 border-r border-slate-200 dark:border-slate-800">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Total Tests</span>
+                    <span className="text-base font-black text-slate-900 dark:text-white">18</span>
+                  </div>
+                  <div className="text-center px-3.5">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Average Score</span>
+                    <span className="text-base font-black text-emerald-600 dark:text-emerald-450">87%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Tracker Slider */}
+              <div className="space-y-2.5">
+                <div className="flex justify-between items-center text-xs font-bold">
+                  <span className="text-slate-650 dark:text-slate-350">Active Subject Modules Syllabus Progression</span>
+                  <span className="text-indigo-650 dark:text-indigo-400">75% Course Done</span>
+                </div>
+                <div className="h-2.5 w-full bg-slate-105 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                  <div className="h-full bg-gradient-to-r from-sky-400 to-[#f27a3d]" style={{ width: "75%" }} />
+                </div>
+              </div>
+
+              {/* Learning Subject breakdown list */}
+              <div className="space-y-3 pt-3">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 block">Current Registered Subjects</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {activeStudent.learningSubjects.map((subject, idx) => (
+                    <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block">{subject.name}</span>
+                        <span className="text-[10px] text-slate-500">Completed: {subject.completedWeeks} weeks</span>
                       </div>
-                      <span className={`px-2 py-0.5 text-[9px] font-black rounded-md ${
-                        fee.status === "Paid" 
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                          : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
-                      }`}>
-                        {fee.status}
+                      <span className="text-xs font-black text-[#f27a3d] bg-[#f27a3d]/10 px-2.5 py-1 rounded-lg">
+                        {subject.completedPercentage}%
                       </span>
                     </div>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-200/50 dark:border-slate-850">
+            {/* Fee Payment Section */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Fee Payment</h3>
+                <span className="text-[10px] font-bold text-slate-400">Last Payment: ${paidFeesAmount} (Paid)</span>
+              </div>
+
+              <div className="space-y-3">
+                {currentChildFees.map((fee) => (
+                  <div key={fee.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div className="text-left space-y-0.5">
+                      <h4 className="text-xs font-extrabold text-slate-800 dark:text-white leading-tight">{fee.title}</h4>
+                      <p className="text-[10px] text-slate-500">Due Date: {fee.dueDate}</p>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
                       <span className="text-sm font-black text-slate-900 dark:text-white">${fee.amount}</span>
-                      
                       {fee.status === "Pending" ? (
                         <button
                           onClick={() => handlePayFee(fee.id)}
-                          className="px-3.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-[10px] transition-transform active:scale-95 flex items-center gap-1 shadow-sm"
+                          className="px-4 py-2 bg-[#f27a3d] hover:bg-[#ff8950] text-white font-black text-xs rounded-xl shadow-sm hover:shadow active:scale-95 transition-all shrink-0 cursor-pointer"
                         >
-                          <CreditCard className="h-3 w-3" />
-                          <span>Pay tuition Now</span>
+                          Pay Now
                         </button>
                       ) : (
-                        <span className="text-[10px] text-slate-400 font-mono">ID: {fee.transactionId || "AF-0952"}</span>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-450 font-extrabold bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg">
+                          Paid
+                        </span>
                       )}
                     </div>
                   </div>
@@ -386,78 +458,190 @@ export function ParentDashboard({
               </div>
             </div>
 
-            {/* Custom WhatsApp "Talk with us" selection redirection card */}
+            {/* Tutors & Counselor WhatsApp Enquiry */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-400">Institutional WhatsApp Desk</h3>
-                <p className="text-xs text-slate-500">Pick support target to enquire with counseling staff</p>
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Institutional WhatsApp Desk</h3>
+                <p className="text-xs text-slate-550">Select support desk to enquire with counselor staff about your child's growth</p>
               </div>
 
-              <div className="space-y-2 text-xs">
-                
-                {/* Radio的选择 tab */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <button
                   type="button"
                   onClick={() => setSupportChoice("tutor")}
-                  className={`w-full p-3 rounded-xl border text-left flex justify-between items-center transition-colors ${
+                  className={`p-3.5 rounded-2xl border text-left flex justify-between items-center transition-colors ${
                     supportChoice === "tutor"
-                      ? "bg-sky-50 dark:bg-sky-950/40 border-sky-400 text-sky-700 dark:text-sky-305 font-bold"
+                      ? "bg-[#f27a3d]/5 dark:bg-[#f27a3d]/10 border-[#f27a3d] text-[#f27a3d] font-bold"
                       : "border-slate-100 hover:bg-slate-50 dark:border-slate-800 text-slate-700 dark:text-slate-350"
                   }`}
                 >
                   <div>
-                    <p className="text-xs font-bold">Tutors Enquiry Desk</p>
-                    <p className="text-[10px] opacity-70">Redirect to Counselor (+91 954239546)</p>
+                    <p className="text-xs font-bold leading-tight">Tutors Enquiry Desk</p>
+                    <p className="text-[10px] opacity-75 mt-0.5">Enquire Counselor (+91 954239546)</p>
                   </div>
                   <input
                     type="radio"
-                    name="support_tgt"
+                    name="support_segment"
                     checked={supportChoice === "tutor"}
                     onChange={() => {}}
-                    className="accent-sky-500"
+                    className="accent-[#f27a3d]"
                   />
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSupportChoice("admin")}
-                  className={`w-full p-3 rounded-xl border text-left flex justify-between items-center transition-colors ${
+                  className={`p-3.5 rounded-2xl border text-left flex justify-between items-center transition-colors ${
                     supportChoice === "admin"
-                      ? "bg-sky-50 dark:bg-sky-950/40 border-sky-400 text-sky-700 dark:text-sky-305 font-bold"
+                      ? "bg-[#f27a3d]/5 dark:bg-[#f27a3d]/10 border-[#f27a3d] text-[#f27a3d] font-bold"
                       : "border-slate-100 hover:bg-slate-50 dark:border-slate-800 text-slate-700 dark:text-slate-350"
                   }`}
                 >
                   <div>
-                    <p className="text-xs font-bold">Admin Support Desk</p>
-                    <p className="text-[10px] opacity-70">Redirect to Institute (+91 6300227011)</p>
+                    <p className="text-xs font-bold leading-tight">Admin Support Desk</p>
+                    <p className="text-[10px] opacity-75 mt-0.5">Contact Campus Desk (+91 6300227011)</p>
                   </div>
                   <input
                     type="radio"
-                    name="support_tgt"
+                    name="support_segment"
                     checked={supportChoice === "admin"}
                     onChange={() => {}}
-                    className="accent-sky-500"
+                    className="accent-[#f27a3d]"
                   />
                 </button>
-
               </div>
 
               <button
                 onClick={handleWhatsAppTalk}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow"
+                className="w-full bg-[#f27a3d] hover:bg-[#ff8950] text-white font-extrabold py-3.5 rounded-2xl text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
               >
-                <PhoneCall className="h-4 w-4" />
-                <span>Redirect & Talk With Us</span>
+                <PhoneCall className="h-4 w-4 shrink-0" />
+                <span>Enquire Counseling Staff Now</span>
               </button>
+            </div>
+
+          </div>
+
+          {/* Right Column (Col-5) */}
+          <div className="lg:col-span-5 space-y-6">
+            
+            {/* Today's Schedule Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Today's Schedule</h3>
+              
+              <div className="space-y-3">
+                {activeStudent.classTimings.length > 0 ? (
+                  activeStudent.classTimings.map((timing, idx) => (
+                    <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex items-center justify-between">
+                      <div className="text-left space-y-0.5">
+                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">{timing.subject}</span>
+                        <span className="text-[10px] text-slate-550 flex items-center gap-1">
+                          <Clock className="h-3 w-3 shrink-0 text-slate-400" />
+                          <span>{timing.day} ({timing.time})</span>
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-tight rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400">
+                        {timing.mode}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400">No classes mapped for today.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Recent Results */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Results</h3>
+              
+              <div className="space-y-3">
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">React JS Quiz</span>
+                    <span className="text-[10px] text-slate-450">May 19, 2026</span>
+                  </div>
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-55/10 px-2.5 py-1 rounded-lg">85%</span>
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">UI Principles Assessment</span>
+                    <span className="text-[10px] text-slate-455">May 18, 2026</span>
+                  </div>
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-55/10 px-2.5 py-1 rounded-lg">92%</span>
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">Python Programming basics</span>
+                    <span className="text-[10px] text-slate-455">May 16, 2026</span>
+                  </div>
+                  <span className="text-xs font-black text-emerald-650 dark:text-emerald-450 bg-emerald-55/10 px-2.5 py-1 rounded-lg">78%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages Inbox */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Messages</h3>
+              
+              <div className="space-y-3">
+                {activeStudentTutors.map((t, idx) => (
+                  <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <img src={t.image} alt={t.name} className="h-6 w-6 rounded-full object-cover" />
+                        <span className="text-xs font-black text-slate-900 dark:text-white leading-none">{t.name}</span>
+                      </div>
+                      <span className="text-[9px] text-slate-400">10:30 AM</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-350 italic font-medium">
+                      "Please ensure she completes the coursework review exercises scheduled for tomorrow morning."
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Notifications Feed */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Notifications</h3>
+              
+              <div className="space-y-2.5 text-xs">
+                <div className="flex items-start gap-2.5 p-2 border-b border-slate-100 dark:border-slate-850">
+                  <span className="h-2 w-2 bg-[#f27a3d] rounded-full shrink-0 mt-1.5" />
+                  <div>
+                    <p className="font-extrabold text-slate-800 dark:text-white">Calculus Diagnostic test scheduled on May 22</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">10:00 AM</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-2 border-b border-slate-100 dark:border-slate-850">
+                  <span className="h-2 w-2 bg-amber-500 rounded-full shrink-0 mt-1.5" />
+                  <div>
+                    <p className="font-extrabold text-slate-850 dark:text-white">Tuition fees due for the upcoming June term modules</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">Yesterday</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-2">
+                  <span className="h-2 w-2 bg-indigo-500 rounded-full shrink-0 mt-1.5" />
+                  <div>
+                    <p className="font-extrabold text-slate-850 dark:text-white">New advanced thermodynamics laboratory report assigned</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">May 18, 2026</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
           </div>
 
         </div>
 
-      </div>
+      </main>
 
-      {/* CORE FEATURE: Roll out wizard modal structure */}
+      {/* Subject Rollout Wizard Modal */}
       {wizardOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
           <div className="w-full max-w-xl bg-white dark:bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-150 dark:border-slate-800 flex flex-col">
@@ -470,7 +654,7 @@ export function ParentDashboard({
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-slate-900 dark:text-white">Subject Rollout Setup Wizard</h3>
-                  <p className="text-[10px] text-slate-500">Configure customized subjects and check fees</p>
+                  <p className="text-[10px] text-slate-550">Configure customized subjects and check fees</p>
                 </div>
               </div>
               <button 
@@ -519,7 +703,7 @@ export function ParentDashboard({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-600 block">Check Subjects to Roll Out:</label>
+                    <label className="text-xs font-extrabold text-slate-650 block text-slate-700 dark:text-slate-350">Check Subjects to Roll Out:</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {(SUBJECTS_BY_CLASS[wizardClass] || []).map((sub) => {
                         const isChecked = wizardSubjects.includes(sub);
@@ -530,13 +714,13 @@ export function ParentDashboard({
                             onClick={() => toggleSubjectSelect(sub)}
                             className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between ${
                               isChecked 
-                                ? "bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300" 
-                                : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900 text-slate-700"
+                                ? "bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-955 dark:text-indigo-300" 
+                                : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900 text-slate-700 dark:text-slate-350"
                             }`}
                           >
                             <span>{sub}</span>
                             <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
-                              isChecked ? "bg-indigo-600 border-indigo-600 text-white" : "border-slate-300"
+                              isChecked ? "bg-indigo-650 border-indigo-600 text-white" : "border-slate-300"
                             }`}>
                               {isChecked && "✓"}
                             </span>
@@ -564,7 +748,7 @@ export function ParentDashboard({
                       className={`p-6 rounded-2xl border text-left transition-all ${
                         wizardMode === "Online"
                           ? "bg-sky-50 border-sky-400 dark:bg-sky-950/40"
-                          : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900"
+                          : "border-slate-105 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900"
                       }`}
                     >
                       <span className="text-sm font-black block text-slate-950 dark:text-white">Online Digital Classroom</span>
@@ -577,7 +761,7 @@ export function ParentDashboard({
                       className={`p-6 rounded-2xl border text-left transition-all ${
                         wizardMode === "Offline"
                           ? "bg-sky-50 border-sky-400 dark:bg-sky-950/40"
-                          : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900"
+                          : "border-slate-105 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900"
                       }`}
                     >
                       <span className="text-sm font-black block text-slate-950 dark:text-white">Offline Regional Center</span>
@@ -593,7 +777,7 @@ export function ParentDashboard({
                   <div className="space-y-1">
                     <span className="text-[9px] font-extrabold uppercase text-sky-600 tracking-widest">Step 3 of 5</span>
                     <h4 className="text-base font-black text-slate-900 dark:text-white">Choose Academic Tutor</h4>
-                    <p className="text-xs text-slate-500">Select veteran instructors specialized for the target coursework.</p>
+                    <p className="text-xs text-slate-555">Select veteran instructors specialized for the target coursework.</p>
                   </div>
 
                   <div className="space-y-2">
@@ -612,7 +796,7 @@ export function ParentDashboard({
                           <img src={t.image} alt={t.name} className="h-9 w-9 rounded-full object-cover" />
                           <div>
                             <p className="text-xs font-extrabold text-slate-950 dark:text-white">{t.name}</p>
-                            <p className="text-[10px] text-slate-550">{t.specialty}</p>
+                            <p className="text-[10px] text-slate-500">{t.specialty}</p>
                           </div>
                         </div>
                         <input
@@ -682,11 +866,11 @@ export function ParentDashboard({
                         <span>Class Program Selection:</span>
                         <span className="text-indigo-600">{wizardClass}</span>
                       </div>
-                      <div className="flex justify-between text-xs font-extrabold text-slate-770 dark:text-slate-350">
+                      <div className="flex justify-between text-xs font-extrabold text-slate-705 dark:text-slate-350">
                         <span>Coaching Mode:</span>
                         <span className="uppercase text-slate-900 dark:text-white">{wizardMode}</span>
                       </div>
-                      <div className="flex justify-between text-xs font-extrabold text-slate-770 dark:text-slate-350">
+                      <div className="flex justify-between text-xs font-extrabold text-slate-705 dark:text-slate-350">
                         <span>Active Center Location:</span>
                         <span className="text-slate-905">{wizardLocation}</span>
                       </div>
@@ -708,13 +892,13 @@ export function ParentDashboard({
 
                     <div className="flex justify-between items-center text-sm font-black text-slate-950 dark:text-white">
                       <span>Total Calculated Fee:</span>
-                      <span className="text-emerald-650 dark:text-emerald-400 text-lg font-black">${computedFee}.00</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 text-lg font-black">${computedFee}.00</span>
                     </div>
                   </div>
 
                   <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3 border border-amber-205 text-left flex gap-2 items-start">
                     <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-slate-600 dark:text-slate-350 leading-relaxed font-semibold">
+                    <p className="text-[10px] text-slate-650 dark:text-slate-350 leading-relaxed font-semibold">
                       Note: Confirming payment registers the student immediately, notifies tutors, and creates a WhatsApp confirmation chat payload ready to send.
                     </p>
                   </div>

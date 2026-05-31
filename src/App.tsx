@@ -116,6 +116,9 @@ export default function App() {
         setActiveStudentId(matchChild.id);
       }
       navigate("/parent");
+    } else if (role === "tutor" && userId) {
+      setActiveTutorId(userId);
+      navigate("/tutor");
     } else {
       navigate(`/${role}`);
     }
@@ -168,6 +171,7 @@ export default function App() {
                 onLoginSuccess={handleLoginSuccess}
                 onOpenRegister={() => setRegisterOpen(true)}
                 registeredParents={registeredParents}
+                tutors={tutorsState}
               />
             } />
 
