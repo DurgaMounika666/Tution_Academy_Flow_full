@@ -24,8 +24,8 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
   const [parentPassword, setParentPassword] = useState("password");
   const [tutorEmail, setTutorEmail] = useState("elena.vance@academyflow.com");
   const [tutorPassword, setTutorPassword] = useState("password");
-  const [adminEmail, setAdminEmail] = useState("admin@example.com");
-  const [adminPassword, setAdminPassword] = useState("password");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
 
   const [activeTab, setActiveTab] = useState<"student" | "parent" | "tutor" | "admin">("student");
   const [showPassword, setShowPassword] = useState(false);
@@ -89,18 +89,27 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
 
   const handleAdminSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLoginSuccess("admin");
+    if (!adminEmail.trim() || !adminPassword.trim()) {
+      setErrorMessage("Email and Password are required parameters.");
+      return;
+    }
+    if (adminEmail.trim() === "admin@academyflow.com" && adminPassword === "admin@123") {
+      setErrorMessage("");
+      onLoginSuccess("admin");
+    } else {
+      setErrorMessage("Access Denied: Invalid administrator credentials.");
+    }
   };
 
   return (
     <div className="relative min-h-[60vh] bg-gradient-to-tr from-sky-50 to-indigo-50 dark:from-slate-950 dark:to-slate-900 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
-      
+
       {/* Decorative Orbs */}
       <div className="absolute top-10 left-10 w-72 h-72 bg-sky-300/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="mx-auto max-w-5xl w-full z-10">
-        
+
         {/* Title */}
         <div className="text-center mb-10 space-y-3">
           <span className="text-xs uppercase font-extrabold tracking-widest text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/50 px-3.5 py-1.5 rounded-full">
@@ -128,11 +137,10 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
               <button
                 key={role.id}
                 onClick={() => { setActiveTab(role.id as any); setErrorMessage(""); }}
-                className={`relative flex flex-col items-center text-center p-5 rounded-2xl border transition-all hover:scale-[1.02] shadow-sm ${
-                  isActive
-                    ? "bg-white border-sky-400 ring-2 ring-sky-400/20 dark:bg-slate-900 dark:border-sky-500"
-                    : "bg-white/60 border-slate-200/60 dark:bg-slate-950/40 dark:border-slate-800"
-                }`}
+                className={`relative flex flex-col items-center text-center p-5 rounded-2xl border transition-all hover:scale-[1.02] shadow-sm ${isActive
+                  ? "bg-white border-sky-400 ring-2 ring-sky-400/20 dark:bg-slate-900 dark:border-sky-500"
+                  : "bg-white/60 border-slate-200/60 dark:bg-slate-950/40 dark:border-slate-800"
+                  }`}
               >
                 {isActive && (
                   <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-white">
@@ -151,7 +159,7 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
 
         {/* Dynamic Form block */}
         <div className="max-w-md mx-auto bg-white dark:bg-slate-950 rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-100 dark:border-slate-800">
-          
+
           {errorMessage && (
             <div className="mb-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-lg p-3 text-xs text-rose-600 dark:text-rose-400 font-bold">
               {errorMessage}
@@ -360,7 +368,8 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
                   type="email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-55 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
+                  placeholder="example@academyflow.com"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                   required
                 />
               </div>
@@ -371,22 +380,10 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
                   type="password"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-55 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                   required
                 />
-              </div>
-
-              <div className="bg-sky-50/50 dark:bg-sky-950/30 rounded-xl p-3 border border-sky-100 dark:border-slate-900 space-y-1">
-                <span className="text-[9px] uppercase font-extrabold tracking-wider text-sky-700 dark:text-sky-300">Admin Bypass Account:</span>
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => { setAdminEmail("admin@example.com"); setAdminPassword("password"); }}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
-                  >
-                    Load Julian Vance Account (Admin)
-                  </button>
-                </div>
               </div>
 
               <button
