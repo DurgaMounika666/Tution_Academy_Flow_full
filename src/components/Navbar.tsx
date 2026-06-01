@@ -49,7 +49,7 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
     <nav className="sticky top-0 z-50 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-md dark:border-slate-800/50 dark:bg-slate-900/80 transition-colors duration-300">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          
+
           {/* Logo Brand */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 shadow-md">
@@ -59,14 +59,14 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
               <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Academy <span className="text-sky-500">Flow</span>
               </span>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Tuition & CRM Portal</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Tuitions for next generations</p>
             </div>
           </div>
 
           {/* Desktop Navigation */}
           {isLanding ? (
             <div className="hidden lg:flex items-center gap-6">
-              <button 
+              <button
                 onClick={() => navigate("/")}
                 className="text-sm font-semibold text-sky-500 dark:text-sky-400"
               >
@@ -75,11 +75,11 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
 
               {/* Class type option dropdown */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => { setClassDropdownOpen(!classDropdownOpen); setLangDropdownOpen(false); setStandardsDropdownOpen(false); }}
                   className="flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-sky-500 dark:text-slate-300 dark:hover:text-white"
                 >
-                  Classes: {selectedClassType}
+                  Mode of class
                   <ChevronDown className="h-4 w-4 opacity-70" />
                 </button>
                 {classDropdownOpen && (
@@ -99,11 +99,11 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
 
               {/* Languages dropdown */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => { setLangDropdownOpen(!langDropdownOpen); setClassDropdownOpen(false); setStandardsDropdownOpen(false); }}
                   className="flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-sky-500 dark:text-slate-300 dark:hover:text-white"
                 >
-                  Language: {selectedLang}
+                  Language
                   <ChevronDown className="h-4 w-4 opacity-70" />
                 </button>
                 {langDropdownOpen && (
@@ -120,43 +120,6 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
                   </div>
                 )}
               </div>
-
-              {/* Standards dropdown Selection */}
-              <div className="relative border-r border-slate-200 dark:border-slate-800 pr-5">
-                <button
-                  onClick={() => { setStandardsDropdownOpen(!standardsDropdownOpen); setClassDropdownOpen(false); setLangDropdownOpen(false); }}
-                  className="flex items-center gap-1 rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-semibold text-slate-800 hover:bg-sky-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  Standard: <span className="text-sky-600 dark:text-sky-400 font-bold">{activeStandard || "Select"}</span>
-                  <ChevronDown className="h-3 w-3" />
-                </button>
-                {standardsDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 max-h-80 overflow-y-auto rounded-xl border border-slate-100 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-                    <p className="px-3 py-1 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500">Pick Class Grade</p>
-                    {standards.map((std) => (
-                      <button
-                        key={std}
-                        onClick={() => handleStandardClick(std)}
-                        className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-900 ${
-                          activeStandard === std ? "bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 font-semibold" : "text-slate-700 dark:text-slate-300"
-                        }`}
-                      >
-                        {std}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <button 
-                onClick={() => {
-                  const facultyEl = document.getElementById("why-choose-us");
-                  if (facultyEl) facultyEl.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="text-sm font-medium text-slate-700 hover:text-sky-500 dark:text-slate-300 dark:hover:text-white"
-              >
-                Faculty
-              </button>
             </div>
           ) : (
             /* Dashboard status indicator */
@@ -164,7 +127,7 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
               <span className="rounded-full bg-sky-100 dark:bg-sky-950/50 px-3.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-300">
                 Logged in as: <strong className="capitalize">{currentRoleLabel} portal</strong>
               </span>
-              <button 
+              <button
                 onClick={() => navigate("/")}
                 className="text-xs font-semibold text-slate-500 hover:text-sky-500 dark:text-slate-400 dark:hover:text-white"
               >
@@ -175,31 +138,10 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
 
           {/* Right menu actions */}
           <div className="flex items-center gap-3">
-            
-            {/* Dark Mode toggle */}
-            <button
-              onClick={toggleDarkMode}
-              className="rounded-xl p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 transition-colors"
-              title="Toggle theme mode"
-            >
-              {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
-
-            {/* Quick Support Call Button */}
-            <a 
-              href="https://wa.me/6300227011"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-emerald-600 dark:border-slate-850 dark:bg-slate-950 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20"
-            >
-              <PhoneIncoming className="h-4 w-4" />
-              <span>Admin: 6300227011</span>
-            </a>
-
             {/* Auth Actions */}
             {isLanding ? (
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={onOpenRegister}
                   className="hidden md:flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 px-4 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 transition-all active:scale-95 shadow-sm"
                 >
@@ -255,9 +197,8 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
                   <button
                     key={std}
                     onClick={() => handleStandardClick(std)}
-                    className={`rounded-lg px-2.5 py-1.5 text-left text-xs ${
-                      activeStandard === std ? "bg-sky-50 dark:bg-sky-950 border border-sky-400 text-sky-600 font-bold" : "bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300"
-                    }`}
+                    className={`rounded-lg px-2.5 py-1.5 text-left text-xs ${activeStandard === std ? "bg-sky-50 dark:bg-sky-950 border border-sky-400 text-sky-600 font-bold" : "bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+                      }`}
                   >
                     {std}
                   </button>
@@ -273,9 +214,8 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
                   <button
                     key={lang}
                     onClick={() => { setSelectedLang(lang); }}
-                    className={`px-3 py-1 text-xs rounded-full font-medium ${
-                      selectedLang === lang ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                    }`}
+                    className={`px-3 py-1 text-xs rounded-full font-medium ${selectedLang === lang ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                      }`}
                   >
                     {lang}
                   </button>
