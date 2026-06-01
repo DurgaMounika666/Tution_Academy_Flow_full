@@ -8,18 +8,18 @@ import { Student, Tutor, FeePayment, Assignment } from "./types";
 export const INITIAL_TUTORS: Tutor[] = [
   {
     id: "T-201",
-    name: "Dr. Elena Vance",
+    name: "Dr. Anitha",
     specialty: "Mathematics Specialist",
-    email: "elena.vance@academyflow.com",
+    email: "anitha@academyflow.com",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAtyd2CRb90hNdYfBUMT1G-WThzLZAZF92RO58CqttTvKAeDFYdafu_oYAUYJpgv8OnQXgnlrekQojBmHtmXFFLL-np47rR8OMuEOLo_3RzeFzOve2Rtp1F5j7rEYdgOEmhacGcX4mbh2PLF1mMgDvNlqZpjTE4-jMD8v5Fj4DIWQlm_oPECHD8zCJgwMvBAHsaepCZawoKDTNECjxqnVM2A89IZOQY-G-cF96q40-pAvnLsHMj5qQn7QRRzw8uAuS5dMl2LfSYNcI",
     assignedStudentIds: ["ST-101", "ST-102", "ST-103"],
     pendingTasksCount: 14
   },
   {
     id: "T-202",
-    name: "Prof. Julian Thorne",
+    name: "Prof.Narayana",
     specialty: "Physics & Chemistry Instructor",
-    email: "julian.thorne@academyflow.com",
+    email: "Narayana@academyflow.com",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBAugtMwAAZ-BC_ggIBikD0GJg9BF89SlmEX_a1WBtclVuGPJOQcJoqW0fdlNO3p9_AUbOK50PVG_vDlX7zdd9EW_X5KDdcfS-TGIEVkIuA2e4hLSFajBXMrBBA5oiuC7XHVdorup5giu00g5VtHqOEG28xs-gMWCHnMmGF_pb69-JXYjfi88iOZwL1bN1dmgAd02rFk7PrPi7XIeBoooP9IBH03n6kSvvfweTUl1CdhxU9BoUMqFUfi8BiXV3GK4a7enHsYjp0jF4",
     assignedStudentIds: ["ST-101", "ST-102", "ST-104", "ST-105"],
     pendingTasksCount: 12
@@ -38,7 +38,7 @@ export const INITIAL_TUTORS: Tutor[] = [
 export const INITIAL_STUDENTS: Student[] = [
   {
     id: "ST-101",
-    name: "Alex Johnson",
+    name: "Abhilash",
     grade: "Grade 12",
     section: "STEM",
     attendanceRate: 85,

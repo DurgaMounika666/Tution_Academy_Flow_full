@@ -217,18 +217,6 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
                 ))}
               </div>
             </div>
-
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                const facultyEl = document.getElementById("why-choose-us");
-                if (facultyEl) facultyEl.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="w-full text-left font-medium text-slate-700 dark:text-slate-300 py-2 text-sm border-b border-slate-100 dark:border-slate-900"
-            >
-              Faculty Details
-            </button>
-
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
