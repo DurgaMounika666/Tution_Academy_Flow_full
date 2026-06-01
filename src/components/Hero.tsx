@@ -38,21 +38,21 @@ export function Hero({ onRoleChange, selectedStandard, onSelectStandard }: HeroP
     localStorage.setItem("academyflow_demo_standard", selectedStandard);
     localStorage.setItem("academyflow_demo_location", selectedLocation);
     localStorage.setItem("academyflow_demo_subjects", JSON.stringify(activeSubjects));
-    
+
     // Redirect selection details to Parent Login page
     onRoleChange("parent");
   };
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-sky-50/50 via-white to-sky-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4 py-8 sm:px-6 lg:px-8 transition-colors duration-300">
-      
+
       {/* Background Orbs */}
       <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-sky-300/20 dark:bg-sky-900/10 blur-[120px] pointer-events-none" />
       <div className="absolute top-1/2 -right-40 w-96 h-96 rounded-full bg-indigo-300/20 dark:bg-indigo-900/10 blur-[120px] pointer-events-none" />
 
       <div className="mx-auto max-w-7xl pt-4 pb-12 lg:pt-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
+
           {/* Main Copy (Col 7) */}
           <div className="lg:col-span-7 space-y-6 text-left">
             <div className="inline-flex items-center gap-2 rounded-full bg-sky-100/80 px-4 py-1.5 text-xs font-bold text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
@@ -65,7 +65,7 @@ export function Hero({ onRoleChange, selectedStandard, onSelectStandard }: HeroP
             </h1>
 
             <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-              Premium quality online & offline tuition for Classes 1st to 10th. Tailored learning paths, state-of-the-art mock dashboards, veteran faculty and a proven record of high academic excellence in <span className="font-semibold text-slate-800 dark:text-white">Hyderabad, Warangal, and Karimnagar.</span>
+              Premium quality online & offline tuition for Classes 1st to 10th. Tailored learning paths, state-of-the-art mock dashboards, veteran faculty and a proven record of high academic excellence.
             </p>
 
             <div className="flex flex-wrap gap-4 pt-2">
@@ -79,7 +79,7 @@ export function Hero({ onRoleChange, selectedStandard, onSelectStandard }: HeroP
                 <span>Get Started Now</span>
                 <ChevronRight className="h-4 w-4" />
               </button>
-              <button 
+              <button
                 onClick={() => onRoleChange("login_select")}
                 className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 backdrop-blur dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-6 py-3.5 text-sm transition-all active:scale-95 shadow-sm"
               >
@@ -93,23 +93,15 @@ export function Hero({ onRoleChange, selectedStandard, onSelectStandard }: HeroP
                 <p className="text-2xl font-black text-slate-900 dark:text-white">100%</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Concept-Oriented Syllabus</p>
               </div>
-              <div>
-                <p className="text-2xl font-black text-slate-900 dark:text-white">6300227</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Active Support Hotlines</p>
-              </div>
-              <div>
-                <p className="text-2xl font-black text-slate-900 dark:text-white">Hyderabad</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Warangal & Karimnagar Centers</p>
-              </div>
             </div>
           </div>
 
           {/* Glowing Illustration image with virtual screen overlay (Col 5) */}
           <div className="lg:col-span-5 relative flex justify-center items-center">
-            
+
             {/* Visual Frame */}
             <div className="relative w-full max-w-[420px] aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border border-white/20 hover:scale-[1.02] transition-transform duration-505 dark:border-slate-800">
-              
+
               <img
                 src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=700&q=80"
                 alt="Academy Flow Child Learning Process on modern responsive screens"
@@ -120,7 +112,7 @@ export function Hero({ onRoleChange, selectedStandard, onSelectStandard }: HeroP
               {/* Futuristic Glassmorphic overlay simulating student portal content in child's hand */}
               <div className="absolute inset-x-4 bottom-4 glass-effect dark:bg-slate-900/85 p-4 rounded-2xl border border-white/20 dark:border-slate-700/50 shadow-lg space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-widest font-extrabold text-sky-600 dark:text-sky-400">Class 1st to 10th CRM</span>
+                  <span className="text-[10px] uppercase tracking-widest font-extrabold text-sky-600 dark:text-sky-400">Class 1st to 10th</span>
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
                 </div>
                 <p className="text-xs font-bold text-slate-800 dark:text-white">Interactive Subject Progress & Growth Dashboard</p>
@@ -145,7 +137,7 @@ export function Hero({ onRoleChange, selectedStandard, onSelectStandard }: HeroP
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-            
+
             {/* Field 1: Location */}
             <div className="space-y-2">
               <label className="text-xs font-extrabold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 uppercase tracking-widest">
@@ -189,7 +181,7 @@ export function Hero({ onRoleChange, selectedStandard, onSelectStandard }: HeroP
                 <MessageSquareCode className="h-4.5 w-4.5" />
                 <span>Book a Demo</span>
               </button>
-              
+
               <button
                 onClick={handleContinueToParentLogin}
                 className="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold rounded-xl px-4 py-3 text-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow"
@@ -206,8 +198,8 @@ export function Hero({ onRoleChange, selectedStandard, onSelectStandard }: HeroP
             <p className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Active Lessons syllabus in {selectedLocation} for {selectedStandard}:</p>
             <div className="flex flex-wrap gap-2 mt-2">
               {activeSubjects.map((sub, idx) => (
-                <span 
-                  key={idx} 
+                <span
+                  key={idx}
                   className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-900 dark:text-indigo-300"
                 >
                   <BookOpen className="h-3 w-3 text-indigo-500" />
