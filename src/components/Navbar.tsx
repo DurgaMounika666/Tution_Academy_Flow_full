@@ -138,6 +138,9 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
 
           {/* Right menu actions */}
           <div className="flex items-center gap-3">
+
+
+
             {/* Auth Actions */}
             {isLanding ? (
               <div className="flex items-center gap-2">
@@ -156,15 +159,7 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
                   <span>Portal Login</span>
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={() => navigate("/login")}
-                className="flex items-center gap-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white px-4 py-2.5 text-sm font-bold transition-all active:scale-95 shadow-sm"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Switch Portal / Log Out</span>
-              </button>
-            )}
+            ) : null}
 
             {/* Mobile Hamburger toggle */}
             <button

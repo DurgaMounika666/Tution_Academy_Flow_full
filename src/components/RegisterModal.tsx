@@ -43,7 +43,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
       <div className="w-full max-w-md bg-white dark:bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-150 dark:border-slate-850 transform transition-all">
-        
+
         {/* Header */}
         <div className="bg-slate-50 dark:bg-slate-900 px-6 py-4 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
               <p className="text-[10px] text-slate-500">Sign up your child for Academy Flow training logs</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-slate-150 text-slate-400"
           >
@@ -106,7 +106,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
 
               <div className="border-t border-slate-100 my-4 pt-3 space-y-3">
                 <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Student Child Details:</p>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-slate-600">Child Full Name</label>
@@ -137,8 +137,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
 
               <button
                 type="submit"
-                className="w-full mt-4 bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:text-slate-950 font-black py-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow"
-              >
+                className="w-full mt-4 bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 text-white font-black py-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow"              >
                 <UserCheck className="h-4 w-4" />
                 <span>Confirm Registrar Enrollment</span>
               </button>
