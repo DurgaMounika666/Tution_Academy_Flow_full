@@ -4,15 +4,16 @@
  */
 
 import React, { useState } from "react";
-import { 
-  Users, MapPin, PhoneCall, DollarSign, CheckCircle2, AlertCircle, 
+import {
+  Users, MapPin, PhoneCall, DollarSign, CheckCircle2, AlertCircle,
   HelpCircle, ChevronRight, BookOpen, GraduationCap, Clock, PlusCircle,
-  TrendingUp, CreditCard, Sparkles, X, ToggleLeft, ArrowRight,
-  MessageSquare, Bell, Settings, Award, Calendar, FileText, User, LayoutDashboard, Send
+  TrendingUp, CreditCard, Sparkles, X, ArrowRight,
+  MessageSquare, Bell, Settings, Award, Calendar, FileText, User, LayoutDashboard, Send,
+  Download, Save, Edit2, Shield, Lock, Globe, Inbox, Filter, Check, Eye
 } from "lucide-react";
-import { apiClient } from "../services/apiClient";
 import { Student, Tutor, FeePayment } from "../types";
 import { SUBJECTS_BY_CLASS, STANDARDS, LOCATIONS } from "../data";
+import { useTheme } from "../context/ThemeContext";
 
 interface ParentDashboardProps {
   students: Student[];
@@ -23,24 +24,13 @@ interface ParentDashboardProps {
   onLogout: () => void;
 }
 
-export function ParentDashboard({ 
-  students, tutors, fees, onUpdateFees, onUpdateStudents, onLogout 
+export function ParentDashboard({
+  students, tutors, fees, onUpdateFees, onUpdateStudents, onLogout
 }: ParentDashboardProps) {
-  
-  // Choose which child is viewing
-  const [selectedStudentId, setSelectedStudentId] = useState("ST-101"); // Default to ST-101 (Alex Johnson) or first available
-  const activeStudent = students.find((s) => s.id === selectedStudentId) || students[0];
 
-  const normalizeFee = (apiFee: any): FeePayment => ({
-    id: apiFee.feeId || apiFee._id || apiFee.id || "",
-    studentId: apiFee.studentId || "",
-    studentName: apiFee.studentName || "",
-    title: apiFee.title || "Fee Payment",
-    amount: apiFee.amount ?? 0,
-    status: apiFee.status || "Pending",
-    dueDate: apiFee.dueDate || new Date().toISOString().split("T")[0],
-    transactionId: apiFee.transactionId
-  });
+  // Choose which child is viewing
+  const [selectedStudentId, setSelectedStudentId] = useState("ST-101"); // Default to ST-101 (Abhilash) or first available
+  const activeStudent = students.find((s) => s.id === selectedStudentId) || students[0];
 
   // Active Tab/Menu state for the Sidebar
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -59,24 +49,16 @@ export function ParentDashboard({
 
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState("");
 
-  const handlePayFee = async (feeId: string) => {
-    try {
-      const transactionId = `AF-TXN-${Math.floor(10000 + Math.random() * 90000)}`;
-      const paid = await apiClient.fees.markAsPaid(feeId, transactionId, "Card");
-      const updated = fees.map((f) => {
-        if (f.id === feeId) {
-          return normalizeFee(paid);
-        }
-        return f;
-      });
-      onUpdateFees(updated);
-      setPaymentSuccessMsg("Invoice payment processed successfully! Checkout complete.");
-      setTimeout(() => setPaymentSuccessMsg(""), 4000);
-    } catch (error) {
-      console.warn("Unable to mark fee as paid", error);
-      setPaymentSuccessMsg("Unable to process payment. Try again later.");
-      setTimeout(() => setPaymentSuccessMsg(""), 4000);
-    }
+  const handlePayFee = (feeId: string) => {
+    const updated = fees.map((f) => {
+      if (f.id === feeId) {
+        return { ...f, status: "Paid" as const, transactionId: `AF-TXN-${Math.floor(10000 + Math.random() * 90000)}` };
+      }
+      return f;
+    });
+    onUpdateFees(updated);
+    setPaymentSuccessMsg("Invoice payment processed successfully! Checkout complete.");
+    setTimeout(() => setPaymentSuccessMsg(""), 4000);
   };
 
   // Compute pricing
@@ -91,85 +73,83 @@ export function ParentDashboard({
     }
   };
 
-  const handleResolveWizard = async () => {
+  const handleResolveWizard = () => {
     if (wizardSubjects.length === 0) {
       alert("Please check at least one learning subject.");
       return;
     }
 
-    try {
-      await apiClient.students.addSubjects(selectedStudentId, wizardSubjects);
-      await apiClient.students.assignTutor(selectedStudentId, wizardTutorId);
+    // Update student's subjects list
+    const updatedStudents = students.map((s) => {
+      if (s.id === selectedStudentId) {
+        const currentSubs = s.learningSubjects.map((sub) => sub.name);
+        const nextSubsObj = [...s.learningSubjects];
 
-      const updatedStudents = students.map((s) => {
-        if (s.id === selectedStudentId) {
-          const currentSubs = s.learningSubjects.map((sub) => sub.name);
-          const nextSubsObj = [...s.learningSubjects];
+        wizardSubjects.forEach((sub) => {
+          if (!currentSubs.includes(sub)) {
+            nextSubsObj.push({
+              name: sub,
+              completedPercentage: 0,
+              completedWeeks: 0
+            });
+          }
+        });
 
-          wizardSubjects.forEach((sub) => {
-            if (!currentSubs.includes(sub)) {
-              nextSubsObj.push({
-                name: sub,
-                completedPercentage: 0,
-                completedWeeks: 0
-              });
-            }
-          });
+        // Add class timings for the subject
+        const nextTimings = [...s.classTimings];
+        wizardSubjects.forEach((sub) => {
+          if (!nextTimings.find(t => t.subject === sub)) {
+            nextTimings.push({
+              subject: sub,
+              time: "03:30 PM",
+              day: "Monday, Thursday",
+              mode: wizardMode
+            });
+          }
+        });
 
-          const nextTimings = [...s.classTimings];
-          wizardSubjects.forEach((sub) => {
-            if (!nextTimings.find(t => t.subject === sub)) {
-              nextTimings.push({
-                subject: sub,
-                time: "03:30 PM",
-                day: "Monday, Thursday",
-                mode: wizardMode
-              });
-            }
-          });
+        return {
+          ...s,
+          learningSubjects: nextSubsObj,
+          classTimings: nextTimings
+        };
+      }
+      return s;
+    });
 
-          return {
-            ...s,
-            learningSubjects: nextSubsObj,
-            classTimings: nextTimings
-          };
-        }
-        return s;
-      });
+    onUpdateStudents(updatedStudents);
 
-      onUpdateStudents(updatedStudents);
+    // Dynamic fee entry addition to state
+    const newInvoice: FeePayment = {
+      id: `FP-NEW-${Math.floor(1000 + Math.random() * 9000)}`,
+      studentId: selectedStudentId,
+      studentName: activeStudent.name,
+      title: `Rollout: ${wizardSubjects.join(", ")} (${wizardClass})`,
+      amount: computedFee,
+      status: "Paid", // automatically paid in simulation
+      dueDate: "2026-06-30",
+      transactionId: `AF-AUTO-${Math.floor(50000 + Math.random() * 49999)}`
+    };
 
-      const newInvoice: FeePayment = {
-        id: `FP-NEW-${Math.floor(1000 + Math.random() * 9000)}`,
-        studentId: selectedStudentId,
-        studentName: activeStudent.name,
-        title: `Rollout: ${wizardSubjects.join(", ")} (${wizardClass})`,
-        amount: computedFee,
-        status: "Paid",
-        dueDate: "2026-06-30",
-        transactionId: `AF-AUTO-${Math.floor(50000 + Math.random() * 49999)}`
-      };
+    onUpdateFees([newInvoice, ...fees]);
 
-      onUpdateFees([newInvoice, ...fees]);
+    // Simulate WhatsApp message receipt for registration confirmation:
+    const tutorObj = tutors.find(t => t.id === wizardTutorId) || tutors[0];
+    const textMsg = encodeURIComponent(
+      `Hello Academy Flow institution! I am parent of ${activeStudent.name}. We bought a new subject module: ${wizardSubjects.join(", ")} for class: ${wizardClass}. Selection mode: ${wizardMode}. Assigned Tutor: ${tutorObj.name}, Location center: ${wizardLocation}. Calculated tuition fee total: $${computedFee}. Confirmed details.`
+    );
+    const waUrl = `https://wa.me/916300227011?text=${textMsg}`;
 
-      const tutorObj = tutors.find(t => t.id === wizardTutorId) || tutors[0];
-      const textMsg = encodeURIComponent(
-        `Hello Academy Flow institution! I am parent of ${activeStudent.name}. We bought a new subject module: ${wizardSubjects.join(", ")} for class: ${wizardClass}. Selection mode: ${wizardMode}. Assigned Tutor: ${tutorObj.name}, Location center: ${wizardLocation}. Calculated tuition fee total: $${computedFee}. Confirmed details.`
-      );
-      const waUrl = `https://wa.me/916300227011?text=${textMsg}`;
+    setWizardOpen(false);
+    setWizardStep(1);
+    setWizardSubjects([]);
 
-      setWizardOpen(false);
-      setWizardStep(1);
-      setWizardSubjects([]);
-      setPaymentSuccessMsg(`Success! Rollout registered and tuition receipt created. Redirecting receipt confirmation to Whatsapp.`);
-      setTimeout(() => {
-        setPaymentSuccessMsg("");
-        window.open(waUrl, "_blank");
-      }, 3000);
-    } catch (error) {
-      console.warn("Unable to resolve wizard subjects", error);
-      alert("There was a problem registering the selected subjects. Please try again.");
-    }
+    // Toast success and redirect to WA
+    setPaymentSuccessMsg(`Success! Rollout registered and tuition receipt created. Redirecting receipt confirmation to Whatsapp.`);
+    setTimeout(() => {
+      setPaymentSuccessMsg("");
+      window.open(waUrl, "_blank");
+    }, 3000);
   };
 
   const handleWhatsAppTalk = () => {
@@ -193,8 +173,411 @@ export function ParentDashboard({
 
   const activeStudentTutors = tutors.filter((t) => activeStudent.assignedTutorIds.includes(t.id));
 
-  // Predefined parent name from greeting mockup
-  const parentName = "Robert Johnson";
+  // --- LOCAL NAVIGATION STATE DATA ---
+
+  // 1. Parent Profile state
+  const [parentProfile, setParentProfile] = useState({
+    name: "Robert Johnson",
+    email: "parent@example.com",
+    phone: "+91 6300227011",
+    address: "Flat 402, Oakwood Apartments, Gachibowli, Hyderabad",
+    relationship: "Father",
+    registrationDate: "2025-08-15"
+  });
+
+  // Edit Profile form state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState(parentProfile.name);
+  const [editPhone, setEditPhone] = useState(parentProfile.phone);
+  const [editAddress, setEditAddress] = useState(parentProfile.address);
+  const [editSuccessMsg, setEditSuccessMsg] = useState("");
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    setParentProfile((prev) => ({
+      ...prev,
+      name: editName,
+      phone: editPhone,
+      address: editAddress
+    }));
+    setIsEditingProfile(false);
+    setEditSuccessMsg("Parent Profile details updated successfully!");
+    setTimeout(() => setEditSuccessMsg(""), 4000);
+  };
+
+  // 2. Chat / Messages state
+  const [chatHistory, setChatHistory] = useState<Record<string, Array<{
+    id: string;
+    sender: "parent" | "tutor";
+    senderName: string;
+    text: string;
+    time: string;
+  }>>>({
+    "T-201": [
+      { id: "msg-1-1", sender: "tutor", senderName: "Dr. Anitha", text: "Hello Robert, Abhilash performed exceptionally well in the mathematics quiz today.", time: "10:30 AM" },
+      { id: "msg-1-2", sender: "parent", senderName: "Robert Johnson", text: "Glad to hear that! Please let me know if he needs to focus on any specific area.", time: "10:45 AM" },
+      { id: "msg-1-3", sender: "tutor", senderName: "Dr. Anitha", text: "Please ensure he completes the coursework review exercises scheduled for tomorrow morning.", time: "10:50 AM" }
+    ],
+    "T-202": [
+      { id: "msg-2-1", sender: "tutor", senderName: "Prof. Narayana", text: "Hi Robert, just wanted to update you that physics homework submission is pending.", time: "Yesterday" }
+    ],
+    "T-203": [
+      { id: "msg-3-1", sender: "tutor", senderName: "Mr. Anand Kumar", text: "Hi Robert, the advanced data structures logic files have been uploaded.", time: "2 days ago" }
+    ]
+  });
+
+  const [selectedChatTutorId, setSelectedChatTutorId] = useState("T-201");
+  const [chatSearch, setChatSearch] = useState("");
+  const [newMessageText, setNewMessageText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessageText.trim()) return;
+
+    const tutorObj = tutors.find(t => t.id === selectedChatTutorId) || tutors[0];
+    const userMsg = {
+      id: `msg-user-${Date.now()}`,
+      sender: "parent" as const,
+      senderName: parentProfile.name,
+      text: newMessageText,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatHistory(prev => ({
+      ...prev,
+      [selectedChatTutorId]: [...(prev[selectedChatTutorId] || []), userMsg]
+    }));
+    setNewMessageText("");
+    setIsTyping(true);
+
+    // Simulate tutor automated encouraging reply
+    setTimeout(() => {
+      setIsTyping(false);
+      const tutorReply = {
+        id: `msg-tutor-reply-${Date.now()}`,
+        sender: "tutor" as const,
+        senderName: tutorObj.name,
+        text: `Thank you for reaching out, Robert. I have received your message regarding ${activeStudent.name}. I will review this during my active office slot and reply in detail as soon as possible.`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setChatHistory(prev => ({
+        ...prev,
+        [selectedChatTutorId]: [...(prev[selectedChatTutorId] || []), tutorReply]
+      }));
+    }, 1500);
+  };
+
+  // 3. Support Tickets state
+  const [tickets, setTickets] = useState<Array<{
+    id: string;
+    category: string;
+    subject: string;
+    description: string;
+    priority: string;
+    status: "Open" | "Resolved";
+    date: string;
+  }>>([
+    { id: "TCK-8812", category: "Billing", subject: "April Tuition receipt not generated", description: "I paid the April tuition fees but the system has not generated the PDF receipt.", priority: "Medium", status: "Resolved", date: "2026-05-15" }
+  ]);
+  const [ticketCategory, setTicketCategory] = useState("Academic");
+  const [ticketPriority, setTicketPriority] = useState("Medium");
+  const [ticketSubject, setTicketSubject] = useState("");
+  const [ticketDescription, setTicketDescription] = useState("");
+  const [ticketSuccessMsg, setTicketSuccessMsg] = useState("");
+
+  const handleRaiseTicket = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketSubject.trim() || !ticketDescription.trim()) {
+      alert("Please fill in the subject and description of your issue.");
+      return;
+    }
+    const newTicket = {
+      id: `TCK-${Math.floor(1000 + Math.random() * 9000)}`,
+      category: ticketCategory,
+      subject: ticketSubject,
+      description: ticketDescription,
+      priority: ticketPriority,
+      status: "Open" as const,
+      date: new Date().toISOString().split('T')[0]
+    };
+    setTickets([newTicket, ...tickets]);
+    setTicketSubject("");
+    setTicketDescription("");
+    setTicketSuccessMsg(`Support Ticket ${newTicket.id} raised successfully! Staff will reach out soon.`);
+    setTimeout(() => setTicketSuccessMsg(""), 5000);
+  };
+
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  // 4. Notifications state
+  const [notifications, setNotifications] = useState([
+    { id: "notif-1", title: "Calculus Diagnostic test scheduled on June 12", description: "Chapter 4 - Induction & limits diagnostic test will begin at 09:00 AM.", time: "10:00 AM", read: false, type: "exam" },
+    { id: "notif-2", title: "Tuition fees due for the upcoming June term modules", description: "Please clear the outstanding dues before June 15 to avoid registration holds.", time: "Yesterday", read: false, type: "billing" },
+    { id: "notif-3", title: "New advanced thermodynamics laboratory report assigned", description: "Physics lab report due on June 10 has been updated in resources.", time: "May 18, 2026", read: true, type: "assignment" }
+  ]);
+  const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
+
+  const toggleReadNotif = (notifId: string) => {
+    setNotifications(notifications.map(n => {
+      if (n.id === notifId) {
+        return { ...n, read: !n.read };
+      }
+      return n;
+    }));
+  };
+
+  const markAllNotifRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+
+  // 5. Settings preferences
+  const [emailNotifs, setEmailNotifs] = useState(true);
+  const [whatsappNotifs, setWhatsappNotifs] = useState(true);
+  const [smsNotifs, setSmsNotifs] = useState(false);
+  const [twoFactor, setTwoFactor] = useState(false);
+  const [preferredLang, setPreferredLang] = useState("English");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [settingsSuccessMsg, setSettingsSuccessMsg] = useState("");
+
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      alert("Please fill in all password fields.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert("New password and confirm password do not match.");
+      return;
+    }
+    setSettingsSuccessMsg("Password updated successfully!");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setTimeout(() => setSettingsSuccessMsg(""), 4000);
+  };
+
+  // 6. Results tab report card downloading state
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [downloadMsg, setDownloadMsg] = useState("");
+
+  const handleDownloadReport = () => {
+    setDownloadingReport(true);
+    setDownloadMsg("Generating report card transcript PDF...");
+    setTimeout(() => {
+      setDownloadMsg("Finalizing download signatures...");
+      setTimeout(() => {
+        setDownloadingReport(false);
+        setDownloadMsg("");
+        alert(`Report Card for ${activeStudent.name} downloaded successfully! (Simulated PDF)`);
+      }, 1000);
+    }, 1200);
+  };
+
+  // 7. Schedule tab calendar state
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(2); // Default to June 2nd
+
+  // 8. Theme control
+  const { darkMode, toggleDarkMode } = useTheme();
+
+  // --- PAYMENT METHOD & RECEIPTS STATES ---
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentSelectedInvoiceId, setPaymentSelectedInvoiceId] = useState("");
+  const [paymentInvoiceNumber, setPaymentInvoiceNumber] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentMethod, setPaymentMethod] = useState<"UPI" | "Credit Card" | "Debit Card" | "Net Banking" | "Wallet">("Credit Card");
+
+  // Card Inputs
+  const [cardHolderName, setCardHolderName] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+
+  // UPI Inputs
+  const [upiId, setUpiId] = useState("robert@upi");
+
+  // Net Banking & Wallet Inputs
+  const [selectedBank, setSelectedBank] = useState("HDFC Bank");
+  const [selectedWallet, setSelectedWallet] = useState("Google Pay");
+
+  // Validation Errors
+  const [paymentErrors, setPaymentErrors] = useState<Record<string, string>>({});
+
+  // Success Popup States
+  const [paymentSuccessPopupOpen, setPaymentSuccessPopupOpen] = useState(false);
+  const [latestTxnId, setLatestTxnId] = useState("");
+
+  // Receipt Modal States
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<{
+    studentName: string;
+    parentName: string;
+    transactionId: string;
+    amountPaid: number;
+    paymentMethod: string;
+    paymentDate: string;
+    paymentStatus: string;
+    invoiceTitle: string;
+  } | null>(null);
+
+  const [paymentHistory, setPaymentHistory] = useState<Array<{
+    transactionId: string;
+    studentName: string;
+    parentName: string;
+    invoiceId: string;
+    invoiceTitle: string;
+    amount: number;
+    paymentMethod: string;
+    date: string;
+    status: string;
+  }>>([
+    {
+      transactionId: "AF-TXN-88219",
+      studentName: "Abhilash",
+      parentName: "Robert Johnson",
+      invoiceId: "FP-503",
+      invoiceTitle: "May Tuition",
+      amount: 1500,
+      paymentMethod: "Credit Card",
+      date: "2026-05-30",
+      status: "Success"
+    },
+    {
+      transactionId: "AF-TXN-12940",
+      studentName: "Abhilash",
+      parentName: "Robert Johnson",
+      invoiceId: "FP-501",
+      invoiceTitle: "April Tuition",
+      amount: 1200,
+      paymentMethod: "UPI",
+      date: "2026-04-28",
+      status: "Success"
+    }
+  ]);
+
+  const activeStudentPaymentHistory = paymentHistory.filter(h => h.studentName.toLowerCase() === activeStudent.name.toLowerCase());
+
+  const validatePaymentForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!paymentInvoiceNumber.trim()) {
+      errors.invoiceNumber = "Invoice number is required.";
+    }
+
+    if (paymentAmount <= 0) {
+      errors.amount = "Payment amount must be greater than 0.";
+    }
+
+    if (paymentMethod === "Credit Card" || paymentMethod === "Debit Card") {
+      if (!cardHolderName.trim()) {
+        errors.cardHolderName = "Card holder name is required.";
+      }
+      if (!/^\d{16}$/.test(cardNumber.replace(/\s+/g, ""))) {
+        errors.cardNumber = "Card number must be exactly 16 digits.";
+      }
+      if (!/^(0[1-9]|1[0-2])\/?([0-9]{2})$/.test(cardExpiry)) {
+        errors.cardExpiry = "Expiry date must be in MM/YY format.";
+      } else {
+        const parts = cardExpiry.split("/");
+        const expMonth = parseInt(parts[0], 10);
+        const expYear = parseInt("20" + parts[1], 10);
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+          errors.cardExpiry = "Card has expired.";
+        }
+      }
+      if (!/^\d{3}$/.test(cardCvv)) {
+        errors.cardCvv = "CVV must be exactly 3 digits.";
+      }
+    } else if (paymentMethod === "UPI") {
+      if (!upiId.trim() || !upiId.includes("@")) {
+        errors.upiId = "Please enter a valid UPI ID (e.g., name@upi).";
+      }
+    }
+
+    setPaymentErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleProcessPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validatePaymentForm()) return;
+
+    const txnId = `AF-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
+    setLatestTxnId(txnId);
+
+    const targetInvoiceId = paymentSelectedInvoiceId;
+    const isCustom = targetInvoiceId === "custom" || !targetInvoiceId;
+    const invoiceTitle = isCustom
+      ? `Custom Payment (${paymentInvoiceNumber})`
+      : (fees.find(f => f.id === targetInvoiceId)?.title || "Tuition Fee");
+
+    if (!isCustom) {
+      const updatedFees = fees.map(f => {
+        if (f.id === targetInvoiceId) {
+          return { ...f, status: "Paid" as const, transactionId: txnId };
+        }
+        return f;
+      });
+      onUpdateFees(updatedFees);
+    } else {
+      const customInvoice: FeePayment = {
+        id: paymentInvoiceNumber,
+        studentId: activeStudent.id,
+        studentName: activeStudent.name,
+        title: invoiceTitle,
+        amount: paymentAmount,
+        status: "Paid",
+        dueDate: paymentDate,
+        transactionId: txnId
+      };
+      onUpdateFees([customInvoice, ...fees]);
+    }
+
+    const newHistoryRecord = {
+      transactionId: txnId,
+      studentName: activeStudent.name,
+      parentName: parentProfile.name,
+      invoiceId: isCustom ? paymentInvoiceNumber : targetInvoiceId,
+      invoiceTitle: invoiceTitle,
+      amount: paymentAmount,
+      paymentMethod: paymentMethod,
+      date: paymentDate,
+      status: "Success"
+    };
+    setPaymentHistory([newHistoryRecord, ...paymentHistory]);
+
+    // Clear Modal inputs
+    setCardHolderName("");
+    setCardNumber("");
+    setCardExpiry("");
+    setCardCvv("");
+    setPaymentSelectedInvoiceId("");
+    setPaymentInvoiceNumber("");
+    setPaymentAmount(0);
+
+    setIsPaymentModalOpen(false);
+    setPaymentSuccessPopupOpen(true);
+  };
+
+  // Mock static attendance log history for the selected student
+  const attendanceLogs = [
+    { date: "2026-06-01", subject: "Advanced Mathematics", type: "Online", status: "Present", remarks: "Attended full session" },
+    { date: "2026-05-29", subject: "Quantum Physics", type: "Online", status: "Present", remarks: "Active participation" },
+    { date: "2026-05-28", subject: "Comp Sci Principles", type: "Offline", status: "Absent", remarks: "Medical leave notified" },
+    { date: "2026-05-27", subject: "Advanced Mathematics", type: "Online", status: "Present", remarks: "On time" },
+    { date: "2026-05-26", subject: "Quantum Physics", type: "Online", status: "Present", remarks: "Completed quiz during class" },
+    { date: "2026-05-25", subject: "Advanced Mathematics", type: "Online", status: "Present", remarks: "Attended full session" },
+    { date: "2026-05-22", subject: "Comp Sci Principles", type: "Offline", status: "Present", remarks: "Good performance" },
+    { date: "2026-05-21", subject: "Quantum Physics", type: "Online", status: "Present", remarks: "Engaged in discussion" },
+    { date: "2026-05-20", subject: "Advanced Mathematics", type: "Online", status: "Absent", remarks: "Unexcused absence" },
+    { date: "2026-05-19", subject: "Quantum Physics", type: "Online", status: "Present", remarks: "On time" }
+  ];
 
   // Sidebar Menu Items
   const sidebarItems = [
@@ -212,9 +595,1757 @@ export function ParentDashboard({
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
+  // --- DYNAMIC TABS RENDER SYSTEM ---
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return (
+          <div className="space-y-6">
+            {/* 4 Stats Cards Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+              {/* Card 1: Attendance */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Attendance</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-450">
+                    {activeStudent.attendanceRate}%
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 font-bold">
+                    Good
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 2: Latest Result */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Latest Result</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="text-2xl sm:text-3xl font-black text-indigo-650 dark:text-indigo-400">
+                    A+
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/30 text-indigo-655 dark:text-indigo-400 font-bold">
+                    Top Rank
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 3: Pending Fees */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Pending Fees</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="text-2xl sm:text-3xl font-black text-rose-500">
+                    ${pendingFeesAmount}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-455 font-bold">
+                    Due
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 4: Today's Class */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Today's Class</span>
+                <div className="mt-2 text-left">
+                  <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white block leading-tight">
+                    {activeStudent.classTimings?.[0]?.time || "10:00 AM"}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold block truncate">
+                    {activeStudent.classTimings?.[0]?.subject || "Web Development"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dashboard Panels Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
+              {/* Left Column (Col-7) */}
+              <div className="lg:col-span-7 space-y-6">
+
+                {/* Child Overview Details */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
+                  <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Child Overview</h3>
+
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                      <div className="h-16 w-16 rounded-full bg-[#f27a3d]/10 text-[#f27a3d] border-2 border-[#f27a3d]/20 flex items-center justify-center font-extrabold text-xl overflow-hidden shadow-sm">
+                        {activeStudent.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-black text-slate-900 dark:text-white leading-tight">{activeStudent.name}</h4>
+                        <p className="text-xs text-slate-500 mt-1">{activeStudent.grade} — {activeStudent.section || "STEM"}</p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-0.5">Parent Ledger Address: {activeStudent.parentEmail}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-850 shrink-0">
+                      <div className="text-center px-3.5 border-r border-slate-200 dark:border-slate-800">
+                        <span className="text-[9px] uppercase font-bold text-slate-400 block">Total Tests</span>
+                        <span className="text-base font-black text-slate-900 dark:text-white">18</span>
+                      </div>
+                      <div className="text-center px-3.5">
+                        <span className="text-[9px] uppercase font-bold text-slate-400 block">Average Score</span>
+                        <span className="text-base font-black text-emerald-600 dark:text-emerald-450">87%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress Tracker Slider */}
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-center text-xs font-bold">
+                      <span className="text-slate-650 dark:text-slate-350">Active Subject Modules Syllabus Progression</span>
+                      <span className="text-indigo-655 dark:text-indigo-400">75% Course Done</span>
+                    </div>
+                    <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                      <div className="h-full bg-gradient-to-r from-sky-400 to-[#f27a3d]" style={{ width: "75%" }} />
+                    </div>
+                  </div>
+
+                  {/* Learning Subject breakdown list */}
+                  <div className="space-y-3 pt-3">
+                    <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 block">Current Registered Subjects</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {activeStudent.learningSubjects.map((subject, idx) => (
+                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-extrabold text-slate-800 dark:text-white block">{subject.name}</span>
+                            <span className="text-[10px] text-slate-550">Completed: {subject.completedWeeks} weeks</span>
+                          </div>
+                          <span className="text-xs font-black text-[#f27a3d] bg-[#f27a3d]/10 px-2.5 py-1 rounded-lg">
+                            {subject.completedPercentage}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fee Payment Section */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Fee Payment</h3>
+                    <span className="text-[10px] font-bold text-slate-400">Last Payment: ${paidFeesAmount} (Paid)</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {currentChildFees.map((fee) => (
+                      <div key={fee.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="text-left space-y-0.5">
+                          <h4 className="text-xs font-extrabold text-slate-800 dark:text-white leading-tight">{fee.title}</h4>
+                          <p className="text-[10px] text-slate-550">Due Date: {fee.dueDate}</p>
+                        </div>
+
+                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                          <span className="text-sm font-black text-slate-900 dark:text-white">${fee.amount}</span>
+                          {fee.status === "Pending" ? (
+                            <button
+                              onClick={() => handlePayFee(fee.id)}
+                              className="px-4 py-2 bg-[#f27a3d] hover:bg-[#ff8950] text-white font-black text-xs rounded-xl shadow-sm hover:shadow active:scale-95 transition-all shrink-0 cursor-pointer"
+                            >
+                              Pay Now
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-450 font-extrabold bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg">
+                              Paid
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tutors & Counselor WhatsApp Enquiry */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                  <div>
+                    <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Institutional WhatsApp Desk</h3>
+                    <p className="text-xs text-slate-550">Select support desk to enquire with counselor staff about your child's growth</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSupportChoice("tutor")}
+                      className={`p-3.5 rounded-2xl border text-left flex justify-between items-center transition-colors ${supportChoice === "tutor"
+                        ? "bg-[#f27a3d]/5 dark:bg-[#f27a3d]/10 border-[#f27a3d] text-[#f27a3d] font-bold"
+                        : "border-slate-100 hover:bg-slate-50 dark:border-slate-800 text-slate-700 dark:text-slate-350"
+                        }`}
+                    >
+                      <div>
+                        <p className="text-xs font-bold leading-tight">Tutors Enquiry Desk</p>
+                        <p className="text-[10px] opacity-75 mt-0.5">Enquire Counselor (+91 954239546)</p>
+                      </div>
+                      <input
+                        type="radio"
+                        name="support_segment"
+                        checked={supportChoice === "tutor"}
+                        onChange={() => { }}
+                        className="accent-[#f27a3d]"
+                      />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSupportChoice("admin")}
+                      className={`p-3.5 rounded-2xl border text-left flex justify-between items-center transition-colors ${supportChoice === "admin"
+                        ? "bg-[#f27a3d]/5 dark:bg-[#f27a3d]/10 border-[#f27a3d] text-[#f27a3d] font-bold"
+                        : "border-slate-100 hover:bg-slate-50 dark:border-slate-800 text-slate-700 dark:text-slate-350"
+                        }`}
+                    >
+                      <div>
+                        <p className="text-xs font-bold leading-tight">Admin Support Desk</p>
+                        <p className="text-[10px] opacity-75 mt-0.5">Contact Campus Desk (+91 6300227011)</p>
+                      </div>
+                      <input
+                        type="radio"
+                        name="support_segment"
+                        checked={supportChoice === "admin"}
+                        onChange={() => { }}
+                        className="accent-[#f27a3d]"
+                      />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleWhatsAppTalk}
+                    className="w-full bg-[#f27a3d] hover:bg-[#ff8950] text-white font-extrabold py-3.5 rounded-2xl text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+                  >
+                    <PhoneCall className="h-4 w-4 shrink-0" />
+                    <span>Enquire Counseling Staff Now</span>
+                  </button>
+                </div>
+
+              </div>
+
+              {/* Right Column (Col-5) */}
+              <div className="lg:col-span-5 space-y-6">
+
+                {/* Today's Schedule Card */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                  <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Today's Schedule</h3>
+
+                  <div className="space-y-3">
+                    {activeStudent.classTimings.length > 0 ? (
+                      activeStudent.classTimings.map((timing, idx) => (
+                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex items-center justify-between">
+                          <div className="text-left space-y-0.5">
+                            <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">{timing.subject}</span>
+                            <span className="text-[10px] text-slate-550 flex items-center gap-1">
+                              <Clock className="h-3 w-3 shrink-0 text-slate-400" />
+                              <span>{timing.day} ({timing.time})</span>
+                            </span>
+                          </div>
+                          <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-tight rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400">
+                            {timing.mode}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400">No classes mapped for today.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recent Results */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                  <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Results</h3>
+
+                  <div className="space-y-3">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">React JS Quiz</span>
+                        <span className="text-[10px] text-slate-500">May 19, 2026</span>
+                      </div>
+                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg">85%</span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">UI Principles Assessment</span>
+                        <span className="text-[10px] text-slate-500">May 18, 2026</span>
+                      </div>
+                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg">92%</span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">Python Programming basics</span>
+                        <span className="text-[10px] text-slate-550">May 16, 2026</span>
+                      </div>
+                      <span className="text-xs font-black text-[#f27a3d] bg-[#f27a3d]/10 px-2.5 py-1 rounded-lg">78%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Messages Inbox */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                  <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Messages</h3>
+
+                  <div className="space-y-3">
+                    {activeStudentTutors.slice(0, 2).map((t, idx) => {
+                      const tutorChat = chatHistory[t.id] || [];
+                      const lastMsg = tutorChat[tutorChat.length - 1];
+                      return (
+                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <img src={t.image} alt={t.name} className="h-6 w-6 rounded-full object-cover" />
+                              <span className="text-xs font-black text-slate-900 dark:text-white leading-none">{t.name}</span>
+                            </div>
+                            <span className="text-[9px] text-slate-400">{lastMsg?.time || "10:30 AM"}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-650 dark:text-slate-350 italic font-medium">
+                            "{lastMsg?.text || "Please ensure she completes the coursework review exercises scheduled for tomorrow morning."}"
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Notifications Feed */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                  <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Notifications</h3>
+
+                  <div className="space-y-2.5 text-xs font-medium">
+                    {notifications.slice(0, 3).map((n) => (
+                      <div key={n.id} className="flex items-start gap-2.5 p-2 border-b border-slate-100 dark:border-slate-850 last:border-none">
+                        <span className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${n.read ? "bg-slate-300" : "bg-[#f27a3d]"}`} />
+                        <div className="text-left">
+                          <p className="font-extrabold text-slate-800 dark:text-white">{n.title}</p>
+                          <p className="text-[9px] text-slate-400 mt-0.5">{n.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        );
+
+      case "my-child":
+        return (
+          <div className="space-y-6 text-left">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Profile Card */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 text-center flex flex-col items-center justify-center space-y-4">
+                <div className="h-24 w-24 rounded-full bg-[#f27a3d]/15 text-[#f27a3d] border-4 border-[#f27a3d]/25 flex items-center justify-center font-extrabold text-3xl shadow-md overflow-hidden">
+                  {activeStudent.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">{activeStudent.name}</h3>
+                  <p className="text-xs text-slate-500 font-bold mt-1">{activeStudent.grade} Standard</p>
+                  <span className="inline-block bg-[#f27a3d]/10 text-[#f27a3d] font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-full mt-2">
+                    ID: {activeStudent.id}
+                  </span>
+                </div>
+              </div>
+
+              {/* Personal details grid */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 md:col-span-2 space-y-4">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Child & Parent Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl">
+                    <span className="text-slate-400 block font-bold mb-1">Academic Section</span>
+                    <span className="font-extrabold text-slate-900 dark:text-white">{activeStudent.section || "STEM Class"}</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl">
+                    <span className="text-slate-400 block font-bold mb-1">Enrolled Standard</span>
+                    <span className="font-extrabold text-slate-900 dark:text-white">{activeStudent.grade}</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl">
+                    <span className="text-slate-400 block font-bold mb-1">Parent Name</span>
+                    <span className="font-extrabold text-slate-900 dark:text-white">{parentProfile.name} ({parentProfile.relationship})</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl">
+                    <span className="text-slate-400 block font-bold mb-1">Registered Contact Email</span>
+                    <span className="font-extrabold text-slate-900 dark:text-white">{activeStudent.parentEmail}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Academic Progression & Enrolled Modules */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left Details */}
+              <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Enrolled Course Syllabus Progress</h3>
+
+                <div className="space-y-4">
+                  {activeStudent.learningSubjects.map((sub, idx) => (
+                    <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-sm font-extrabold text-slate-900 dark:text-white">{sub.name}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">{sub.completedWeeks} active teaching weeks completed</span>
+                        </div>
+                        <span className="text-xs font-black text-[#f27a3d] bg-[#f27a3d]/10 px-2.5 py-1 rounded-lg">
+                          {sub.completedPercentage}% Finished
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-200 dark:bg-slate-850 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-sky-400 to-[#f27a3d] rounded-full transition-all duration-500"
+                          style={{ width: `${sub.completedPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Performance Summary Metrics */}
+              <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-3">Academic Summary</h3>
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 rounded-2xl text-xs space-y-2 leading-relaxed text-slate-700 dark:text-slate-350">
+                    <p className="font-extrabold text-amber-850 dark:text-amber-400 text-sm flex items-center gap-1.5 mb-1.5">
+                      <Award className="h-4 w-4" /> Academic Standing
+                    </p>
+                    <p>
+                      <strong>{activeStudent.name}</strong> is currently maintaining an average score of <strong>87%</strong> across all active enrolled standard subjects.
+                    </p>
+                    <p>
+                      Attendance remains stellar at <strong>{activeStudent.attendanceRate}%</strong>. All assignments are fully indexed, showing a positive development trajectory.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl text-center space-y-1 mt-4">
+                  <span className="text-[10px] uppercase font-black text-indigo-500 tracking-wider">Average Grade Card</span>
+                  <p className="text-3xl font-black text-indigo-755 dark:text-indigo-400">A- / 3.56 GPA</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "attendance":
+        const totalClasses = activeStudent.presentCount + activeStudent.absentCount;
+        return (
+          <div className="space-y-6 text-left">
+            {/* Present/Absent stats grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-24">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Attendance Rate</span>
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-450">{activeStudent.attendanceRate}%</span>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-24">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Days Present</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white">{activeStudent.presentCount} Days</span>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-24">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Days Absent</span>
+                <span className="text-2xl font-black text-rose-500">{activeStudent.absentCount} Days</span>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-24">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Total Classes</span>
+                <span className="text-2xl font-black text-indigo-650 dark:text-indigo-400">{totalClasses} Sessions</span>
+              </div>
+            </div>
+
+            {/* Monthly attendance visual chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Monthly Attendance Rate</h3>
+
+                {/* SVG Bar Chart */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl flex items-center justify-center">
+                  <svg viewBox="0 0 450 180" className="w-full h-44 max-w-lg">
+                    {/* Y Axis Grid Lines */}
+                    <line x1="40" y1="20" x2="420" y2="20" stroke="#e2e8f0" strokeDasharray="3,3" className="dark:stroke-slate-800" />
+                    <line x1="40" y1="60" x2="420" y2="60" stroke="#e2e8f0" strokeDasharray="3,3" className="dark:stroke-slate-800" />
+                    <line x1="40" y1="100" x2="420" y2="100" stroke="#e2e8f0" strokeDasharray="3,3" className="dark:stroke-slate-800" />
+                    <line x1="40" y1="140" x2="420" y2="140" stroke="#cbd5e1" className="dark:stroke-slate-700" />
+
+                    {/* Labels Y */}
+                    <text x="15" y="24" fontSize="10" className="fill-slate-400 font-bold">100%</text>
+                    <text x="15" y="64" fontSize="10" className="fill-slate-400 font-bold">75%</text>
+                    <text x="15" y="104" fontSize="10" className="fill-slate-400 font-bold">50%</text>
+                    <text x="15" y="144" fontSize="10" className="fill-slate-400 font-bold">0%</text>
+
+                    {/* Jan Bar */}
+                    <rect x="70" y="30" width="30" height="110" rx="4" fill="#f27a3d" opacity="0.6" />
+                    <text x="85" y="156" textAnchor="middle" fontSize="10" className="fill-slate-400 font-extrabold">Jan (92%)</text>
+
+                    {/* Feb Bar */}
+                    <rect x="140" y="40" width="30" height="100" rx="4" fill="#f27a3d" opacity="0.75" />
+                    <text x="155" y="156" textAnchor="middle" fontSize="10" className="fill-slate-400 font-extrabold">Feb (85%)</text>
+
+                    {/* Mar Bar */}
+                    <rect x="210" y="32" width="30" height="108" rx="4" fill="#f27a3d" opacity="0.8" />
+                    <text x="225" y="156" textAnchor="middle" fontSize="10" className="fill-slate-400 font-extrabold">Mar (90%)</text>
+
+                    {/* Apr Bar */}
+                    <rect x="280" y="26" width="30" height="114" rx="4" fill="#f27a3d" opacity="0.9" />
+                    <text x="295" y="156" textAnchor="middle" fontSize="10" className="fill-slate-400 font-extrabold">Apr (95%)</text>
+
+                    {/* May Bar (Active Student Attendance) */}
+                    <rect x="350" y={140 - (activeStudent.attendanceRate * 1.2)} width="30" height={activeStudent.attendanceRate * 1.2} rx="4" fill="#f27a3d" />
+                    <text x="365" y="156" textAnchor="middle" fontSize="10" className="fill-slate-800 dark:fill-slate-200 font-black">May ({activeStudent.attendanceRate}%)</text>
+                  </svg>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-3 flex flex-col justify-center">
+                <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Attendance Status</h4>
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-250 rounded-2xl space-y-2">
+                  <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 font-extrabold text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                    <span>Regular Status</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-slate-655 dark:text-slate-350">
+                    Child matches standard benchmark attendance threshold (85%+ required). No attendance warning labels active.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Attendance History log */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Attendance Logs</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
+                      <th className="py-3 px-4 font-extrabold">Date</th>
+                      <th className="py-3 px-4 font-extrabold">Enrolled Subject</th>
+                      <th className="py-3 px-4 font-extrabold">Delivery Mode</th>
+                      <th className="py-3 px-4 font-extrabold">Status</th>
+                      <th className="py-3 px-4 font-extrabold">Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40">
+                    {attendanceLogs.map((log, index) => (
+                      <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 font-medium">
+                        <td className="py-3.5 px-4 font-bold">{log.date}</td>
+                        <td className="py-3.5 px-4 font-extrabold text-slate-900 dark:text-white">{log.subject}</td>
+                        <td className="py-3.5 px-4">{log.type}</td>
+                        <td className="py-3.5 px-4">
+                          <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase ${log.status === "Present"
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450"
+                            : "bg-rose-50 dark:bg-rose-950/40 text-rose-500"
+                            }`}>
+                            {log.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-500 text-[11px]">{log.remarks}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "results":
+        const activeResults = activeStudent.results || [];
+        const latestTerm = activeResults[activeResults.length - 1] || { term: "May", score: 92, gpa: 3.8, mathsScore: 90, physicsScore: 85, literatureScore: 94, compSciScore: 88 };
+
+        return (
+          <div className="space-y-6 text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Score analysis metrics */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Subject-wise Performance</h3>
+
+                <div className="space-y-4 text-xs">
+                  {/* Mathematics */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-bold">
+                      <span className="text-slate-800 dark:text-slate-200">Mathematics</span>
+                      <span className="font-extrabold text-slate-950 dark:text-white">{latestTerm.mathsScore || latestTerm.score}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-850 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-sky-400 to-indigo-500 rounded-full" style={{ width: `${latestTerm.mathsScore || latestTerm.score}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Physics */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-bold">
+                      <span className="text-slate-800 dark:text-slate-200">Physics & Science</span>
+                      <span className="font-extrabold text-slate-950 dark:text-white">{latestTerm.physicsScore || latestTerm.score}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-850 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-amber-400 to-[#f27a3d] rounded-full" style={{ width: `${latestTerm.physicsScore || latestTerm.score}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Literature */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-bold">
+                      <span className="text-slate-800 dark:text-slate-200">World Literature</span>
+                      <span className="font-extrabold text-slate-950 dark:text-white">{latestTerm.literatureScore || latestTerm.score}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-850 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full" style={{ width: `${latestTerm.literatureScore || latestTerm.score}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Computer Science */}
+                  {latestTerm.compSciScore !== undefined && latestTerm.compSciScore > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between font-bold">
+                        <span className="text-slate-800 dark:text-slate-200">Computer Science</span>
+                        <span className="font-extrabold text-slate-950 dark:text-white">{latestTerm.compSciScore}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-850 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-pink-400 to-rose-500 rounded-full" style={{ width: `${latestTerm.compSciScore}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* GPA line graph */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 space-y-4 lg:col-span-2">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Academic Grade Growth Analytics</h3>
+
+                {/* Line graph */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl flex items-center justify-center">
+                  <svg viewBox="0 0 450 180" className="w-full h-44 max-w-lg">
+                    {/* Y Grid */}
+                    <line x1="40" y1="20" x2="420" y2="20" stroke="#e2e8f0" strokeDasharray="3,3" className="dark:stroke-slate-800" />
+                    <line x1="40" y1="60" x2="420" y2="60" stroke="#e2e8f0" strokeDasharray="3,3" className="dark:stroke-slate-800" />
+                    <line x1="40" y1="100" x2="420" y2="100" stroke="#e2e8f0" strokeDasharray="3,3" className="dark:stroke-slate-800" />
+                    <line x1="40" y1="140" x2="420" y2="140" stroke="#cbd5e1" className="dark:stroke-slate-700" />
+
+                    {/* Labels Y */}
+                    <text x="15" y="24" fontSize="10" className="fill-slate-400 font-bold">4.0</text>
+                    <text x="15" y="64" fontSize="10" className="fill-slate-400 font-bold">3.0</text>
+                    <text x="15" y="104" fontSize="10" className="fill-slate-400 font-bold">2.0</text>
+                    <text x="15" y="144" fontSize="10" className="fill-slate-400 font-bold">1.0</text>
+
+                    {/* Plot Line */}
+                    {activeResults.length > 1 ? (
+                      <>
+                        <path
+                          d={activeResults.map((r, i) => {
+                            const x = 70 + (i * (350 / (activeResults.length - 1)));
+                            // Map GPA 1.0 -> 140, GPA 4.0 -> 20
+                            const y = 140 - ((r.gpa - 1.0) * 40);
+                            return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+                          }).join(" ")}
+                          fill="none"
+                          stroke="#f27a3d"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                        />
+                        {/* Dots */}
+                        {activeResults.map((r, i) => {
+                          const x = 70 + (i * (350 / (activeResults.length - 1)));
+                          const y = 140 - ((r.gpa - 1.0) * 40);
+                          return (
+                            <g key={i}>
+                              <circle cx={x} cy={y} r="5" fill="#f27a3d" />
+                              <circle cx={x} cy={y} r="8" fill="#f27a3d" opacity="0.3" />
+                            </g>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      // Single data point fallback
+                      <circle cx="225" cy="50" r="6" fill="#f27a3d" />
+                    )}
+
+                    {/* Labels X */}
+                    {activeResults.map((r, i) => {
+                      const x = 70 + (i * (350 / (activeResults.length - 1)));
+                      return (
+                        <text key={i} x={x} y="158" textAnchor="middle" fontSize="10" className="fill-slate-400 font-bold">
+                          {r.term} ({r.gpa})
+                        </text>
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Exam result card summary list */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Official Grade Card</h3>
+
+                {/* Download PDF simulation button */}
+                <button
+                  onClick={handleDownloadReport}
+                  disabled={downloadingReport}
+                  className="px-4 py-2 bg-slate-900 dark:bg-[#f27a3d] text-white hover:bg-slate-850 dark:hover:bg-[#ff8950] font-black text-xs rounded-xl shadow-sm hover:shadow flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>{downloadingReport ? "Downloading..." : "Download Report Card"}</span>
+                </button>
+              </div>
+
+              {downloadMsg && (
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 rounded-xl text-xs font-bold flex items-center gap-2">
+                  <div className="h-4 w-4 border-2 border-indigo-550 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <span>{downloadMsg}</span>
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
+                      <th className="py-3 px-4 font-extrabold">Term</th>
+                      <th className="py-3 px-4 font-extrabold">Mathematics</th>
+                      <th className="py-3 px-4 font-extrabold">Physics</th>
+                      <th className="py-3 px-4 font-extrabold">Literature</th>
+                      <th className="py-3 px-4 font-extrabold">Comp Sci</th>
+                      <th className="py-3 px-4 font-extrabold">Term GPA</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40 font-medium">
+                    {activeResults.map((r, index) => (
+                      <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10">
+                        <td className="py-3.5 px-4 font-black text-slate-900 dark:text-white">{r.term}</td>
+                        <td className="py-3.5 px-4 font-bold">{r.mathsScore || r.score}%</td>
+                        <td className="py-3.5 px-4 font-bold">{r.physicsScore || r.score}%</td>
+                        <td className="py-3.5 px-4 font-bold">{r.literatureScore || r.score}%</td>
+                        <td className="py-3.5 px-4 font-bold">{r.compSciScore ? `${r.compSciScore}%` : "—"}</td>
+                        <td className="py-3.5 px-4 font-extrabold text-indigo-650 dark:text-indigo-400">{r.gpa}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "fees":
+        return (
+          <div className="space-y-6 text-left">
+            {/* Header section with Make Payment button */}
+            <div className="flex justify-between items-center flex-wrap gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-wider">Fee Payments & Billing</h3>
+                <p className="text-xs text-slate-500">Manage billing statements, pay pending fees, and download receipts.</p>
+              </div>
+              <button
+                onClick={() => {
+                  const firstPending = currentChildFees.find(f => f.status === "Pending");
+                  if (firstPending) {
+                    setPaymentSelectedInvoiceId(firstPending.id);
+                    setPaymentInvoiceNumber(firstPending.id);
+                    setPaymentAmount(firstPending.amount);
+                  } else {
+                    setPaymentSelectedInvoiceId("custom");
+                    setPaymentInvoiceNumber(`INV-CUST-${Math.floor(1000 + Math.random() * 9000)}`);
+                    setPaymentAmount(0);
+                  }
+                  setPaymentErrors({});
+                  setIsPaymentModalOpen(true);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-[#f27a3d] hover:bg-[#ff8950] text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <DollarSign className="h-4 w-4" />
+                <span>Make Payment</span>
+              </button>
+            </div>
+
+            {/* Payment Summary Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Total Outstanding Balance</span>
+                <span className="text-3xl font-black text-rose-500">${pendingFeesAmount}</span>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Total Paid Fees</span>
+                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-450">${paidFeesAmount}</span>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Financial Standing</span>
+                <div>
+                  <span className={`inline-block text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full ${pendingFeesAmount > 0
+                    ? "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-455"
+                    : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450"
+                    }`}>
+                    {pendingFeesAmount > 0 ? "Pending Invoices" : "Fully Cleared"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Fee lists */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Institutional Ledger Billing Statements</h3>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
+                      <th className="py-3 px-4 font-extrabold">Invoice ID</th>
+                      <th className="py-3 px-4 font-extrabold">Description Title</th>
+                      <th className="py-3 px-4 font-extrabold">Due Date</th>
+                      <th className="py-3 px-4 font-extrabold">Billing Amount</th>
+                      <th className="py-3 px-4 font-extrabold">Status</th>
+                      <th className="py-3 px-4 font-extrabold">Transaction ID</th>
+                      <th className="py-3 px-4 font-extrabold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40 font-medium">
+                    {currentChildFees.map((fee) => (
+                      <tr key={fee.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10">
+                        <td className="py-4 px-4 font-bold">{fee.id}</td>
+                        <td className="py-4 px-4 font-extrabold text-slate-900 dark:text-white">{fee.title}</td>
+                        <td className="py-4 px-4">{fee.dueDate}</td>
+                        <td className="py-4 px-4 font-black">${fee.amount}</td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase ${fee.status === "Paid"
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450"
+                            : "bg-rose-50 dark:bg-rose-950/40 text-rose-500"
+                            }`}>
+                            {fee.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-500 italic font-bold">{fee.transactionId || "—"}</td>
+                        <td className="py-4 px-4">
+                          {fee.status === "Pending" ? (
+                            <button
+                              onClick={() => {
+                                setPaymentSelectedInvoiceId(fee.id);
+                                setPaymentInvoiceNumber(fee.id);
+                                setPaymentAmount(fee.amount);
+                                setPaymentErrors({});
+                                setIsPaymentModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 bg-[#f27a3d] hover:bg-[#ff8950] text-white font-black text-[10px] rounded-lg shadow-sm hover:shadow active:scale-95 transition-all cursor-pointer"
+                            >
+                              Pay Now
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setReceiptData({
+                                  studentName: activeStudent.name,
+                                  parentName: parentProfile.name,
+                                  transactionId: fee.transactionId || "AF-TXN-UNKNOWN",
+                                  amountPaid: fee.amount,
+                                  paymentMethod: "Online",
+                                  paymentDate: fee.dueDate,
+                                  paymentStatus: "Paid",
+                                  invoiceTitle: fee.title
+                                });
+                                setIsReceiptModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-700 dark:text-slate-350 font-black text-[10px] rounded-lg shadow-sm active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <Download className="h-3 w-3" />
+                              <span>Receipt</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Payment History section */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Payment History</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
+                      <th className="py-3 px-4 font-extrabold">Transaction ID</th>
+                      <th className="py-3 px-4 font-extrabold">Payment Date</th>
+                      <th className="py-3 px-4 font-extrabold">Paid Amount</th>
+                      <th className="py-3 px-4 font-extrabold">Payment Method</th>
+                      <th className="py-3 px-4 font-extrabold">Status</th>
+                      <th className="py-3 px-4 font-extrabold">Receipt</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40 font-medium">
+                    {activeStudentPaymentHistory.map((history) => (
+                      <tr key={history.transactionId} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10">
+                        <td className="py-4 px-4 font-bold text-indigo-650 dark:text-indigo-400">{history.transactionId}</td>
+                        <td className="py-4 px-4">{history.date}</td>
+                        <td className="py-4 px-4 font-black">${history.amount}</td>
+                        <td className="py-4 px-4">
+                          <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-[10px] uppercase font-bold text-slate-655 dark:text-slate-350">
+                            {history.paymentMethod}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450">
+                            {history.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <button
+                            onClick={() => {
+                              setReceiptData({
+                                studentName: history.studentName,
+                                parentName: history.parentName,
+                                transactionId: history.transactionId,
+                                amountPaid: history.amount,
+                                paymentMethod: history.paymentMethod,
+                                paymentDate: history.date,
+                                paymentStatus: history.status,
+                                invoiceTitle: history.invoiceTitle
+                              });
+                              setIsReceiptModalOpen(true);
+                            }}
+                            className="px-3 py-1.5 bg-[#f27a3d]/10 hover:bg-[#f27a3d]/20 text-[#f27a3d] font-black text-[10px] rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            <span>Download Receipt</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {activeStudentPaymentHistory.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-6 text-center text-slate-450 font-bold">No payments processed yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "tutors":
+        return (
+          <div className="space-y-6 text-left">
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Assigned Teaching Instructors</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeStudentTutors.map((t) => (
+                <div key={t.id} className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <img src={t.image} alt={t.name} className="h-12 w-12 rounded-full object-cover border-2 border-slate-200" />
+                      <div>
+                        <h4 className="font-black text-slate-900 dark:text-white leading-tight">{t.name}</h4>
+                        <p className="text-[10px] font-bold text-[#f27a3d] mt-0.5">{t.specialty}</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-3 text-xs space-y-2">
+                      <div>
+                        <span className="text-slate-400 block font-bold">Email Address</span>
+                        <span className="font-extrabold text-slate-900 dark:text-white">{t.email}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block font-bold">Enrolled Slot Mapping</span>
+                        <span className="font-extrabold text-slate-900 dark:text-white">Mon, Wed, Fri 4:00 PM - 5:30 PM</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3">
+                    <button
+                      onClick={() => alert(`Meeting scheduling request sent to ${t.name}! Check your parent email for slots details.`)}
+                      className="w-full py-2.5 border border-[#f27a3d]/20 hover:bg-[#f27a3d] hover:text-white text-[#f27a3d] font-extrabold text-xs rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      Schedule Meeting Slot
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "schedule":
+        // Generate static calendar days for June 2026 (Month starts on Monday)
+        const calendarDays = Array.from({ length: 30 }, (_, i) => i + 1);
+        const classDays = [1, 2, 4, 8, 9, 11, 15, 16, 18, 22, 23, 25, 29, 30];
+
+        return (
+          <div className="space-y-6 text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+              {/* Timetable Grid */}
+              <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Weekly Classes Timetable</h3>
+
+                <div className="space-y-3">
+                  {activeStudent.classTimings.map((timeObj, idx) => (
+                    <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
+                      <div className="space-y-1">
+                        <span className="text-sm font-black text-slate-900 dark:text-white block">{timeObj.subject}</span>
+                        <span className="text-xs text-slate-550 flex items-center gap-1 font-bold">
+                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                          <span>{timeObj.day}</span>
+                        </span>
+                      </div>
+
+                      <div className="text-right space-y-1">
+                        <span className="text-xs font-black text-indigo-650 dark:text-indigo-400 block">{timeObj.time}</span>
+                        <span className="inline-block px-2.5 py-0.5 text-[9px] font-black uppercase rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400">
+                          {timeObj.mode}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Monthly calendar tracker */}
+              <div className="lg:col-span-5 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">June 2026</h3>
+                  <span className="text-[10px] font-black text-[#f27a3d]">Class Dates Highlighted</span>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-extrabold">
+                  <div className="text-slate-400 py-1">Mo</div>
+                  <div className="text-slate-400 py-1">Tu</div>
+                  <div className="text-slate-400 py-1">We</div>
+                  <div className="text-slate-400 py-1">Th</div>
+                  <div className="text-slate-400 py-1">Fr</div>
+                  <div className="text-slate-400 py-1">Sa</div>
+                  <div className="text-slate-400 py-1">Su</div>
+
+                  {calendarDays.map((day) => {
+                    const hasClass = classDays.includes(day);
+                    const isSelected = selectedCalendarDay === day;
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => setSelectedCalendarDay(day)}
+                        className={`h-9 w-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${isSelected
+                          ? "bg-[#f27a3d] text-white shadow-md font-black"
+                          : hasClass
+                            ? "bg-[#f27a3d]/15 text-[#f27a3d] border border-[#f27a3d]/30 font-black hover:bg-[#f27a3d]/30"
+                            : "text-slate-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-850"
+                          }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Day Details */}
+                {selectedCalendarDay !== null && (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-850 text-xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-450 block">Schedule: June {selectedCalendarDay}, 2026</span>
+                    {classDays.includes(selectedCalendarDay) ? (
+                      <div className="mt-2 space-y-1">
+                        <span className="font-extrabold text-slate-900 dark:text-white block">Active Classes Scheduled</span>
+                        <p className="text-slate-600 dark:text-slate-400 font-bold leading-normal">
+                          {activeStudent.classTimings?.[0]?.subject || "Mathematics module lesson"} - {activeStudent.classTimings?.[0]?.time || "09:00 AM"} ({activeStudent.classTimings?.[0]?.mode || "Online"})
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 mt-2 font-bold">No classes scheduled on this day.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Upcoming assessments */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Upcoming Exams & quizzes</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {activeStudent.upcomingEvents.length > 0 ? (
+                  activeStudent.upcomingEvents.map((evt, idx) => (
+                    <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2">
+                      <div className="flex justify-between items-start">
+                        <span className="inline-block bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg">
+                          {evt.badge}
+                        </span>
+                        <span className="text-[10px] font-black text-slate-400">{evt.time}</span>
+                      </div>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">{evt.title}</h4>
+                      <p className="text-xs text-slate-550 leading-relaxed font-bold">{evt.description}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-500 font-bold col-span-2">No upcoming exam logs found.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case "messages":
+        const activeTutorChatList = chatHistory[selectedChatTutorId] || [];
+        const filteredTutors = activeStudentTutors.filter(t => t.name.toLowerCase().includes(chatSearch.toLowerCase()));
+
+        return (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden h-[600px] flex flex-col md:flex-row text-left">
+            {/* Left tutor select panel */}
+            <div className="w-full md:w-80 border-r border-slate-100 dark:border-slate-800 flex flex-col h-full shrink-0">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 space-y-3">
+                <h3 className="text-sm font-black uppercase text-slate-900 dark:text-white tracking-wider">Teachers & Tutors</h3>
+
+                {/* Search bar */}
+                <input
+                  type="text"
+                  placeholder="Search Tutors..."
+                  value={chatSearch}
+                  onChange={(e) => setChatSearch(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-bold outline-none focus:border-[#f27a3d] transition-all"
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/40">
+                {filteredTutors.map((t) => {
+                  const tutorMsgs = chatHistory[t.id] || [];
+                  const lastMsg = tutorMsgs[tutorMsgs.length - 1];
+                  const isSelected = selectedChatTutorId === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setSelectedChatTutorId(t.id)}
+                      className={`w-full p-4 flex items-start gap-3 transition-colors cursor-pointer text-left ${isSelected
+                        ? "bg-[#f27a3d]/5 dark:bg-[#f27a3d]/10 border-l-4 border-[#f27a3d]"
+                        : "hover:bg-slate-50 dark:hover:bg-slate-950/20"
+                        }`}
+                    >
+                      <img src={t.image} alt={t.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline">
+                          <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">{t.name}</h4>
+                          <span className="text-[9px] text-slate-400 shrink-0 font-bold">{lastMsg?.time || "10:30 AM"}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-bold mt-0.5 truncate">{t.specialty}</p>
+                        <p className="text-[11px] text-slate-550 italic font-medium mt-1 truncate">
+                          "{lastMsg?.text || "Chat with tutor"}"
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Chat conversation area */}
+            <div className="flex-grow flex flex-col h-full bg-slate-50/50 dark:bg-slate-950/10">
+              {/* Active tutor header */}
+              {(() => {
+                const activeTutorObj = tutors.find(t => t.id === selectedChatTutorId) || tutors[0];
+                return (
+                  <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={activeTutorObj.image} alt={activeTutorObj.name} className="h-9 w-9 rounded-full object-cover" />
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900 dark:text-white">{activeTutorObj.name}</h4>
+                        <p className="text-[10px] font-bold text-emerald-500 uppercase">Online Office Hours</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Chat bubbles list */}
+              <div className="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col justify-end">
+                <div className="space-y-4">
+                  {activeTutorChatList.map((msg) => {
+                    const isParent = msg.sender === "parent";
+                    return (
+                      <div key={msg.id} className={`flex ${isParent ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-bold ${isParent
+                          ? "bg-[#f27a3d] text-white rounded-tr-none shadow-sm"
+                          : "bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-tl-none text-slate-800 dark:text-slate-205"
+                          }`}>
+                          <p>{msg.text}</p>
+                          <span className={`block text-[9px] mt-1.5 text-right font-medium opacity-70 ${isParent ? "text-white" : "text-slate-400"}`}>
+                            {msg.time}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {isTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-3 rounded-2xl rounded-tl-none text-xs flex items-center gap-1 text-slate-400 font-bold">
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100" />
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200" />
+                        <span className="ml-1 text-[10px]">Tutor typing...</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Text send box */}
+              <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type a message to tutor..."
+                  value={newMessageText}
+                  onChange={(e) => setNewMessageText(e.target.value)}
+                  className="flex-grow p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-bold outline-none focus:border-[#f27a3d] transition-all"
+                />
+                <button
+                  type="submit"
+                  className="p-3 bg-[#f27a3d] hover:bg-[#ff8950] text-white rounded-xl shadow-sm hover:shadow active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                >
+                  <Send className="h-4.5 w-4.5" />
+                </button>
+              </form>
+            </div>
+          </div>
+        );
+
+      case "notifications":
+        const filteredNotifs = notifications.filter(n => notifFilter === "all" || !n.read);
+
+        return (
+          <div className="space-y-6 text-left">
+            <div className="flex justify-between items-center flex-wrap gap-3">
+              <div className="flex gap-2 text-xs">
+                <button
+                  onClick={() => setNotifFilter("all")}
+                  className={`px-4 py-2 rounded-xl font-black transition-all ${notifFilter === "all"
+                    ? "bg-slate-900 text-white dark:bg-[#f27a3d]"
+                    : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-655 dark:text-slate-350"
+                    }`}
+                >
+                  All Notifications
+                </button>
+                <button
+                  onClick={() => setNotifFilter("unread")}
+                  className={`px-4 py-2 rounded-xl font-black transition-all ${notifFilter === "unread"
+                    ? "bg-slate-900 text-white dark:bg-[#f27a3d]"
+                    : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-655 dark:text-slate-350"
+                    }`}
+                >
+                  Unread ({notifications.filter(n => !n.read).length})
+                </button>
+              </div>
+
+              <button
+                onClick={markAllNotifRead}
+                className="px-3 py-1.5 border border-slate-200 dark:border-slate-850 text-slate-650 dark:text-slate-350 font-black text-xs rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-950 flex items-center gap-1 cursor-pointer"
+              >
+                <Check className="h-4 w-4" />
+                <span>Mark all as read</span>
+              </button>
+            </div>
+
+            {/* Notifications Grid */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Institutional Announcements & Notifications</h3>
+
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/40 space-y-1">
+                {filteredNotifs.length > 0 ? (
+                  filteredNotifs.map((n) => (
+                    <div key={n.id} className={`py-4 flex items-start justify-between gap-3 text-xs ${n.read ? "opacity-70" : ""}`}>
+                      <div className="flex gap-3">
+                        <span className={`h-2.5 w-2.5 rounded-full shrink-0 mt-1.5 ${n.read ? "bg-slate-300" : "bg-[#f27a3d] animate-pulse"}`} />
+                        <div>
+                          <p className="font-extrabold text-slate-900 dark:text-white text-sm">{n.title}</p>
+                          <p className="text-slate-500 font-bold mt-1 leading-normal">{n.description}</p>
+                          <span className="text-[10px] text-slate-400 font-medium block mt-1">{n.time}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => toggleReadNotif(n.id)}
+                        className="text-[10px] font-black text-indigo-650 dark:text-indigo-400 hover:underline shrink-0"
+                      >
+                        {n.read ? "Mark Unread" : "Mark Read"}
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-450 font-bold py-6 text-center">No notifications match your selection.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case "support":
+        const faqList = [
+          { q: "How do I update my child's registered learning mode?", a: "To change learning mode from online to offline batch lessons, click the 'Roll Out New Subjects' button in dashboard and pick appropriate offline options, or contact the counseling support desk." },
+          { q: "Where can I view old paid tuition invoice receipts?", a: "Head to the 'Fee Payments' tab in sidebar navigation. Paid invoices have a Download Receipt button that generates simulated receipts." },
+          { q: "Can I request additional assigned tutors for Calculus?", a: "Yes, you can register for specialized syllabus modules via the rollout setup wizard. Once payment checkout resolves, new tutors are assigned dynamically." },
+          { q: "How are diagnostic test results graded?", a: "Exams and diagnostic tests are graded out of 100% by assigned academic counselors. Updated grades appear instantly in the Results tab." }
+        ];
+
+        return (
+          <div className="space-y-6 text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+              {/* FAQ Section */}
+              <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-sm font-black uppercase text-slate-900 dark:text-white tracking-wider">Frequently Asked Questions</h3>
+
+                <div className="space-y-3">
+                  {faqList.map((faq, idx) => {
+                    const isExpanded = expandedFaq === idx;
+                    return (
+                      <div key={idx} className="border border-slate-100 dark:border-slate-850 rounded-2xl overflow-hidden">
+                        <button
+                          onClick={() => setExpandedFaq(isExpanded ? null : idx)}
+                          className="w-full p-4 flex justify-between items-center text-xs font-extrabold text-slate-850 dark:text-slate-200 bg-slate-50/50 dark:bg-slate-950/20 text-left outline-none cursor-pointer"
+                        >
+                          <span>{faq.q}</span>
+                          <span className="text-slate-400 font-bold">{isExpanded ? "−" : "+"}</span>
+                        </button>
+                        {isExpanded && (
+                          <div className="p-4 bg-white dark:bg-slate-900 text-xs text-slate-550 leading-relaxed font-bold border-t border-slate-100 dark:border-slate-850">
+                            {faq.a}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Support ticket submission */}
+              <div className="lg:col-span-5 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-sm font-black uppercase text-slate-900 dark:text-white tracking-wider">Raise Support Ticket</h3>
+
+                {ticketSuccessMsg && (
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450 border border-emerald-250 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4.5 w-4.5 text-emerald-500" />
+                    <span>{ticketSuccessMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleRaiseTicket} className="space-y-3.5 text-xs font-bold">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-slate-655 block">Category</label>
+                      <select
+                        value={ticketCategory}
+                        onChange={(e) => setTicketCategory(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
+                      >
+                        <option>Academic</option>
+                        <option>Billing</option>
+                        <option>Tutors</option>
+                        <option>Technical</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-655 block">Priority</label>
+                      <select
+                        value={ticketPriority}
+                        onChange={(e) => setTicketPriority(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
+                      >
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-655 block">Subject</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Attendance marks correction"
+                      value={ticketSubject}
+                      onChange={(e) => setTicketSubject(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-655 block">Description of Issue</label>
+                    <textarea
+                      rows={3}
+                      placeholder="Detail your request..."
+                      value={ticketDescription}
+                      onChange={(e) => setTicketDescription(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-[#f27a3d] hover:bg-[#ff8950] text-white py-3 rounded-xl font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
+                  >
+                    Submit Support Ticket
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* List of raised tickets */}
+            {tickets.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Raised Tickets Registry</h3>
+                <div className="space-y-2.5">
+                  {tickets.map((t) => (
+                    <div key={t.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="text-xs space-y-1 font-bold text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-850 dark:text-white font-black">{t.subject}</span>
+                          <span className="text-[9px] uppercase bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
+                            {t.category}
+                          </span>
+                        </div>
+                        <p className="text-slate-500 font-medium text-[11px]">{t.description}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">Created: {t.date} | ID: {t.id}</p>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className={`text-[9px] px-2.5 py-1 font-black uppercase rounded ${t.priority === "High" ? "bg-rose-50 dark:bg-rose-950/40 text-rose-500" : "bg-amber-50 dark:bg-amber-950/30 text-amber-500"
+                          }`}>
+                          {t.priority} Priority
+                        </span>
+                        <span className={`text-[10px] px-2.5 py-1 font-black uppercase rounded-lg ${t.status === "Resolved"
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450"
+                          : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400"
+                          }`}>
+                          {t.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case "profile":
+        return (
+          <div className="space-y-6 text-left">
+            {editSuccessMsg && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450 border border-emerald-250 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="h-4.5 w-4.5 text-emerald-500" />
+                <span>{editSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Profile Details Card */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <h3 className="text-sm font-black uppercase text-slate-900 dark:text-white tracking-wider">Parent Profile details</h3>
+                  {!isEditingProfile && (
+                    <button
+                      onClick={() => {
+                        setEditName(parentProfile.name);
+                        setEditPhone(parentProfile.phone);
+                        setEditAddress(parentProfile.address);
+                        setIsEditingProfile(true);
+                      }}
+                      className="text-xs font-black text-[#f27a3d] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                      <span>Edit Details</span>
+                    </button>
+                  )}
+                </div>
+
+                {isEditingProfile ? (
+                  <form onSubmit={handleSaveProfile} className="space-y-3.5 text-xs font-bold">
+                    <div className="space-y-1">
+                      <label className="text-slate-655 block">Full Profile Name</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-655 block">Contact Phone</label>
+                      <input
+                        type="text"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-655 block">Billing Address</label>
+                      <input
+                        type="text"
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs flex items-center gap-1 cursor-pointer shadow-sm"
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        <span>Save Changes</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingProfile(false)}
+                        className="px-4 py-2 border border-slate-200 dark:border-slate-850 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-3 text-xs leading-normal font-bold">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-slate-400 block">Parent Name</span>
+                        <span className="font-extrabold text-slate-850 dark:text-white text-sm">{parentProfile.name}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Registered Email</span>
+                        <span className="font-extrabold text-slate-850 dark:text-white text-sm">{parentProfile.email}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-slate-400 block">Phone Contact</span>
+                        <span className="font-extrabold text-slate-850 dark:text-white text-sm">{parentProfile.phone}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Relationship</span>
+                        <span className="font-extrabold text-slate-850 dark:text-white text-sm">{parentProfile.relationship}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-slate-400 block">Address Location</span>
+                      <span className="font-extrabold text-slate-850 dark:text-white text-sm">{parentProfile.address}</span>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-slate-400 block">Account Registration Date</span>
+                      <span className="text-slate-500 text-[11px]">{parentProfile.registrationDate}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Associated Child Details Card */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-sm font-black uppercase text-slate-900 dark:text-white tracking-wider border-b border-slate-100 dark:border-slate-800 pb-3">
+                  Enrolled Child roster association
+                </h3>
+
+                <div className="flex items-center gap-3">
+                  <div className="h-14 w-14 rounded-full bg-[#f27a3d]/10 text-[#f27a3d] border border-[#f27a3d]/30 flex items-center justify-center font-extrabold text-lg">
+                    {activeStudent.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 dark:text-white leading-tight">{activeStudent.name}</h4>
+                    <p className="text-xs text-slate-500 font-bold mt-0.5">{activeStudent.grade} ({activeStudent.section || "STEM Section"})</p>
+                  </div>
+                </div>
+
+                <div className="text-xs space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 font-bold">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Child Student ID</span>
+                    <span className="text-slate-850 dark:text-slate-200">{activeStudent.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Enrolled Subjects count</span>
+                    <span className="text-slate-850 dark:text-slate-200">{activeStudent.learningSubjects.length} Modules</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Average Academic Marks</span>
+                    <span className="text-emerald-650 dark:text-emerald-400 font-black">87.0% Score</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Attendance Standard status</span>
+                    <span className="text-slate-850 dark:text-slate-200">Active - {activeStudent.attendanceRate}% Rate</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "settings":
+        return (
+          <div className="space-y-6 text-left">
+            {settingsSuccessMsg && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450 border border-emerald-250 rounded-xl text-xs font-bold flex items-center gap-1.5 animate-pulse">
+                <CheckCircle2 className="h-4.5 w-4.5 text-emerald-500" />
+                <span>{settingsSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* Account settings preferences */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
+                <h3 className="text-sm font-black uppercase text-slate-900 dark:text-white tracking-wider border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-1.5">
+                  <Settings className="h-4 w-4" /> System Preferences
+                </h3>
+
+                {/* Notifications Channels Toggles */}
+                <div className="space-y-3.5 text-xs font-bold">
+                  <h4 className="text-slate-400 uppercase tracking-widest text-[9px] font-black">Notification Channels</h4>
+
+                  <label className="flex items-center justify-between cursor-pointer p-1">
+                    <div>
+                      <p className="text-slate-850 dark:text-white font-extrabold">Email Notifications</p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Receive academic performance updates</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={emailNotifs}
+                      onChange={() => setEmailNotifs(!emailNotifs)}
+                      className="w-4 h-4 accent-[#f27a3d] cursor-pointer"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between cursor-pointer p-1">
+                    <div>
+                      <p className="text-slate-850 dark:text-white font-extrabold">WhatsApp Message alerts</p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Instant WhatsApp invoice rollout alerts</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={whatsappNotifs}
+                      onChange={() => setWhatsappNotifs(!whatsappNotifs)}
+                      className="w-4 h-4 accent-[#f27a3d] cursor-pointer"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between cursor-pointer p-1">
+                    <div>
+                      <p className="text-slate-850 dark:text-white font-extrabold">SMS Mobile Alerts</p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Critical warning details notifications</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={smsNotifs}
+                      onChange={() => setSmsNotifs(!smsNotifs)}
+                      className="w-4 h-4 accent-[#f27a3d] cursor-pointer"
+                    />
+                  </label>
+                </div>
+
+                {/* System Toggles */}
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-3.5 text-xs font-bold">
+                  <h4 className="text-slate-400 uppercase tracking-widest text-[9px] font-black">Security Preferences</h4>
+
+                  <label className="flex items-center justify-between cursor-pointer p-1">
+                    <div>
+                      <p className="text-slate-850 dark:text-white font-extrabold">Two-Factor Authentication (2FA)</p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Secure dashboard access logins</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={twoFactor}
+                      onChange={() => setTwoFactor(!twoFactor)}
+                      className="w-4 h-4 accent-[#f27a3d] cursor-pointer"
+                    />
+                  </label>
+
+                  <div className="flex items-center justify-between p-1">
+                    <div>
+                      <p className="text-slate-850 dark:text-white font-extrabold">Default Language Select</p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Dashboard preferred display localization</p>
+                    </div>
+                    <select
+                      value={preferredLang}
+                      onChange={(e) => setPreferredLang(e.target.value)}
+                      className="p-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 rounded-lg font-bold"
+                    >
+                      <option>English</option>
+                      <option>Telugu</option>
+                      <option>Hindi</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Theme selection */}
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-3 text-xs font-bold">
+                  <h4 className="text-slate-400 uppercase tracking-widest text-[9px] font-black">Portal Theme Settings</h4>
+                  <div className="flex items-center justify-between p-1">
+                    <div>
+                      <p className="text-slate-850 dark:text-white font-extrabold">Dark Mode Visual Theme</p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Switch portal to standard dark system layout</p>
+                    </div>
+                    <button
+                      onClick={toggleDarkMode}
+                      className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 hover:dark:bg-slate-900 font-black text-xs transition-all cursor-pointer text-slate-800 dark:text-white"
+                    >
+                      {darkMode ? "Disable Dark" : "Enable Dark"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Password update simulated card */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-sm font-black uppercase text-slate-900 dark:text-white tracking-wider border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-1.5">
+                  <Lock className="h-4 w-4" /> Change Portal Password
+                </h3>
+
+                <form onSubmit={handleUpdatePassword} className="space-y-3.5 text-xs font-bold">
+                  <div className="space-y-1">
+                    <label className="text-slate-655 block">Current Password</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-655 block">New Password</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-655 block">Confirm New Password</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-[#f27a3d] hover:bg-[#ff8950] text-white py-3 rounded-xl font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
+                  >
+                    Update Password Verification
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
-      
+
       {/* Sidebar Navigation */}
       <aside className="w-full md:w-64 bg-[#3f2115] dark:bg-[#20100a] text-amber-50 flex flex-col justify-between p-5 border-r border-[#4e2c1e] shrink-0">
         <div className="space-y-6">
@@ -238,15 +2369,11 @@ export function ParentDashboard({
                   key={item.id}
                   onClick={() => {
                     setActiveTab(item.id);
-                    if (item.id === "support") {
-                      // Trigger support or alert
-                    }
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
-                    isActive 
-                      ? "bg-[#f27a3d] text-white shadow-md transform scale-[1.02]" 
-                      : "text-amber-200/70 hover:text-white hover:bg-white/5"
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${isActive
+                    ? "bg-[#f27a3d] text-white shadow-md transform scale-[1.02]"
+                    : "text-amber-200/70 hover:text-white hover:bg-white/5"
+                    }`}
                 >
                   <Icon className="h-4.5 w-4.5 shrink-0" />
                   <span>{item.label}</span>
@@ -263,11 +2390,11 @@ export function ParentDashboard({
               RJ
             </div>
             <div>
-              <p className="text-xs font-black text-white leading-tight">{parentName}</p>
+              <p className="text-xs font-black text-white leading-tight">{parentProfile.name}</p>
               <p className="text-[10px] text-amber-200/50">Parent Member</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onLogout}
             className="text-[10px] uppercase font-black tracking-wider text-amber-200/60 hover:text-[#f27a3d] transition-colors"
           >
@@ -278,14 +2405,14 @@ export function ParentDashboard({
 
       {/* Main Panel Content Area */}
       <main className="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto">
-        
+
         {/* Portal Greeting Board */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
           <div className="space-y-1">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-              Welcome back, {parentName.split(" ")[0]} 👋
+              Welcome back, {parentProfile.name.split(" ")[0]} 👋
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-550 dark:text-slate-400">
               Here's your child's progress overview.
             </p>
           </div>
@@ -320,345 +2447,15 @@ export function ParentDashboard({
         </div>
 
         {paymentSuccessMsg && (
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 p-4 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-2 text-left">
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-250 p-4 rounded-xl text-xs text-emerald-600 dark:text-emerald-450 font-bold flex items-center gap-2 text-left">
             <CheckCircle2 className="h-5 w-5 animate-pulse text-emerald-500 shrink-0" />
             <span>{paymentSuccessMsg}</span>
           </div>
         )}
 
-        {/* 4 Stats Cards Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-left">
-          {/* Card 1: Attendance */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
-            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Attendance</span>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
-                {activeStudent.attendanceRate}%
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 font-bold">
-                Good
-              </span>
-            </div>
-          </div>
-
-          {/* Card 2: Latest Result */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
-            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Latest Result</span>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400">
-                A+
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 font-bold">
-                Top Rank
-              </span>
-            </div>
-          </div>
-
-          {/* Card 3: Pending Fees */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
-            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Pending Fees</span>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className="text-2xl sm:text-3xl font-black text-rose-500">
-                ${pendingFeesAmount}
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-455 font-bold">
-                Due
-              </span>
-            </div>
-          </div>
-
-          {/* Card 4: Today's Class */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
-            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Today's Class</span>
-            <div className="mt-2 text-left">
-              <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white block leading-tight">
-                {activeStudent.classTimings?.[0]?.time || "10:00 AM"}
-              </span>
-              <span className="text-[10px] text-slate-500 font-bold block truncate">
-                {activeStudent.classTimings?.[0]?.subject || "Web Development"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard Panels Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
-          
-          {/* Left Column (Col-7) */}
-          <div className="lg:col-span-7 space-y-6">
-            
-            {/* Child Overview Details */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
-              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Child Overview</h3>
-              
-              <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
-                <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                  <div className="h-16 w-16 rounded-full bg-[#f27a3d]/10 text-[#f27a3d] border-2 border-[#f27a3d]/20 flex items-center justify-center font-extrabold text-xl overflow-hidden shadow-sm">
-                    {activeStudent.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-black text-slate-900 dark:text-white leading-tight">{activeStudent.name}</h4>
-                    <p className="text-xs text-slate-500 mt-1">{activeStudent.grade} — {activeStudent.section || "STEM"}</p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">Parent Ledger Address: {activeStudent.parentEmail}</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-850 shrink-0">
-                  <div className="text-center px-3.5 border-r border-slate-200 dark:border-slate-800">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Total Tests</span>
-                    <span className="text-base font-black text-slate-900 dark:text-white">18</span>
-                  </div>
-                  <div className="text-center px-3.5">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Average Score</span>
-                    <span className="text-base font-black text-emerald-600 dark:text-emerald-450">87%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Tracker Slider */}
-              <div className="space-y-2.5">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-slate-650 dark:text-slate-350">Active Subject Modules Syllabus Progression</span>
-                  <span className="text-indigo-650 dark:text-indigo-400">75% Course Done</span>
-                </div>
-                <div className="h-2.5 w-full bg-slate-105 dark:bg-slate-800 rounded-full overflow-hidden flex">
-                  <div className="h-full bg-gradient-to-r from-sky-400 to-[#f27a3d]" style={{ width: "75%" }} />
-                </div>
-              </div>
-
-              {/* Learning Subject breakdown list */}
-              <div className="space-y-3 pt-3">
-                <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 block">Current Registered Subjects</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {activeStudent.learningSubjects.map((subject, idx) => (
-                    <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block">{subject.name}</span>
-                        <span className="text-[10px] text-slate-500">Completed: {subject.completedWeeks} weeks</span>
-                      </div>
-                      <span className="text-xs font-black text-[#f27a3d] bg-[#f27a3d]/10 px-2.5 py-1 rounded-lg">
-                        {subject.completedPercentage}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Fee Payment Section */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Fee Payment</h3>
-                <span className="text-[10px] font-bold text-slate-400">Last Payment: ${paidFeesAmount} (Paid)</span>
-              </div>
-
-              <div className="space-y-3">
-                {currentChildFees.map((fee) => (
-                  <div key={fee.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="text-left space-y-0.5">
-                      <h4 className="text-xs font-extrabold text-slate-800 dark:text-white leading-tight">{fee.title}</h4>
-                      <p className="text-[10px] text-slate-500">Due Date: {fee.dueDate}</p>
-                    </div>
-
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                      <span className="text-sm font-black text-slate-900 dark:text-white">${fee.amount}</span>
-                      {fee.status === "Pending" ? (
-                        <button
-                          onClick={() => handlePayFee(fee.id)}
-                          className="px-4 py-2 bg-[#f27a3d] hover:bg-[#ff8950] text-white font-black text-xs rounded-xl shadow-sm hover:shadow active:scale-95 transition-all shrink-0 cursor-pointer"
-                        >
-                          Pay Now
-                        </button>
-                      ) : (
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-450 font-extrabold bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg">
-                          Paid
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Tutors & Counselor WhatsApp Enquiry */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-              <div>
-                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Institutional WhatsApp Desk</h3>
-                <p className="text-xs text-slate-550">Select support desk to enquire with counselor staff about your child's growth</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setSupportChoice("tutor")}
-                  className={`p-3.5 rounded-2xl border text-left flex justify-between items-center transition-colors ${
-                    supportChoice === "tutor"
-                      ? "bg-[#f27a3d]/5 dark:bg-[#f27a3d]/10 border-[#f27a3d] text-[#f27a3d] font-bold"
-                      : "border-slate-100 hover:bg-slate-50 dark:border-slate-800 text-slate-700 dark:text-slate-350"
-                  }`}
-                >
-                  <div>
-                    <p className="text-xs font-bold leading-tight">Tutors Enquiry Desk</p>
-                    <p className="text-[10px] opacity-75 mt-0.5">Enquire Counselor (+91 954239546)</p>
-                  </div>
-                  <input
-                    type="radio"
-                    name="support_segment"
-                    checked={supportChoice === "tutor"}
-                    onChange={() => {}}
-                    className="accent-[#f27a3d]"
-                  />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSupportChoice("admin")}
-                  className={`p-3.5 rounded-2xl border text-left flex justify-between items-center transition-colors ${
-                    supportChoice === "admin"
-                      ? "bg-[#f27a3d]/5 dark:bg-[#f27a3d]/10 border-[#f27a3d] text-[#f27a3d] font-bold"
-                      : "border-slate-100 hover:bg-slate-50 dark:border-slate-800 text-slate-700 dark:text-slate-350"
-                  }`}
-                >
-                  <div>
-                    <p className="text-xs font-bold leading-tight">Admin Support Desk</p>
-                    <p className="text-[10px] opacity-75 mt-0.5">Contact Campus Desk (+91 6300227011)</p>
-                  </div>
-                  <input
-                    type="radio"
-                    name="support_segment"
-                    checked={supportChoice === "admin"}
-                    onChange={() => {}}
-                    className="accent-[#f27a3d]"
-                  />
-                </button>
-              </div>
-
-              <button
-                onClick={handleWhatsAppTalk}
-                className="w-full bg-[#f27a3d] hover:bg-[#ff8950] text-white font-extrabold py-3.5 rounded-2xl text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
-              >
-                <PhoneCall className="h-4 w-4 shrink-0" />
-                <span>Enquire Counseling Staff Now</span>
-              </button>
-            </div>
-
-          </div>
-
-          {/* Right Column (Col-5) */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            {/* Today's Schedule Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Today's Schedule</h3>
-              
-              <div className="space-y-3">
-                {activeStudent.classTimings.length > 0 ? (
-                  activeStudent.classTimings.map((timing, idx) => (
-                    <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex items-center justify-between">
-                      <div className="text-left space-y-0.5">
-                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">{timing.subject}</span>
-                        <span className="text-[10px] text-slate-550 flex items-center gap-1">
-                          <Clock className="h-3 w-3 shrink-0 text-slate-400" />
-                          <span>{timing.day} ({timing.time})</span>
-                        </span>
-                      </div>
-                      <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-tight rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400">
-                        {timing.mode}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-slate-400">No classes mapped for today.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Recent Results */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Results</h3>
-              
-              <div className="space-y-3">
-                <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
-                  <div className="space-y-0.5">
-                    <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">React JS Quiz</span>
-                    <span className="text-[10px] text-slate-450">May 19, 2026</span>
-                  </div>
-                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-55/10 px-2.5 py-1 rounded-lg">85%</span>
-                </div>
-
-                <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
-                  <div className="space-y-0.5">
-                    <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">UI Principles Assessment</span>
-                    <span className="text-[10px] text-slate-455">May 18, 2026</span>
-                  </div>
-                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-55/10 px-2.5 py-1 rounded-lg">92%</span>
-                </div>
-
-                <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
-                  <div className="space-y-0.5">
-                    <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">Python Programming basics</span>
-                    <span className="text-[10px] text-slate-455">May 16, 2026</span>
-                  </div>
-                  <span className="text-xs font-black text-emerald-650 dark:text-emerald-450 bg-emerald-55/10 px-2.5 py-1 rounded-lg">78%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Messages Inbox */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Messages</h3>
-              
-              <div className="space-y-3">
-                {activeStudentTutors.map((t, idx) => (
-                  <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <img src={t.image} alt={t.name} className="h-6 w-6 rounded-full object-cover" />
-                        <span className="text-xs font-black text-slate-900 dark:text-white leading-none">{t.name}</span>
-                      </div>
-                      <span className="text-[9px] text-slate-400">10:30 AM</span>
-                    </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-350 italic font-medium">
-                      "Please ensure she completes the coursework review exercises scheduled for tomorrow morning."
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Notifications Feed */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Notifications</h3>
-              
-              <div className="space-y-2.5 text-xs">
-                <div className="flex items-start gap-2.5 p-2 border-b border-slate-100 dark:border-slate-850">
-                  <span className="h-2 w-2 bg-[#f27a3d] rounded-full shrink-0 mt-1.5" />
-                  <div>
-                    <p className="font-extrabold text-slate-800 dark:text-white">Calculus Diagnostic test scheduled on May 22</p>
-                    <p className="text-[9px] text-slate-400 mt-0.5">10:00 AM</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5 p-2 border-b border-slate-100 dark:border-slate-850">
-                  <span className="h-2 w-2 bg-amber-500 rounded-full shrink-0 mt-1.5" />
-                  <div>
-                    <p className="font-extrabold text-slate-850 dark:text-white">Tuition fees due for the upcoming June term modules</p>
-                    <p className="text-[9px] text-slate-400 mt-0.5">Yesterday</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5 p-2">
-                  <span className="h-2 w-2 bg-indigo-500 rounded-full shrink-0 mt-1.5" />
-                  <div>
-                    <p className="font-extrabold text-slate-850 dark:text-white">New advanced thermodynamics laboratory report assigned</p>
-                    <p className="text-[9px] text-slate-400 mt-0.5">May 18, 2026</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
+        {/* Unique Render tab section */}
+        <div className="tab-fade-in">
+          {renderTabContent()}
         </div>
 
       </main>
@@ -667,7 +2464,7 @@ export function ParentDashboard({
       {wizardOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
           <div className="w-full max-w-xl bg-white dark:bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-150 dark:border-slate-800 flex flex-col">
-            
+
             {/* Modal Header */}
             <div className="bg-slate-50 dark:bg-slate-900 px-6 py-4 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -679,9 +2476,9 @@ export function ParentDashboard({
                   <p className="text-[10px] text-slate-550">Configure customized subjects and check fees</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setWizardOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-150 dark:hover:bg-slate-800 text-slate-400"
+                className="p-1 rounded-lg hover:bg-slate-150 dark:hover:bg-slate-800 text-slate-450"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -690,18 +2487,17 @@ export function ParentDashboard({
             {/* Wizard progress rail */}
             <div className="bg-slate-100 dark:bg-slate-900 h-1.5 w-full flex">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`flex-1 h-full border-r border-white/20 last:border-none transition-colors duration-300 ${
-                    wizardStep >= i + 1 ? "bg-gradient-to-r from-sky-400 to-indigo-500" : "bg-slate-200 dark:bg-slate-800"
-                  }`}
+                <div
+                  key={i}
+                  className={`flex-1 h-full border-r border-white/20 last:border-none transition-colors duration-300 ${wizardStep >= i + 1 ? "bg-gradient-to-r from-sky-400 to-indigo-500" : "bg-slate-200 dark:bg-slate-800"
+                    }`}
                 />
               ))}
             </div>
 
             {/* Modal Content body (State Driven) */}
             <div className="p-6 overflow-y-auto max-h-[70vh] flex-1 space-y-4">
-              
+
               {/* STEP 1: Class & Subject Select */}
               {wizardStep === 1 && (
                 <div className="space-y-4 animate-fade-in">
@@ -725,7 +2521,7 @@ export function ParentDashboard({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-650 block text-slate-700 dark:text-slate-350">Check Subjects to Roll Out:</label>
+                    <label className="text-xs font-extrabold block text-slate-700 dark:text-slate-350">Check Subjects to Roll Out:</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {(SUBJECTS_BY_CLASS[wizardClass] || []).map((sub) => {
                         const isChecked = wizardSubjects.includes(sub);
@@ -734,16 +2530,14 @@ export function ParentDashboard({
                             type="button"
                             key={sub}
                             onClick={() => toggleSubjectSelect(sub)}
-                            className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between ${
-                              isChecked 
-                                ? "bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-955 dark:text-indigo-300" 
-                                : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900 text-slate-700 dark:text-slate-350"
-                            }`}
+                            className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between ${isChecked
+                              ? "bg-indigo-50 border-indigo-400 text-indigo-755 dark:bg-indigo-950 dark:text-indigo-300"
+                              : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900 text-slate-700 dark:text-slate-350"
+                              }`}
                           >
                             <span>{sub}</span>
-                            <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
-                              isChecked ? "bg-indigo-650 border-indigo-600 text-white" : "border-slate-300"
-                            }`}>
+                            <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${isChecked ? "bg-indigo-650 border-indigo-600 text-white" : "border-slate-300"
+                              }`}>
                               {isChecked && "✓"}
                             </span>
                           </button>
@@ -767,11 +2561,10 @@ export function ParentDashboard({
                     <button
                       type="button"
                       onClick={() => setWizardMode("Online")}
-                      className={`p-6 rounded-2xl border text-left transition-all ${
-                        wizardMode === "Online"
-                          ? "bg-sky-50 border-sky-400 dark:bg-sky-950/40"
-                          : "border-slate-105 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900"
-                      }`}
+                      className={`p-6 rounded-2xl border text-left transition-all ${wizardMode === "Online"
+                        ? "bg-sky-50 border-sky-400 dark:bg-sky-950/40"
+                        : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900"
+                        }`}
                     >
                       <span className="text-sm font-black block text-slate-950 dark:text-white">Online Digital Classroom</span>
                       <span className="text-[10px] text-slate-500 block mt-1 leading-normal">Lower Cost. Flexible timings. Accessible anywhere via computer dashboards.</span>
@@ -780,14 +2573,13 @@ export function ParentDashboard({
                     <button
                       type="button"
                       onClick={() => setWizardMode("Offline")}
-                      className={`p-6 rounded-2xl border text-left transition-all ${
-                        wizardMode === "Offline"
-                          ? "bg-sky-50 border-sky-400 dark:bg-sky-950/40"
-                          : "border-slate-105 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900"
-                      }`}
+                      className={`p-6 rounded-2xl border text-left transition-all ${wizardMode === "Offline"
+                        ? "bg-sky-50 border-sky-400 dark:bg-sky-950/40"
+                        : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900"
+                        }`}
                     >
-                      <span className="text-sm font-black block text-slate-950 dark:text-white">Offline Regional Center</span>
-                      <span className="text-[10px] text-slate-500 block mt-1 leading-normal">Individual in-person classrooms. Best attention. Small regional batches.</span>
+                      <span className="text-sm font-black block text-slate-955 dark:text-white">Offline Regional Center</span>
+                      <span className="text-[10px] text-slate-550 block mt-1 leading-normal">Individual in-person classrooms. Best attention. Small regional batches.</span>
                     </button>
                   </div>
                 </div>
@@ -799,7 +2591,7 @@ export function ParentDashboard({
                   <div className="space-y-1">
                     <span className="text-[9px] font-extrabold uppercase text-sky-600 tracking-widest">Step 3 of 5</span>
                     <h4 className="text-base font-black text-slate-900 dark:text-white">Choose Academic Tutor</h4>
-                    <p className="text-xs text-slate-555">Select veteran instructors specialized for the target coursework.</p>
+                    <p className="text-xs text-slate-500 font-bold">Select veteran instructors specialized for the target coursework.</p>
                   </div>
 
                   <div className="space-y-2">
@@ -808,11 +2600,10 @@ export function ParentDashboard({
                         type="button"
                         key={t.id}
                         onClick={() => setWizardTutorId(t.id)}
-                        className={`w-full p-4 rounded-xl border text-left flex items-center justify-between transition-colors ${
-                          wizardTutorId === t.id
-                            ? "bg-sky-50 border-sky-400 dark:bg-sky-950/40 text-sky-700"
-                            : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900 text-slate-705"
-                        }`}
+                        className={`w-full p-4 rounded-xl border text-left flex items-center justify-between transition-colors ${wizardTutorId === t.id
+                          ? "bg-sky-50 border-sky-400 dark:bg-sky-950/40 text-sky-700"
+                          : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900 text-slate-700"
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <img src={t.image} alt={t.name} className="h-9 w-9 rounded-full object-cover" />
@@ -825,7 +2616,7 @@ export function ParentDashboard({
                           type="radio"
                           name="tutor_wizard_sel"
                           checked={wizardTutorId === t.id}
-                          onChange={() => {}}
+                          onChange={() => { }}
                           className="accent-sky-500"
                         />
                       </button>
@@ -849,11 +2640,10 @@ export function ParentDashboard({
                         type="button"
                         key={loc}
                         onClick={() => setWizardLocation(loc)}
-                        className={`p-3.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between ${
-                          wizardLocation === loc
-                            ? "bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-305"
-                            : "border-slate-100 hover:bg-slate-50 dark:border-slate-850 dark:bg-slate-900 text-slate-700"
-                        }`}
+                        className={`p-3.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between ${wizardLocation === loc
+                          ? "bg-indigo-50 border-indigo-400 text-indigo-755 dark:bg-indigo-950/30 dark:text-indigo-300"
+                          : "border-slate-100 hover:bg-slate-50 dark:border-slate-855 dark:bg-slate-900 text-slate-700"
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-rose-500" />
@@ -863,8 +2653,8 @@ export function ParentDashboard({
                           type="radio"
                           name="loc_wizard_sel"
                           checked={wizardLocation === loc}
-                          onChange={() => {}}
-                          className="accent-indigo-600"
+                          onChange={() => { }}
+                          className="accent-indigo-650"
                         />
                       </button>
                     ))}
@@ -878,35 +2668,35 @@ export function ParentDashboard({
                   <div className="space-y-1">
                     <span className="text-[9px] font-extrabold uppercase text-emerald-600 tracking-widest">Step 5 of 5</span>
                     <h4 className="text-base font-black text-slate-900 dark:text-white">Confirm Rollout & Tuition Fee Receipt</h4>
-                    <p className="text-xs text-slate-500">Preview the calculated price summary details. Clicking Pay automatically activates courses.</p>
+                    <p className="text-xs text-slate-550">Preview the calculated price summary details. Clicking Pay automatically activates courses.</p>
                   </div>
 
                   {/* Pricing receipt card */}
-                  <div className="border border-slate-205 bg-slate-50 dark:bg-slate-900 dark:border-slate-800 p-5 rounded-2xl relative">
+                  <div className="border border-slate-200 bg-slate-50 dark:bg-slate-900 dark:border-slate-800 p-5 rounded-2xl relative">
                     <div className="border-b border-dashed border-slate-300 pb-3 mb-3 space-y-1">
                       <div className="flex justify-between text-xs font-extrabold text-slate-700 dark:text-slate-350">
                         <span>Class Program Selection:</span>
-                        <span className="text-indigo-600">{wizardClass}</span>
+                        <span className="text-indigo-650">{wizardClass}</span>
                       </div>
-                      <div className="flex justify-between text-xs font-extrabold text-slate-705 dark:text-slate-350">
+                      <div className="flex justify-between text-xs font-extrabold text-slate-700 dark:text-slate-350">
                         <span>Coaching Mode:</span>
                         <span className="uppercase text-slate-900 dark:text-white">{wizardMode}</span>
                       </div>
-                      <div className="flex justify-between text-xs font-extrabold text-slate-705 dark:text-slate-350">
+                      <div className="flex justify-between text-xs font-extrabold text-slate-700 dark:text-slate-350">
                         <span>Active Center Location:</span>
-                        <span className="text-slate-905">{wizardLocation}</span>
+                        <span className="text-slate-900 dark:text-white">{wizardLocation}</span>
                       </div>
                     </div>
 
                     <div className="space-y-2 border-b border-dashed border-slate-300 pb-3 mb-3">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selected Subjects Ledger:</p>
                       {wizardSubjects.map((sub, idx) => (
-                        <div key={idx} className="flex justify-between text-xs font-bold text-slate-705 dark:text-slate-200">
+                        <div key={idx} className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-200">
                           <span>+ {sub} Tuition module</span>
                           <span>$150.00</span>
                         </div>
                       ))}
-                      <div className="flex justify-between text-xs font-medium text-slate-505 dark:text-slate-400">
+                      <div className="flex justify-between text-xs font-medium text-slate-500 dark:text-slate-450">
                         <span>Base Tuition Fee Rate</span>
                         <span>${subBaseFee}.00</span>
                       </div>
@@ -914,13 +2704,13 @@ export function ParentDashboard({
 
                     <div className="flex justify-between items-center text-sm font-black text-slate-950 dark:text-white">
                       <span>Total Calculated Fee:</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 text-lg font-black">${computedFee}.00</span>
+                      <span className="text-emerald-600 dark:text-emerald-450 text-lg font-black">${computedFee}.00</span>
                     </div>
                   </div>
 
-                  <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3 border border-amber-205 text-left flex gap-2 items-start">
-                    <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-slate-650 dark:text-slate-350 leading-relaxed font-semibold">
+                  <div className="bg-amber-50 dark:bg-amber-955/30 rounded-xl p-3 border border-amber-200 text-left flex gap-2 items-start">
+                    <AlertCircle className="h-5 w-5 text-amber-550 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-slate-655 dark:text-slate-350 leading-relaxed font-semibold">
                       Note: Confirming payment registers the student immediately, notifies tutors, and creates a WhatsApp confirmation chat payload ready to send.
                     </p>
                   </div>
@@ -934,7 +2724,7 @@ export function ParentDashboard({
               {wizardStep > 1 ? (
                 <button
                   onClick={() => setWizardStep(wizardStep - 1)}
-                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold bg-white text-slate-800 hover:bg-slate-100"
+                  className="rounded-xl border border-slate-205 px-4 py-2.5 text-xs font-bold bg-white text-slate-800 hover:bg-slate-100"
                 >
                   Previous
                 </button>
@@ -961,12 +2751,529 @@ export function ParentDashboard({
                 <button
                   type="button"
                   onClick={handleResolveWizard}
-                  className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 text-xs font-black flex items-center gap-1.5 shadow"
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 text-xs font-black flex items-center gap-1.5 shadow cursor-pointer"
                 >
                   <span>Pay Tuition & Finalize</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
               )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Make Payment Modal */}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-150 dark:border-slate-800 flex flex-col">
+
+            {/* Modal Header */}
+            <div className="bg-slate-50 dark:bg-slate-900 px-6 py-4 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-[#f27a3d] flex items-center justify-center text-white">
+                  <DollarSign className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white">Make Tuition Payment</h3>
+                  <p className="text-[10px] text-slate-550">Secure online checkouts system</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPaymentModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-150 dark:hover:bg-slate-800 text-slate-400"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleProcessPayment} className="p-6 overflow-y-auto max-h-[80vh] flex-1 space-y-4 text-xs font-bold">
+
+              {/* Autofilled Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-slate-400 block uppercase tracking-wider text-[9px]">Student Name</label>
+                  <input
+                    type="text"
+                    value={activeStudent.name}
+                    readOnly
+                    className="w-full p-2.5 bg-slate-105 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-extrabold text-slate-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-400 block uppercase tracking-wider text-[9px]">Parent Name</label>
+                  <input
+                    type="text"
+                    value={parentProfile.name}
+                    readOnly
+                    className="w-full p-2.5 bg-slate-105 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-extrabold text-slate-500"
+                  />
+                </div>
+              </div>
+
+              {/* Invoice Selection */}
+              <div className="space-y-1">
+                <label className="text-slate-655 block">Select Statement Invoice</label>
+                <select
+                  value={paymentSelectedInvoiceId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPaymentSelectedInvoiceId(val);
+                    if (val === "custom") {
+                      setPaymentInvoiceNumber(`INV-CUST-${Math.floor(1000 + Math.random() * 9000)}`);
+                      setPaymentAmount(0);
+                    } else if (val) {
+                      const match = currentChildFees.find(f => f.id === val);
+                      if (match) {
+                        setPaymentInvoiceNumber(match.id);
+                        setPaymentAmount(match.amount);
+                      }
+                    } else {
+                      setPaymentInvoiceNumber("");
+                      setPaymentAmount(0);
+                    }
+                  }}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                >
+                  <option value="">-- Choose Invoice to Pay --</option>
+                  {currentChildFees.filter(f => f.status === "Pending").map((fee) => (
+                    <option key={fee.id} value={fee.id}>
+                      {fee.title} - ${fee.amount} (Due: {fee.dueDate})
+                    </option>
+                  ))}
+                  <option value="custom">Custom Miscellaneous Payment</option>
+                </select>
+              </div>
+
+              {/* Invoice details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-slate-655 block">Invoice Number</label>
+                  <input
+                    type="text"
+                    value={paymentInvoiceNumber}
+                    onChange={(e) => setPaymentInvoiceNumber(e.target.value)}
+                    placeholder="e.g. FP-501"
+                    disabled={paymentSelectedInvoiceId !== "custom" && paymentSelectedInvoiceId !== ""}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold disabled:opacity-60"
+                  />
+                  {paymentErrors.invoiceNumber && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.invoiceNumber}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-655 block">Fee Amount ($)</label>
+                  <input
+                    type="number"
+                    value={paymentAmount || ""}
+                    onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
+                    disabled={paymentSelectedInvoiceId !== "custom" && paymentSelectedInvoiceId !== ""}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold disabled:opacity-60"
+                  />
+                  {paymentErrors.amount && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.amount}</p>}
+                </div>
+              </div>
+
+              {/* Payment Date */}
+              <div className="space-y-1">
+                <label className="text-slate-655 block">Payment Date</label>
+                <input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                />
+              </div>
+
+              {/* Payment Methods Selection Tabs */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <label className="text-slate-400 block uppercase tracking-wider text-[9px]">Select Payment Method</label>
+                <div className="grid grid-cols-5 gap-1 text-[10px] font-black text-center">
+                  {(["UPI", "Credit Card", "Debit Card", "Net Banking", "Wallet"] as const).map((method) => {
+                    const isSel = paymentMethod === method;
+                    return (
+                      <button
+                        type="button"
+                        key={method}
+                        onClick={() => {
+                          setPaymentMethod(method);
+                          setPaymentErrors({});
+                        }}
+                        className={`py-2 rounded-lg border transition-all cursor-pointer truncate ${isSel
+                          ? "bg-[#f27a3d] text-white border-[#f27a3d] shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
+                          }`}
+                      >
+                        {method}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Dynamic Payment Method Fields */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-150 dark:border-slate-850 rounded-2xl space-y-3 mt-3">
+                {paymentMethod === "UPI" && (
+                  <div className="space-y-3 text-center flex flex-col items-center">
+                    {/* SVG QR Code Placeholder */}
+                    <div className="h-28 w-28 bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-center shadow-sm">
+                      <svg viewBox="0 0 100 100" className="w-full h-full text-slate-800">
+                        <path d="M5,5 h30 v30 h-30 z M5,15 h30 M15,5 v30" stroke="currentColor" strokeWidth="2" fill="none" />
+                        <path d="M65,5 h30 v30 h-30 z M65,15 h30 M75,5 v30" stroke="currentColor" strokeWidth="2" fill="none" />
+                        <path d="M5,65 h30 v30 h-30 z M5,75 h30 M15,65 v30" stroke="currentColor" strokeWidth="2" fill="none" />
+                        <rect x="10" y="10" width="10" height="10" fill="currentColor" />
+                        <rect x="70" y="10" width="10" height="10" fill="currentColor" />
+                        <rect x="10" y="70" width="10" height="10" fill="currentColor" />
+                        <rect x="45" y="45" width="10" height="10" fill="currentColor" />
+                        <rect x="55" y="60" width="15" height="15" fill="currentColor" />
+                        <rect x="70" y="70" width="10" height="20" fill="currentColor" />
+                        <rect x="85" y="85" width="10" height="10" fill="currentColor" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-bold">Scan QR Code or pay using UPI ID</span>
+
+                    <div className="w-full space-y-1 text-left">
+                      <label className="text-slate-655 block">Your UPI ID</label>
+                      <input
+                        type="text"
+                        placeholder="username@bank"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                      />
+                      {paymentErrors.upiId && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.upiId}</p>}
+                    </div>
+                  </div>
+                )}
+
+                {(paymentMethod === "Credit Card" || paymentMethod === "Debit Card") && (
+                  <div className="space-y-3 text-left">
+                    <div className="space-y-1">
+                      <label className="text-slate-655 block">Card Holder Name</label>
+                      <input
+                        type="text"
+                        placeholder="John Doe"
+                        value={cardHolderName}
+                        onChange={(e) => setCardHolderName(e.target.value)}
+                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                      />
+                      {paymentErrors.cardHolderName && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.cardHolderName}</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-655 block">Card Number</label>
+                      <input
+                        type="text"
+                        maxLength={19}
+                        placeholder="1234 5678 1234 5678"
+                        value={cardNumber}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+                          const matches = v.match(/\d{4,16}/g);
+                          const match = (matches && matches[0]) || "";
+                          const parts = [];
+
+                          for (let i = 0, len = match.length; i < len; i += 4) {
+                            parts.push(match.substring(i, i + 4));
+                          }
+
+                          if (parts.length > 0) {
+                            setCardNumber(parts.join(" "));
+                          } else {
+                            setCardNumber(v);
+                          }
+                        }}
+                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                      />
+                      {paymentErrors.cardNumber && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.cardNumber}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-slate-655 block">Expiry Date</label>
+                        <input
+                          type="text"
+                          placeholder="MM/YY"
+                          maxLength={5}
+                          value={cardExpiry}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            if (val.length >= 2) {
+                              setCardExpiry(val.substring(0, 2) + "/" + val.substring(2, 4));
+                            } else {
+                              setCardExpiry(val);
+                            }
+                          }}
+                          className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                        />
+                        {paymentErrors.cardExpiry && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.cardExpiry}</p>}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-slate-655 block">CVV</label>
+                        <input
+                          type="password"
+                          placeholder="•••"
+                          maxLength={3}
+                          value={cardCvv}
+                          onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, ""))}
+                          className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                        />
+                        {paymentErrors.cardCvv && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.cardCvv}</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === "Net Banking" && (
+                  <div className="space-y-3 text-left">
+                    <div className="space-y-1">
+                      <label className="text-slate-655 block">Choose Bank</label>
+                      <select
+                        value={selectedBank}
+                        onChange={(e) => setSelectedBank(e.target.value)}
+                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                      >
+                        <option>SBI Bank</option>
+                        <option>HDFC Bank</option>
+                        <option>ICICI Bank</option>
+                        <option>Axis Bank</option>
+                        <option>Kotak Mahindra Bank</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === "Wallet" && (
+                  <div className="space-y-3 text-left">
+                    <div className="space-y-1">
+                      <label className="text-slate-655 block">Choose Digital Wallet</label>
+                      <select
+                        value={selectedWallet}
+                        onChange={(e) => setSelectedWallet(e.target.value)}
+                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                      >
+                        <option>Google Pay</option>
+                        <option>PhonePe</option>
+                        <option>Paytm</option>
+                        <option>Amazon Pay</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentModalOpen(false)}
+                  className="px-4 py-2.5 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Pay Now</span>
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* Payment Success Popup */}
+      {paymentSuccessPopupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-center">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-950 rounded-3xl p-6 shadow-2xl border border-slate-150 dark:border-slate-800 space-y-4">
+            <div className="h-14 w-14 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto text-emerald-600">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500 animate-bounce" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">Payment Successful!</h3>
+              <p className="text-xs text-slate-500 mt-1">Your tuition fee invoice has been processed.</p>
+            </div>
+            <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl text-[11px] text-slate-655 space-y-1 font-bold">
+              <div className="flex justify-between">
+                <span>Transaction ID:</span>
+                <span className="text-slate-900 dark:text-white font-black">{latestTxnId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Amount Charged:</span>
+                <span className="text-slate-900 dark:text-white font-black">${paymentAmount}</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const histItem = paymentHistory[0];
+                  if (histItem) {
+                    setReceiptData({
+                      studentName: histItem.studentName,
+                      parentName: histItem.parentName,
+                      transactionId: histItem.transactionId,
+                      amountPaid: histItem.amount,
+                      paymentMethod: histItem.paymentMethod,
+                      paymentDate: histItem.date,
+                      paymentStatus: histItem.status,
+                      invoiceTitle: histItem.invoiceTitle
+                    });
+                    setPaymentSuccessPopupOpen(false);
+                    setIsReceiptModalOpen(true);
+                  }
+                }}
+                className="flex-1 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-black shadow cursor-pointer"
+              >
+                View Receipt
+              </button>
+              <button
+                onClick={() => setPaymentSuccessPopupOpen(false)}
+                className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-330 rounded-xl text-xs font-bold hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Professional Logo-Branded Downloadable Receipt Modal */}
+      {isReceiptModalOpen && receiptData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
+          <div className="w-full max-w-md bg-white dark:bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-150 dark:border-slate-800 flex flex-col">
+
+            {/* Modal Header */}
+            <div className="bg-slate-50 dark:bg-slate-900 px-6 py-3 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center">
+              <span className="text-xs font-black uppercase text-slate-400">Payment Receipt Details</span>
+              <button
+                onClick={() => setIsReceiptModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-150 dark:hover:bg-slate-800 text-slate-455"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Receipt Content Body */}
+            <div id="receipt-print-area" className="p-6 space-y-6 text-xs font-bold bg-white dark:bg-slate-950">
+
+              {/* Logo / Header Branding */}
+              <div className="flex justify-between items-center border-b-2 border-dashed border-slate-200 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 bg-[#f27a3d] rounded-xl text-white shadow-md">
+                    <Users className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="font-extrabold text-sm tracking-wider text-slate-900 dark:text-white uppercase leading-none">Academy Flow</h3>
+                    <span className="text-[9px] text-slate-400 uppercase tracking-widest block mt-0.5">Academic CRM Portal</span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="inline-block px-2.5 py-1 rounded-full text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450 border border-emerald-200/50">
+                    {receiptData.paymentStatus}
+                  </span>
+                </div>
+              </div>
+
+              {/* Receipt Details fields */}
+              <div className="space-y-4 leading-normal font-bold">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Student Name</span>
+                    <span className="font-black text-slate-850 dark:text-white text-sm">{receiptData.studentName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Parent Member</span>
+                    <span className="font-black text-slate-850 dark:text-white text-sm">{receiptData.parentName}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Transaction ID</span>
+                    <span className="font-black text-slate-850 dark:text-white text-sm text-indigo-650 dark:text-indigo-400">{receiptData.transactionId}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Payment Method</span>
+                    <span className="font-black text-slate-850 dark:text-white text-sm uppercase">{receiptData.paymentMethod}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Payment Date</span>
+                    <span className="font-black text-slate-850 dark:text-white text-sm">{receiptData.paymentDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Tuition Item Description</span>
+                    <span className="font-black text-slate-850 dark:text-white text-sm truncate block" title={receiptData.invoiceTitle}>
+                      {receiptData.invoiceTitle}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Paid block */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl flex justify-between items-center border border-slate-155 dark:border-slate-800">
+                <span className="text-slate-700 dark:text-slate-350 font-black text-sm uppercase tracking-wider">Amount Paid Successfully</span>
+                <span className="text-emerald-600 dark:text-emerald-450 text-xl font-black">${receiptData.amountPaid}.00</span>
+              </div>
+
+              <div className="text-center text-[10px] text-slate-400 leading-relaxed pt-2">
+                Thank you for your tuition payment! An official ledger notification has been logged in institutional rosters and sent to {parentProfile.email}.
+              </div>
+
+            </div>
+
+            {/* Modal Footer Controls */}
+            <div className="bg-slate-50 dark:bg-slate-900 px-6 py-4 border-t border-slate-150 dark:border-slate-800 flex justify-between gap-3">
+              <button
+                onClick={() => {
+                  const printContents = document.getElementById("receipt-print-area")?.innerHTML;
+                  if (printContents) {
+                    const printWindow = window.open("", "_blank");
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Academy Flow Receipt - ${receiptData.transactionId}</title>
+                            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                          </head>
+                          <body class="p-8 bg-white font-sans text-xs">
+                            <div class="max-w-md mx-auto border p-6 rounded-2xl shadow-sm">
+                              \${printContents}
+                            </div>
+                            <script>
+                              window.onload = function() { window.print(); window.close(); }
+                            </script>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                    }
+                  }
+                }}
+                className="px-4 py-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <FileText className="h-4 w-4" />
+                <span>Print Receipt</span>
+              </button>
+              <button
+                onClick={() => {
+                  alert("Downloading official PDF Receipt to local machine... (Simulated download)");
+                  setIsReceiptModalOpen(false);
+                }}
+                className="px-4 py-2 bg-[#f27a3d] hover:bg-[#ff8950] text-white font-extrabold text-xs rounded-xl shadow active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download PDF</span>
+              </button>
             </div>
 
           </div>
