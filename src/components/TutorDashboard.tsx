@@ -5,10 +5,11 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  Home, Users, ClipboardCheck, FileText, BookOpen, Award, Calendar,
+  Home, Users, FileText, BookOpen, Award, Calendar,
   MessageSquare, Star, User, Settings, Bell, ChevronRight, UserCheck,
   CalendarPlus, Sparkles, HelpCircle, LogOut, Clock
 } from "lucide-react";
+import { apiClient } from "../services/apiClient";
 import { Student, Tutor, Assignment, Review, Message, TestScore } from "../types";
 
 interface TutorDashboardProps {
@@ -32,7 +33,6 @@ type ViewKey =
 const NAV_ITEMS: Array<{ key: ViewKey; label: string; icon: React.ComponentType<any> }> = [
   { key: "dashboard", label: "Dashboard", icon: Home },
   { key: "students", label: "My Students", icon: Users },
-  { key: "attendance", label: "Attendance", icon: ClipboardCheck },
   { key: "tests", label: "Tests", icon: FileText },
   { key: "assignments", label: "Assignments", icon: BookOpen },
   { key: "results", label: "Results", icon: Award },
@@ -74,6 +74,8 @@ export function TutorDashboard({
 
   const [activeView, setActiveView] = useState<ViewKey>("dashboard");
   const [notif, setNotif] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [attendanceMarkedToday, setAttendanceMarkedToday] = useState<Record<string, boolean>>({});
 
   const myStudents = useMemo(
     () => students.filter((s) => currentTutor.assignedStudentIds.includes(s.id)),
@@ -101,6 +103,20 @@ export function TutorDashboard({
   const avgAttendance = myStudents.length > 0
     ? Math.round(myStudents.reduce((sum, s) => sum + s.attendanceRate, 0) / myStudents.length)
     : 0;
+  const notificationItems = [
+    ...myMessages.slice(0, 3).map((m) => ({
+      id: m.id,
+      title: `Message from ${m.fromName}`,
+      detail: m.preview,
+      time: m.time,
+    })),
+    {
+      id: "pending-assignments",
+      title: "Assignments pending review",
+      detail: `${pendingTests} submission(s) pending`,
+      time: "Now",
+    },
+  ];
 
   const showNotif = (msg: string) => {
     setNotif(msg);
@@ -118,18 +134,33 @@ export function TutorDashboard({
   const [newSubj, setNewSubj] = useState("Algebraic Systems");
   const [newDue, setNewDue] = useState("2026-06-15");
 
-  const handleToggleAttendance = (studentId: string) => {
-    const updated = students.map((s) => {
-      if (s.id === studentId) {
-        const nextPresent = s.presentCount + 1;
-        const total = nextPresent + s.absentCount;
-        const rate = total > 0 ? Math.round((nextPresent / total) * 100) : 100;
-        return { ...s, presentCount: nextPresent, attendanceRate: rate };
-      }
-      return s;
-    });
-    onUpdateStudents(updated);
-    showNotif("Attendance marked successfully!");
+  const handleToggleAttendance = async (studentId: string) => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const isMarkedPresent = attendanceMarkedToday[studentId] === true;
+      const nextStatus = isMarkedPresent ? "Absent" : "Present";
+      await apiClient.attendance.mark(studentId, today, nextStatus);
+      const updated = students.map((s) => {
+        if (s.id === studentId) {
+          const nextPresent = nextStatus === "Present"
+            ? s.presentCount + 1
+            : Math.max(0, s.presentCount - 1);
+          const nextAbsent = nextStatus === "Absent"
+            ? s.absentCount + 1
+            : Math.max(0, s.absentCount - 1);
+          const total = nextPresent + nextAbsent;
+          const rate = total > 0 ? Math.round((nextPresent / total) * 100) : 100;
+          return { ...s, presentCount: nextPresent, absentCount: nextAbsent, attendanceRate: rate };
+        }
+        return s;
+      });
+      onUpdateStudents(updated);
+      setAttendanceMarkedToday((prev) => ({ ...prev, [studentId]: nextStatus === "Present" }));
+      showNotif(`Attendance updated: ${nextStatus}`);
+    } catch (error) {
+      console.warn("Unable to mark attendance", error);
+      showNotif("Unable to mark attendance right now. Please try again.");
+    }
   };
 
   const handleUpdateScores = (e: React.FormEvent) => {
@@ -172,20 +203,26 @@ export function TutorDashboard({
     showNotif(`Grades updated for ${activeStudent.name}! New GPA: ${calcGPA}`);
   };
 
-  const handleCreateAssignment = (e: React.FormEvent) => {
+  const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-    const newAsst: Assignment = {
-      id: `A-${Math.floor(920 + Math.random() * 80)}`,
-      title: newTitle.trim(),
-      subject: newSubj,
-      dueDate: newDue,
-      submissionsPending: myStudents.length,
-      status: "Active"
-    };
-    onUpdateAssignments([newAsst, ...assignments]);
-    setNewTitle("");
-    showNotif(`Assignment '${newAsst.title}' published to your students!`);
+    try {
+      const created = await apiClient.attendance.createAssignment(currentTutor.id, newTitle.trim(), newSubj, newDue, "Active");
+      const newAsst: Assignment = {
+        id: created.assignmentId || created.id || `A-${Math.floor(920 + Math.random() * 80)}`,
+        title: created.title || newTitle.trim(),
+        subject: created.subject || newSubj,
+        dueDate: created.dueDate || newDue,
+        submissionsPending: created.submissionsPending ?? myStudents.length,
+        status: created.status || "Active"
+      };
+      onUpdateAssignments([newAsst, ...assignments]);
+      setNewTitle("");
+      showNotif(`Assignment '${newAsst.title}' published to your students!`);
+    } catch (error) {
+      console.warn("Unable to create assignment", error);
+      showNotif("Unable to publish assignment. Please try again.");
+    }
   };
 
   const handleMarkMessageRead = (id: string) => {
@@ -276,11 +313,14 @@ export function TutorDashboard({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative">
             <span className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-xs font-extrabold text-slate-700 dark:text-slate-350">
               {todayStr}
             </span>
-            <button className="relative p-2.5 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850">
+            <button
+              onClick={() => setShowNotifications((prev) => !prev)}
+              className="relative p-2.5 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850"
+            >
               <Bell className="h-4 w-4 text-slate-700 dark:text-slate-350" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black rounded-full px-1 py-0.5 shrink-0">
@@ -288,6 +328,22 @@ export function TutorDashboard({
                 </span>
               )}
             </button>
+            {showNotifications && (
+              <div className="absolute top-12 right-0 w-80 max-h-80 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl p-3 z-20">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 pb-2">
+                  Notifications
+                </p>
+                <div className="space-y-2">
+                  {notificationItems.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 text-left">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white">{item.title}</p>
+                      <p className="text-[10px] text-slate-500 mt-1">{item.detail}</p>
+                      <p className="text-[9px] text-slate-400 mt-1">{item.time}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -314,7 +370,11 @@ export function TutorDashboard({
         {activeView === "students" && <StudentsView students={myStudents} />}
 
         {activeView === "attendance" && (
-          <AttendanceView students={myStudents} onMark={handleToggleAttendance} />
+          <AttendanceView
+            students={myStudents}
+            onMark={handleToggleAttendance}
+            attendanceMarkedToday={attendanceMarkedToday}
+          />
         )}
 
         {activeView === "tests" && <TestsView tests={myTests} />}
@@ -348,7 +408,7 @@ export function TutorDashboard({
           <MessagesView messages={myMessages} onMarkRead={handleMarkMessageRead} />
         )}
 
-        {activeView === "reviews" && <ReviewsView reviews={myReviews} />}
+        {activeView === "reviews" && <ReviewsView reviews={myReviews} students={myStudents} />}
 
         {activeView === "profile" && (
           <ProfileView tutor={currentTutor} studentCount={totalStudents} />
@@ -613,7 +673,15 @@ function StudentsView({ students }: { students: Student[] }) {
   );
 }
 
-function AttendanceView({ students, onMark }: { students: Student[]; onMark: (id: string) => void }) {
+function AttendanceView({
+  students,
+  onMark,
+  attendanceMarkedToday,
+}: {
+  students: Student[];
+  onMark: (id: string) => void;
+  attendanceMarkedToday: Record<string, boolean>;
+}) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
       <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Attendance Log</h3>
@@ -629,10 +697,14 @@ function AttendanceView({ students, onMark }: { students: Student[]; onMark: (id
             </div>
             <button
               onClick={() => onMark(s.id)}
-              className="px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-250 rounded-xl text-[10px] font-bold hover:bg-emerald-100 inline-flex items-center gap-1.5 cursor-pointer"
+              className={`px-3.5 py-2 rounded-xl text-[10px] font-bold inline-flex items-center gap-1.5 cursor-pointer ${
+                attendanceMarkedToday[s.id]
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-250 hover:bg-emerald-100"
+                  : "bg-rose-50 text-rose-700 border border-rose-250 hover:bg-rose-100"
+              }`}
             >
               <UserCheck className="h-4 w-4 shrink-0" />
-              <span>Present</span>
+              <span>{attendanceMarkedToday[s.id] ? "Present" : "Absent"}</span>
             </button>
           </div>
         ))}
@@ -897,11 +969,25 @@ function MessagesView({ messages, onMarkRead }: { messages: Message[]; onMarkRea
   );
 }
 
-function ReviewsView({ reviews }: { reviews: Review[] }) {
+function ReviewsView({ reviews, students }: { reviews: Review[]; students: Student[] }) {
+  const tutorReviewsForStudents = students.slice(0, 5).map((s) => ({
+    id: `tutor-review-${s.id}`,
+    studentName: s.name,
+    rating: s.attendanceRate >= 90 ? 5 : s.attendanceRate >= 80 ? 4 : 3,
+    comment:
+      s.attendanceRate >= 90
+        ? "Excellent consistency and class participation."
+        : s.attendanceRate >= 80
+          ? "Good effort. Focus on completing pending assignments on time."
+          : "Needs stronger consistency and regular class participation.",
+    date: "Today",
+  }));
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
-      <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Student Reviews</h3>
-      <div className="space-y-4">
+      <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Reviews</h3>
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3">Student Reviews For Tutor</p>
+      <div className="space-y-4 mb-6">
         {reviews.map((r) => (
           <div key={r.id} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-850 flex items-start gap-3">
             <StudentAvatar name={r.studentName} />
@@ -920,6 +1006,28 @@ function ReviewsView({ reviews }: { reviews: Review[] }) {
           </div>
         ))}
         {reviews.length === 0 && <p className="text-xs text-slate-500">No reviews yet.</p>}
+      </div>
+
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3">Tutor Reviews For Students</p>
+      <div className="space-y-4">
+        {tutorReviewsForStudents.map((r) => (
+          <div key={r.id} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-850 flex items-start gap-3">
+            <StudentAvatar name={r.studentName} />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-slate-800 dark:text-white leading-none">{r.studentName}</p>
+                <span className="text-[10px] text-slate-400">{r.date}</span>
+              </div>
+              <div className="flex mt-1 gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-emerald-500 text-emerald-500" : "text-slate-300"}`} />
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-350 mt-2 italic font-medium">"{r.comment}"</p>
+            </div>
+          </div>
+        ))}
+        {tutorReviewsForStudents.length === 0 && <p className="text-xs text-slate-500">No tutor reviews available.</p>}
       </div>
     </div>
   );

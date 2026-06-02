@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
+import { apiClient } from "./services/apiClient";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
 import { WhyChooseUs } from "./components/WhyChooseUs";
@@ -40,6 +41,7 @@ export default function App() {
   const [activeStudentId, setActiveStudentId] = useState("ST-101");
   const [activeParentEmail, setActiveParentEmail] = useState("parent@example.com");
   const [activeTutorId, setActiveTutorId] = useState("T-201");
+  const [loggedInRole, setLoggedInRole] = useState<"student" | "parent" | "tutor" | "admin" | null>(null);
 
   // Standard dropdown selections state from Navbar/Hero
   const [activeStandard, setActiveStandard] = useState("9th Class");
@@ -48,11 +50,104 @@ export default function App() {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [registeredParents, setRegisteredParents] = useState<Array<{ email: string; pass: string }>>([]);
 
+  const normalizeStudent = (apiStudent: any): Student => ({
+    id: apiStudent.studentId || apiStudent._id || apiStudent.id || "",
+    name: apiStudent.name || "Student",
+    grade: apiStudent.grade || "9th Class",
+    section: apiStudent.section || "Section A",
+    attendanceRate: apiStudent.attendanceRate ?? 100,
+    presentCount: apiStudent.presentCount ?? 0,
+    absentCount: apiStudent.absentCount ?? 0,
+    learningSubjects: (apiStudent.learningSubjects || []).map((name: string) => ({
+      name,
+      completedPercentage: 0,
+      completedWeeks: 0
+    })),
+    results: (apiStudent.results || []).map((result: any) => ({
+      term: result.term || "Current",
+      gpa: result.gpa ?? 4.0,
+      score: result.score ?? 100,
+      mathsScore: result.mathsScore ?? 95,
+      physicsScore: result.physicsScore ?? 92,
+      literatureScore: result.literatureScore ?? 93,
+      compSciScore: result.compSciScore ?? 91
+    })),
+    classTimings: apiStudent.classTimings?.length ? apiStudent.classTimings : [{
+      subject: "Student Support",
+      time: "09:00 AM",
+      day: "Mon, Wed",
+      mode: "Hybrid"
+    }],
+    upcomingEvents: apiStudent.upcomingEvents || [],
+    videoResources: apiStudent.videoResources || [],
+    parentEmail: apiStudent.parentEmail || "",
+    assignedTutorIds: apiStudent.assignedTutorIds || []
+  });
+
+  const normalizeFee = (apiFee: any): FeePayment => ({
+    id: apiFee.feeId || apiFee._id || apiFee.id || "",
+    studentId: apiFee.studentId || "",
+    studentName: apiFee.studentName || "",
+    title: apiFee.title || "Outstanding Fee",
+    amount: apiFee.amount ?? 0,
+    status: apiFee.status || "Pending",
+    dueDate: apiFee.dueDate || new Date().toISOString().split("T")[0],
+    transactionId: apiFee.transactionId
+  });
+
+  const normalizeAssignment = (apiAssignment: any): Assignment => ({
+    id: apiAssignment.assignmentId || apiAssignment._id || apiAssignment.id || "",
+    title: apiAssignment.title || "New Assignment",
+    subject: apiAssignment.subject || "General",
+    dueDate: apiAssignment.dueDate || new Date().toISOString().split("T")[0],
+    submissionsPending: apiAssignment.submissionsPending ?? 0,
+    status: apiAssignment.status || "Active"
+  });
+
+  const fetchStudentById = async (studentId: string) => {
+    try {
+      const response = await apiClient.students.getById(studentId);
+      return normalizeStudent(response);
+    } catch (error) {
+      console.warn("Unable to fetch student by id", error);
+      return null;
+    }
+  };
+
+  const fetchParentData = async (parentEmail: string) => {
+    try {
+      const response = await apiClient.students.getByParent(parentEmail);
+      const normalized = response.map(normalizeStudent);
+      setStudentsState(normalized.length ? normalized : INITIAL_STUDENTS);
+      if (normalized[0]?.id) {
+        await fetchFeesForStudent(normalized[0].id);
+      }
+    } catch (error) {
+      console.warn("Unable to load parent students", error);
+    }
+  };
+
+  const fetchFeesForStudent = async (studentId: string) => {
+    try {
+      const response = await apiClient.fees.getByStudent(studentId);
+      setFeesState(response.map(normalizeFee));
+    } catch (error) {
+      console.warn("Unable to load fees for student", error);
+    }
+  };
+
+  const fetchTutorAssignments = async (tutorId: string) => {
+    try {
+      const response = await apiClient.attendance.getAssignmentsByTutor(tutorId);
+      setAssignmentsState(response.map(normalizeAssignment));
+    } catch (error) {
+      console.warn("Unable to load tutor assignments", error);
+    }
+  };
+
   const handleRegisterSuccess = (email: string, pass: string, childName: string, childGrade: string) => {
-    // Add parent credentials to lookup registry
     setRegisteredParents([...registeredParents, { email, pass }]);
 
-    // Inject the new student child dynamically to student state
     const nextId = `ST-${100 + studentsState.length + 1}`;
     const newStudent: Student = {
       id: nextId,
@@ -76,12 +171,11 @@ export default function App() {
       ],
       videoResources: [],
       parentEmail: email,
-      assignedTutorIds: ["T-201"] // Default to Elena
+      assignedTutorIds: ["T-201"]
     };
 
     setStudentsState([...studentsState, newStudent]);
 
-    // Create a physical registration fee entry inside our financial system ledger
     const nextFeeId = `FP-${500 + feesState.length + 1}`;
     const newFee: FeePayment = {
       id: nextFeeId,
@@ -96,29 +190,32 @@ export default function App() {
     setFeesState([newFee, ...feesState]);
   };
 
-  const handleLoginSuccess = (
+  const handleLoginSuccess = async (
     role: "student" | "parent" | "tutor" | "admin",
     userId?: string
   ) => {
     if (role === "student" && userId) {
-      const match = studentsState.find((s) => s.id.toLowerCase() === userId.toLowerCase());
-      if (match) {
-        setActiveStudentId(match.id);
-        navigate("/student");
-      } else {
-        alert("Student ID not found in institutional rosters. Try ST-101 or ST-102!");
+      setLoggedInRole("student");
+      setActiveStudentId(userId);
+      const student = await fetchStudentById(userId);
+      if (student) {
+        setStudentsState([student]);
+        await fetchFeesForStudent(student.id);
       }
+      navigate("/student");
     } else if (role === "parent" && userId) {
+      setLoggedInRole("parent");
       setActiveParentEmail(userId);
-      // Map child of this parent
-      const matchChild = studentsState.find((s) => s.parentEmail.toLowerCase() === userId.toLowerCase());
-      if (matchChild) {
-        setActiveStudentId(matchChild.id);
-      }
+      await fetchParentData(userId);
       navigate("/parent");
     } else if (role === "tutor" && userId) {
+      setLoggedInRole("tutor");
       setActiveTutorId(userId);
+      await fetchTutorAssignments(userId);
       navigate("/tutor");
+    } else if (role === "admin") {
+      setLoggedInRole("admin");
+      navigate("/admin");
     } else {
       navigate(`/${role}`);
     }
@@ -132,6 +229,12 @@ export default function App() {
       setActiveStudentId("ST-102"); // Mrs. Henderson child (Leo)
     }
     navigate(`/${role}`);
+  };
+
+  const handleLogout = () => {
+    apiClient.clearAuthToken();
+    setLoggedInRole(null);
+    navigate("/login");
   };
 
   // Get matching current logged in Student
@@ -179,7 +282,7 @@ export default function App() {
             <Route path="/student" element={
               <StudentDashboard
                 currentStudent={currentStudent}
-                onLogout={() => navigate("/login")}
+                onLogout={handleLogout}
               />
             } />
 
@@ -191,7 +294,7 @@ export default function App() {
                 fees={feesState}
                 onUpdateFees={setFeesState}
                 onUpdateStudents={setStudentsState}
-                onLogout={() => navigate("/login")}
+                onLogout={handleLogout}
               />
             } />
 
@@ -208,7 +311,7 @@ export default function App() {
                 onUpdateAssignments={setAssignmentsState}
                 onUpdateMessages={setMessagesState}
                 onUpdateTests={setTestsState}
-                onLogout={() => navigate("/login")}
+                onLogout={handleLogout}
               />
             } />
 
@@ -219,7 +322,7 @@ export default function App() {
                 tutors={tutorsState}
                 fees={feesState}
                 onBypassLogin={handleBypassLogin}
-                onLogout={() => navigate("/login")}
+                onLogout={handleLogout}
               />
             } />
 

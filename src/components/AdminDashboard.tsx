@@ -11,6 +11,7 @@ import {
   Plus, Trash2, Edit3, Filter, Check, X, Send, Volume2, UserCheck, Calendar,
   Clock, CheckCircle, AlertCircle, Eye, CreditCard, School
 } from "lucide-react";
+import { apiClient } from "../services/apiClient";
 import { Student, Tutor, FeePayment } from "../types";
 
 interface AdminDashboardProps {
@@ -256,7 +257,7 @@ export function AdminDashboard({
     triggerToast(`Batch "${created.name}" allocated successfully`);
   };
 
-  const handleAddFee = (e: React.FormEvent) => {
+  const handleAddFee = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFee.studentId || !newFee.title || newFee.amount <= 0 || !newFee.dueDate) {
       triggerToast("Please fill all fields correctly");
@@ -267,19 +268,30 @@ export function AdminDashboard({
       triggerToast("Student ID does not exist in roster");
       return;
     }
-    const created: FeePayment = {
-      id: `FP-${500 + localFees.length + 1}`,
-      studentId: targetSt.id,
-      studentName: targetSt.name,
-      title: newFee.title,
-      amount: Number(newFee.amount),
-      status: "Pending",
-      dueDate: newFee.dueDate
-    };
-    setLocalFees([created, ...localFees]);
-    setShowAddFee(false);
-    setNewFee({ studentId: "", title: "", amount: 0, dueDate: "" });
-    triggerToast(`Created outstanding invoice of $${created.amount} for ${created.studentName}`);
+    try {
+      const created = await apiClient.fees.create({
+        studentId: newFee.studentId,
+        title: newFee.title,
+        amount: Number(newFee.amount),
+        dueDate: newFee.dueDate
+      });
+      const createdFee: FeePayment = {
+        id: created.feeId || created.id || `FP-${500 + localFees.length + 1}`,
+        studentId: targetSt.id,
+        studentName: targetSt.name,
+        title: created.title,
+        amount: created.amount,
+        status: created.status || "Pending",
+        dueDate: created.dueDate
+      };
+      setLocalFees([createdFee, ...localFees]);
+      setShowAddFee(false);
+      setNewFee({ studentId: "", title: "", amount: 0, dueDate: "" });
+      triggerToast(`Created outstanding invoice of $${createdFee.amount} for ${createdFee.studentName}`);
+    } catch (error) {
+      console.warn("Unable to create fee", error);
+      triggerToast("Unable to create fee invoice. Please try again.");
+    }
   };
 
   const handleAddNotification = (e: React.FormEvent) => {

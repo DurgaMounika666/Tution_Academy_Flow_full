@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { GraduationCap, Users, ShieldAlert, Notebook, Shield, Key, Eye, EyeOff, Check, UserPlus } from "lucide-react";
 
+import { apiClient } from "../services/apiClient";
 import { Tutor } from "../types";
 
 interface LoginGatewayProps {
@@ -22,7 +23,7 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
   const [studentId, setStudentId] = useState("ST-101");
   const [parentEmail, setParentEmail] = useState("parent@example.com");
   const [parentPassword, setParentPassword] = useState("password");
-  const [tutorEmail, setTutorEmail] = useState("elena.vance@academyflow.com");
+  const [tutorEmail, setTutorEmail] = useState("anitha@academyflow.com");
   const [tutorPassword, setTutorPassword] = useState("password");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -31,73 +32,76 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleStudentSubmit = (e: React.FormEvent) => {
+  const handleStudentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!studentId.trim()) {
       setErrorMessage("Please specify a valid Student Identifier ID.");
       return;
     }
-    setErrorMessage("");
-    onLoginSuccess("student", studentId.trim().toUpperCase());
+    try {
+      const response = await apiClient.auth.loginStudent(studentId.trim().toUpperCase());
+      apiClient.setAuthToken(response.token);
+      setErrorMessage("");
+      onLoginSuccess("student", studentId.trim().toUpperCase());
+    } catch (error: any) {
+      setErrorMessage(error.message || "Student login failed.");
+    }
   };
 
-  const handleParentSubmit = (e: React.FormEvent) => {
+  const handleParentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parentEmail.trim() || !parentPassword.trim()) {
       setErrorMessage("Email and Password are required parameters.");
       return;
     }
 
-    // Standard preloaded parent
-    if (parentEmail === "parent@example.com" && parentPassword === "password") {
+    try {
+      const response = await apiClient.auth.loginParent(parentEmail.trim().toLowerCase(), parentPassword);
+      apiClient.setAuthToken(response.token);
       setErrorMessage("");
-      onLoginSuccess("parent", "parent@example.com");
-      return;
-    }
-
-    // Dynamic registered parents check
-    const matched = registeredParents.find(
-      (p) => p.email.toLowerCase() === parentEmail.toLowerCase() && p.pass === parentPassword
-    );
-    if (matched) {
-      setErrorMessage("");
-      onLoginSuccess("parent", matched.email);
-    } else {
-      setErrorMessage("Invalid parent credentials. Try registering a new parent member first.");
+      onLoginSuccess("parent", parentEmail.trim().toLowerCase());
+    } catch (error: any) {
+      setErrorMessage(error.message || "Invalid parent credentials. Try registering a new parent account first.");
     }
   };
 
-  const handleTutorSubmit = (e: React.FormEvent) => {
+  const handleTutorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tutorEmail.trim() || !tutorPassword.trim()) {
       setErrorMessage("Email and Password are required parameters.");
       return;
     }
 
-    // Check if the email belongs to our official tutor roster (prevent external source domains/logins)
-    const matchedTutor = tutors.find(
-      (t) => t.email.toLowerCase() === tutorEmail.trim().toLowerCase()
-    );
-
-    if (matchedTutor) {
-      setErrorMessage("");
-      onLoginSuccess("tutor", matchedTutor.id);
-    } else {
-      setErrorMessage("Access Denied: Email domain or address is from an unauthorized external source.");
+    try {
+      const response = await apiClient.auth.loginTutor(tutorEmail.trim().toLowerCase(), tutorPassword);
+      apiClient.setAuthToken(response.token);
+      const matchedTutor = tutors.find(
+        (t) => t.email.toLowerCase() === tutorEmail.trim().toLowerCase()
+      );
+      if (matchedTutor) {
+        setErrorMessage("");
+        onLoginSuccess("tutor", matchedTutor.id);
+      } else {
+        setErrorMessage("Access Denied: Tutor not found in the roster.");
+      }
+    } catch (error: any) {
+      setErrorMessage(error.message || "Tutor login failed.");
     }
   };
 
-  const handleAdminSubmit = (e: React.FormEvent) => {
+  const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminEmail.trim() || !adminPassword.trim()) {
       setErrorMessage("Email and Password are required parameters.");
       return;
     }
-    if (adminEmail.trim() === "admin@academyflow.com" && adminPassword === "admin@123") {
+    try {
+      const response = await apiClient.auth.loginAdmin(adminEmail.trim().toLowerCase(), adminPassword);
+      apiClient.setAuthToken(response.token);
       setErrorMessage("");
       onLoginSuccess("admin");
-    } else {
-      setErrorMessage("Access Denied: Invalid administrator credentials.");
+    } catch (error: any) {
+      setErrorMessage(error.message || "Access Denied: Invalid administrator credentials.");
     }
   };
 
@@ -330,17 +334,17 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => { setTutorEmail("elena.vance@academyflow.com"); setTutorPassword("password"); }}
+                    onClick={() => { setTutorEmail("anitha@academyflow.com"); setTutorPassword("password"); }}
                     className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
                   >
-                    Dr. Elena Vance (Maths)
+                    Dr. Anitha (Maths)
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setTutorEmail("julian.thorne@academyflow.com"); setTutorPassword("password"); }}
+                    onClick={() => { setTutorEmail("narayana@academyflow.com"); setTutorPassword("password"); }}
                     className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
                   >
-                    Prof. Julian Thorne (Physics)
+                    Prof. Narayana (Physics)
                   </button>
                 </div>
               </div>

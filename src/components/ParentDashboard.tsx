@@ -10,6 +10,7 @@ import {
   TrendingUp, CreditCard, Sparkles, X, ToggleLeft, ArrowRight,
   MessageSquare, Bell, Settings, Award, Calendar, FileText, User, LayoutDashboard, Send
 } from "lucide-react";
+import { apiClient } from "../services/apiClient";
 import { Student, Tutor, FeePayment } from "../types";
 import { SUBJECTS_BY_CLASS, STANDARDS, LOCATIONS } from "../data";
 
@@ -30,6 +31,17 @@ export function ParentDashboard({
   const [selectedStudentId, setSelectedStudentId] = useState("ST-101"); // Default to ST-101 (Alex Johnson) or first available
   const activeStudent = students.find((s) => s.id === selectedStudentId) || students[0];
 
+  const normalizeFee = (apiFee: any): FeePayment => ({
+    id: apiFee.feeId || apiFee._id || apiFee.id || "",
+    studentId: apiFee.studentId || "",
+    studentName: apiFee.studentName || "",
+    title: apiFee.title || "Fee Payment",
+    amount: apiFee.amount ?? 0,
+    status: apiFee.status || "Pending",
+    dueDate: apiFee.dueDate || new Date().toISOString().split("T")[0],
+    transactionId: apiFee.transactionId
+  });
+
   // Active Tab/Menu state for the Sidebar
   const [activeTab, setActiveTab] = useState<string>("dashboard");
 
@@ -47,16 +59,24 @@ export function ParentDashboard({
 
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState("");
 
-  const handlePayFee = (feeId: string) => {
-    const updated = fees.map((f) => {
-      if (f.id === feeId) {
-        return { ...f, status: "Paid" as const, transactionId: `AF-TXN-${Math.floor(10000 + Math.random() * 90000)}` };
-      }
-      return f;
-    });
-    onUpdateFees(updated);
-    setPaymentSuccessMsg("Invoice payment processed successfully! Checkout complete.");
-    setTimeout(() => setPaymentSuccessMsg(""), 4000);
+  const handlePayFee = async (feeId: string) => {
+    try {
+      const transactionId = `AF-TXN-${Math.floor(10000 + Math.random() * 90000)}`;
+      const paid = await apiClient.fees.markAsPaid(feeId, transactionId, "Card");
+      const updated = fees.map((f) => {
+        if (f.id === feeId) {
+          return normalizeFee(paid);
+        }
+        return f;
+      });
+      onUpdateFees(updated);
+      setPaymentSuccessMsg("Invoice payment processed successfully! Checkout complete.");
+      setTimeout(() => setPaymentSuccessMsg(""), 4000);
+    } catch (error) {
+      console.warn("Unable to mark fee as paid", error);
+      setPaymentSuccessMsg("Unable to process payment. Try again later.");
+      setTimeout(() => setPaymentSuccessMsg(""), 4000);
+    }
   };
 
   // Compute pricing
@@ -71,83 +91,85 @@ export function ParentDashboard({
     }
   };
 
-  const handleResolveWizard = () => {
+  const handleResolveWizard = async () => {
     if (wizardSubjects.length === 0) {
       alert("Please check at least one learning subject.");
       return;
     }
 
-    // Update student's subjects list
-    const updatedStudents = students.map((s) => {
-      if (s.id === selectedStudentId) {
-        const currentSubs = s.learningSubjects.map((sub) => sub.name);
-        const nextSubsObj = [...s.learningSubjects];
-        
-        wizardSubjects.forEach((sub) => {
-          if (!currentSubs.includes(sub)) {
-            nextSubsObj.push({
-              name: sub,
-              completedPercentage: 0,
-              completedWeeks: 0
-            });
-          }
-        });
+    try {
+      await apiClient.students.addSubjects(selectedStudentId, wizardSubjects);
+      await apiClient.students.assignTutor(selectedStudentId, wizardTutorId);
 
-        // Add class timings for the subject
-        const nextTimings = [...s.classTimings];
-        wizardSubjects.forEach((sub) => {
-          if (!nextTimings.find(t => t.subject === sub)) {
-            nextTimings.push({
-              subject: sub,
-              time: "03:30 PM",
-              day: "Monday, Thursday",
-              mode: wizardMode
-            });
-          }
-        });
+      const updatedStudents = students.map((s) => {
+        if (s.id === selectedStudentId) {
+          const currentSubs = s.learningSubjects.map((sub) => sub.name);
+          const nextSubsObj = [...s.learningSubjects];
 
-        return {
-          ...s,
-          learningSubjects: nextSubsObj,
-          classTimings: nextTimings
-        };
-      }
-      return s;
-    });
+          wizardSubjects.forEach((sub) => {
+            if (!currentSubs.includes(sub)) {
+              nextSubsObj.push({
+                name: sub,
+                completedPercentage: 0,
+                completedWeeks: 0
+              });
+            }
+          });
 
-    onUpdateStudents(updatedStudents);
+          const nextTimings = [...s.classTimings];
+          wizardSubjects.forEach((sub) => {
+            if (!nextTimings.find(t => t.subject === sub)) {
+              nextTimings.push({
+                subject: sub,
+                time: "03:30 PM",
+                day: "Monday, Thursday",
+                mode: wizardMode
+              });
+            }
+          });
 
-    // Dynamic fee entry addition to state
-    const newInvoice: FeePayment = {
-      id: `FP-NEW-${Math.floor(1000 + Math.random() * 9000)}`,
-      studentId: selectedStudentId,
-      studentName: activeStudent.name,
-      title: `Rollout: ${wizardSubjects.join(", ")} (${wizardClass})`,
-      amount: computedFee,
-      status: "Paid", // automatically paid in simulation
-      dueDate: "2026-06-30",
-      transactionId: `AF-AUTO-${Math.floor(50000 + Math.random() * 49999)}`
-    };
+          return {
+            ...s,
+            learningSubjects: nextSubsObj,
+            classTimings: nextTimings
+          };
+        }
+        return s;
+      });
 
-    onUpdateFees([newInvoice, ...fees]);
-    
-    // Simulate WhatsApp message receipt for registration confirmation:
-    const tutorObj = tutors.find(t => t.id === wizardTutorId) || tutors[0];
-    const textMsg = encodeURIComponent(
-      `Hello Academy Flow institution! I am parent of ${activeStudent.name}. We bought a new subject module: ${wizardSubjects.join(", ")} for class: ${wizardClass}. Selection mode: ${wizardMode}. Assigned Tutor: ${tutorObj.name}, Location center: ${wizardLocation}. Calculated tuition fee total: $${computedFee}. Confirmed details.`
-    );
-    const waUrl = `https://wa.me/916300227011?text=${textMsg}`;
-    
-    setWizardOpen(false);
-    setWizardStep(1);
-    setWizardSubjects([]);
-    
-    // Toast success and redirect to WA
-    setPaymentSuccessMsg(`Success! Rollout registered and tuition receipt created. Redirecting receipt confirmation to Whatsapp.`);
-    setTimeout(() => {
-      setPaymentSuccessMsg("");
-      window.open(waUrl, "_blank");
-    }, 3000);
+      onUpdateStudents(updatedStudents);
+
+      const newInvoice: FeePayment = {
+        id: `FP-NEW-${Math.floor(1000 + Math.random() * 9000)}`,
+        studentId: selectedStudentId,
+        studentName: activeStudent.name,
+        title: `Rollout: ${wizardSubjects.join(", ")} (${wizardClass})`,
+        amount: computedFee,
+        status: "Paid",
+        dueDate: "2026-06-30",
+        transactionId: `AF-AUTO-${Math.floor(50000 + Math.random() * 49999)}`
+      };
+
+      onUpdateFees([newInvoice, ...fees]);
+
+      const tutorObj = tutors.find(t => t.id === wizardTutorId) || tutors[0];
+      const textMsg = encodeURIComponent(
+        `Hello Academy Flow institution! I am parent of ${activeStudent.name}. We bought a new subject module: ${wizardSubjects.join(", ")} for class: ${wizardClass}. Selection mode: ${wizardMode}. Assigned Tutor: ${tutorObj.name}, Location center: ${wizardLocation}. Calculated tuition fee total: $${computedFee}. Confirmed details.`
+      );
+      const waUrl = `https://wa.me/916300227011?text=${textMsg}`;
+
+      setWizardOpen(false);
+      setWizardStep(1);
+      setWizardSubjects([]);
+      setPaymentSuccessMsg(`Success! Rollout registered and tuition receipt created. Redirecting receipt confirmation to Whatsapp.`);
+      setTimeout(() => {
+        setPaymentSuccessMsg("");
+        window.open(waUrl, "_blank");
+      }, 3000);
+    } catch (error) {
+      console.warn("Unable to resolve wizard subjects", error);
+      alert("There was a problem registering the selected subjects. Please try again.");
+    }
   };
 
   const handleWhatsAppTalk = () => {

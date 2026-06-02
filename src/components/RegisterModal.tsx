@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { X, Sparkles, UserPlus, CheckCircle2, ChevronRight, UserCheck } from "lucide-react";
 import { STANDARDS } from "../data";
+import { apiClient } from "../services/apiClient";
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -20,22 +21,33 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
   const [childGrade, setChildGrade] = useState("9th Class");
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parentEmail || !parentPassword || !childName) {
       alert("All fields are strictly required.");
       return;
     }
 
-    onRegisterSuccess(parentEmail, parentPassword, childName, childGrade);
-    setSuccess(true);
-    setTimeout(() => {
-      setSuccess(false);
-      setParentEmail("");
-      setParentPassword("");
-      setChildName("");
-      onClose();
-    }, 3000);
+    try {
+      const result = await apiClient.auth.registerParent(
+        parentEmail.trim().toLowerCase(),
+        parentPassword,
+        childName,
+        childGrade
+      );
+      apiClient.setAuthToken(result.token);
+      onRegisterSuccess(parentEmail.trim().toLowerCase(), parentPassword, childName, childGrade);
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setParentEmail("");
+        setParentPassword("");
+        setChildName("");
+        onClose();
+      }, 3000);
+    } catch (error: any) {
+      alert(error.message || "Registration failed. Please try again.");
+    }
   };
 
   if (!isOpen) return null;
