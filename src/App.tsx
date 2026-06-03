@@ -260,6 +260,7 @@ export default function App() {
               <div className="animate-fade-in">
                 <Hero
                   onRoleChange={(role) => navigate(role === "login_select" ? "/login" : role === "parent" ? "/parent" : "/")}
+                  onOpenRegister={() => setRegisterOpen(true)}
                   selectedStandard={activeStandard}
                   onSelectStandard={setActiveStandard}
                 />
