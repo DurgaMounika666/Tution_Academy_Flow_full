@@ -17,6 +17,8 @@ const API_BASE_CANDIDATES = [
   configuredApiBase,
   "http://localhost:5000/api",
   "http://localhost:5001/api",
+  "http://localhost:5002/api",
+  "http://localhost:5003/api",
 ].filter((value, index, self): value is string => Boolean(value) && self.indexOf(value) === index);
 
 let activeApiBase = API_BASE_CANDIDATES[0];
