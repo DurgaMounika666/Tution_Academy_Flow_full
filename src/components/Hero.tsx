@@ -4,19 +4,18 @@
  */
 
 import React, { useState } from "react";
-import { MapPin, GraduationCap, ChevronRight, MessageSquareCode, Sparkles, BookOpen, CheckCircle } from "lucide-react";
+import { MapPin, GraduationCap, ChevronRight, MessageSquareCode, Sparkles, BookOpen } from "lucide-react";
 import { LOCATIONS, STANDARDS, SUBJECTS_BY_CLASS } from "../data";
 
 interface HeroProps {
   onRoleChange: (role: "landing" | "student" | "parent" | "tutor" | "admin" | "login_select") => void;
-  onOpenRegister: () => void;
+  onOpenDemo: () => void;
   selectedStandard: string;
   onSelectStandard: (std: string) => void;
 }
 
-export function Hero({ onRoleChange, onOpenRegister, selectedStandard, onSelectStandard }: HeroProps) {
+export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStandard }: HeroProps) {
   const [selectedLocation, setSelectedLocation] = useState("Hyderabad");
-  const [demoRequested, setDemoRequested] = useState(false);
 
   const activeSubjects = SUBJECTS_BY_CLASS[selectedStandard] || [
     "Comprehensive General Mathematics",
@@ -25,8 +24,7 @@ export function Hero({ onRoleChange, onOpenRegister, selectedStandard, onSelectS
   ];
 
   const handleBookDemo = () => {
-    onOpenRegister();
-    setDemoRequested(true);
+    onOpenDemo();
   };
 
   return (
@@ -228,12 +226,6 @@ export function Hero({ onRoleChange, onOpenRegister, selectedStandard, onSelectS
                 </span>
               ))}
             </div>
-            {demoRequested && (
-              <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-bold">
-                <CheckCircle className="h-4 w-4" />
-                <span>Registration panel opened. Complete your details to reserve a demo session.</span>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -18,6 +18,7 @@ import { ParentDashboard } from "./components/ParentDashboard";
 import { TutorDashboard } from "./components/TutorDashboard";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { RegisterModal } from "./components/RegisterModal";
+import { DemoBookingModal } from "./components/DemoBookingModal";
 
 import {
   INITIAL_STUDENTS, INITIAL_TUTORS, INITIAL_FEES, INITIAL_ASSIGNMENTS,
@@ -48,6 +49,7 @@ export default function App() {
 
   // Registration states
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [demoBookingOpen, setDemoBookingOpen] = useState(false);
   const [registeredParents, setRegisteredParents] = useState<Array<{ email: string; pass: string }>>([]);
 
   const normalizeStudent = (apiStudent: any): Student => ({
@@ -260,7 +262,7 @@ export default function App() {
               <div className="animate-fade-in">
                 <Hero
                   onRoleChange={(role) => navigate(role === "login_select" ? "/login" : role === "parent" ? "/parent" : "/")}
-                  onOpenRegister={() => setRegisterOpen(true)}
+                  onOpenDemo={() => setDemoBookingOpen(true)}
                   selectedStandard={activeStandard}
                   onSelectStandard={setActiveStandard}
                 />
@@ -340,6 +342,10 @@ export default function App() {
           isOpen={registerOpen}
           onClose={() => setRegisterOpen(false)}
           onRegisterSuccess={handleRegisterSuccess}
+        />
+        <DemoBookingModal
+          isOpen={demoBookingOpen}
+          onClose={() => setDemoBookingOpen(false)}
         />
 
       </div>
