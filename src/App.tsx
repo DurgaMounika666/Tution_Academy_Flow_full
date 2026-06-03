@@ -243,7 +243,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 dark:bg-[#0b1329] dark:text-slate-100 transition-colors duration-300">
+      <div className="site-interactive min-h-screen flex flex-col bg-slate-50 text-slate-800 dark:bg-[#0b1329] dark:text-slate-100 transition-colors duration-300">
 
         {/* Sticky Global Top Header */}
         <Navbar

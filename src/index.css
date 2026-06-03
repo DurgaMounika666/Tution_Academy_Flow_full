@@ -291,3 +291,48 @@ body {
   pointer-events: none;
   animation: sparkle 2.5s ease-in-out infinite;
 }
+
+/* ── Site-wide interactive hover (pointer + smooth color transitions) ── */
+.site-interactive button:not(:disabled),
+.site-interactive a,
+.site-interactive [role="button"],
+.site-interactive select,
+.site-interactive summary,
+.site-interactive .interactive,
+.site-interactive tr[role="button"],
+.site-interactive label[for] {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .site-interactive button:not(:disabled),
+  .site-interactive a,
+  .site-interactive [role="button"],
+  .site-interactive select,
+  .site-interactive .interactive {
+    transition:
+      background-color 0.28s ease,
+      color 0.28s ease,
+      border-color 0.28s ease,
+      box-shadow 0.28s ease,
+      transform 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .site-interactive button:not(:disabled):hover,
+  .site-interactive a:hover,
+  .site-interactive .interactive:hover {
+    transform: translateY(-1px);
+  }
+
+  .site-interactive button:not(:disabled):active,
+  .site-interactive .interactive:active {
+    transform: translateY(0);
+  }
+
+  .site-interactive input:not(:disabled):hover,
+  .site-interactive textarea:not(:disabled):hover {
+    border-color: color-mix(in srgb, #0ea5e9 40%, transparent);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+}

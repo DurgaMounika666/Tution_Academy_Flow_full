@@ -39,16 +39,16 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: "ST-101",
     name: "Abhilash",
-    grade: "Grade 12",
+    grade: "10th Class",
     section: "STEM",
     attendanceRate: 85,
     presentCount: 124,
     absentCount: 12,
     learningSubjects: [
-      { name: "Advanced Mathematics", completedPercentage: 72, completedWeeks: 12 },
-      { name: "Quantum Physics", completedPercentage: 45, completedWeeks: 8 },
-      { name: "World Literature", completedPercentage: 90, completedWeeks: 15 },
-      { name: "Comp Sci Principles", completedPercentage: 60, completedWeeks: 10 }
+      { name: "Mathematics", completedPercentage: 72, completedWeeks: 12 },
+      { name: "Physics", completedPercentage: 45, completedWeeks: 8 },
+      { name: "English", completedPercentage: 90, completedWeeks: 15 },
+      { name: "Computer Science", completedPercentage: 60, completedWeeks: 10 }
     ],
     results: [
       { term: "Jan", gpa: 3.2, score: 72, mathsScore: 78, physicsScore: 68, literatureScore: 82, compSciScore: 75 },
@@ -59,12 +59,12 @@ export const INITIAL_STUDENTS: Student[] = [
       { term: "Jun", gpa: 3.9, score: 94, mathsScore: 95, physicsScore: 92, literatureScore: 95, compSciScore: 96 }
     ] as any,
     classTimings: [
-      { subject: "Advanced Mathematics", time: "09:00 AM", day: "Monday, Wednesday", mode: "Online" },
-      { subject: "Quantum Physics", time: "11:00 AM", day: "Tuesday, Thursday", mode: "Online" },
-      { subject: "Comp Sci Principles", time: "02:00 PM", day: "Friday", mode: "Offline" }
+      { subject: "Mathematics", time: "09:00 AM", day: "Monday, Wednesday", mode: "Online" },
+      { subject: "Physics", time: "11:00 AM", day: "Tuesday, Thursday", mode: "Online" },
+      { subject: "Computer Science", time: "02:00 PM", day: "Friday", mode: "Offline" }
     ],
     upcomingEvents: [
-      { title: "Calculus Quiz: Derivatives", time: "Tomorrow, 09:00 AM", description: "Chapter 4 - Mid-term preparation on differentiation rules.", badge: "Quiz" },
+      { title: "Mathematics Quiz", time: "Tomorrow, 09:00 AM", description: "Chapter 4 - Mid-term preparation on differentiation rules.", badge: "Quiz" },
       { title: "Physics Lab Submission", time: "Wed, 14 Oct", description: "Thermodynamics Lab Report upload.", badge: "Lab Submission", attachment: "SYLLABUS_V2.PDF" },
       { title: "Guest Lecture: AI & Ethics", time: "Fri, 16 Oct", description: "Online Seminar - Zoom invitation link in email.", badge: "Special Session" }
     ],
@@ -79,15 +79,15 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: "ST-102",
     name: "Leo Henderson",
-    grade: "Grade 9",
+    grade: "9th Class",
     section: "Section A",
     attendanceRate: 94,
     presentCount: 145,
     absentCount: 8,
     learningSubjects: [
-      { name: "Algebra II", completedPercentage: 68, completedWeeks: 10 },
-      { name: "Modern Science", completedPercentage: 80, completedWeeks: 12 },
-      { name: "Sanskrit Elective", completedPercentage: 50, completedWeeks: 6 }
+      { name: "Mathematics", completedPercentage: 68, completedWeeks: 10 },
+      { name: "General Science", completedPercentage: 80, completedWeeks: 12 },
+      { name: "Telugu / Hindi", completedPercentage: 50, completedWeeks: 6 }
     ],
     results: [
       { term: "Term 1", gpa: 2.88, score: 72, mathsScore: 72, physicsScore: 70, literatureScore: 74, compSciScore: 0 },
@@ -97,8 +97,8 @@ export const INITIAL_STUDENTS: Student[] = [
       { term: "Current", gpa: 3.68, score: 92, mathsScore: 92, physicsScore: 90, literatureScore: 94, compSciScore: 0 }
     ] as any,
     classTimings: [
-      { subject: "Algebra II", time: "02:00 PM", day: "Monday, Thursday", mode: "Offline" },
-      { subject: "Modern Science", time: "10:00 AM", day: "Wednesday, Friday", mode: "Offline" }
+      { subject: "Mathematics", time: "02:00 PM", day: "Monday, Thursday", mode: "Offline" },
+      { subject: "General Science", time: "10:00 AM", day: "Wednesday, Friday", mode: "Offline" }
     ],
     upcomingEvents: [
       { title: "Linear Equations Unit Mock", time: "Thursday, 02:00 PM", description: "Solving systems of multi-variable equations with matrix algebra.", badge: "Mock Test" }
@@ -113,19 +113,19 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: "ST-103",
     name: "Eleanor Lance",
-    grade: "Grade 10",
+    grade: "10th Class",
     section: "Section B",
     attendanceRate: 95,
     presentCount: 138,
     absentCount: 7,
     learningSubjects: [
-      { name: "Geometry Essentials", completedPercentage: 85, completedWeeks: 14 }
+      { name: "Mathematics", completedPercentage: 85, completedWeeks: 14 }
     ],
     results: [
       { term: "Current", gpa: 3.54, score: 88, mathsScore: 88.5, physicsScore: 85, literatureScore: 89, compSciScore: 90 }
     ] as any,
     classTimings: [
-      { subject: "Geometry Essentials", time: "04:30 PM", day: "Tuesday, Friday", mode: "Offline" }
+      { subject: "Mathematics", time: "04:30 PM", day: "Tuesday, Friday", mode: "Offline" }
     ],
     upcomingEvents: [],
     videoResources: [],
@@ -135,13 +135,13 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: "ST-104",
     name: "Alice Liddell",
-    grade: "Grade 9",
+    grade: "9th Class",
     section: "Section C",
     attendanceRate: 91,
     presentCount: 122,
     absentCount: 11,
     learningSubjects: [
-      { name: "Classical Physics", completedPercentage: 80, completedWeeks: 13 }
+      { name: "Physics", completedPercentage: 80, completedWeeks: 13 }
     ],
     results: [
       { term: "Current", gpa: 3.2, score: 80, mathsScore: 80, physicsScore: 82, literatureScore: 78, compSciScore: 80 }
@@ -155,13 +155,13 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: "ST-105",
     name: "Emma Watson",
-    grade: "Grade 10",
+    grade: "10th Class",
     section: "Section A",
     attendanceRate: 88,
     presentCount: 115,
     absentCount: 15,
     learningSubjects: [
-      { name: "English Composition", completedPercentage: 70, completedWeeks: 9 }
+      { name: "English", completedPercentage: 70, completedWeeks: 9 }
     ],
     results: [
       { term: "Current", gpa: 3.1, score: 78, mathsScore: 72, physicsScore: 78, literatureScore: 84, compSciScore: 0 }
@@ -175,13 +175,13 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: "ST-106",
     name: "Sarah Waters",
-    grade: "Grade 8",
+    grade: "8th Class",
     section: "Section A",
     attendanceRate: 100,
     presentCount: 150,
     absentCount: 0,
     learningSubjects: [
-      { name: "Intro to Logic", completedPercentage: 100, completedWeeks: 16 }
+      { name: "Aptitude / Logical Reasoning", completedPercentage: 100, completedWeeks: 16 }
     ],
     results: [
       { term: "Current", gpa: 3.76, score: 94, mathsScore: 94.2, physicsScore: 0, literatureScore: 94, compSciScore: 94 }
@@ -283,7 +283,8 @@ export const INITIAL_ASSIGNMENTS: Assignment[] = [
 
 export const STANDARDS = [
   "1st Class", "2nd Class", "3rd Class", "4th Class", "5th Class",
-  "6th Class", "7th Class", "8th Class", "9th Class", "10th Class"
+  "6th Class", "7th Class", "8th Class", "9th Class", "10th Class",
+  "Special Courses"
 ];
 
 export const LOCATIONS = ["Hyderabad", "Warangal", "Karimnagar"];
@@ -293,16 +294,139 @@ export const CLASS_TYPES = ["Online", "Offline"];
 export const LANGUAGES = ["English", "Telugu", "Hindi"];
 
 export const SUBJECTS_BY_CLASS: { [key: string]: string[] } = {
-  "1st Class": ["English Literature", "Basic Mathematics", "Environmental Studies"],
-  "2nd Class": ["English Literature", "Primary Mathematics", "Environmental Studies"],
-  "3rd Class": ["English Literature", "Arithmetic Logic", "Science Basics", "Hindi Grammar"],
-  "4th Class": ["English Grammar", "Fractions & Decimals", "Primary Physics", "Telugu Stories"],
-  "5th Class": ["English Writing", "Elementary Geometry", "Creative Sciences", "Social Studies"],
-  "6th Class": ["General English", "Algebra Fundamentals", "Earth Sciences", "Language Studies"],
-  "7th Class": ["Analytical English", "Practical Geometry", "Biology Basics", "Civics & History"],
-  "8th Class": ["Composition Writing", "Algebraic Systems", "Physical Chemistry", "Logic & Reason"],
-  "9th Class": ["Calculus Prep", "Organic Chemistry", "Classical Mechanics", "Sanskrit Elective"],
-  "10th Class": ["Advanced Calculus", "Nuclear Physics", "Molecular Biology", "Civics & Economics"]
+  "1st Class": [
+    "English",
+    "Mathematics",
+    "Telugu / Hindi (Second Language)",
+    "Environmental Science (EVS)",
+    "General Knowledge (GK)",
+    "Computer Basics",
+    "Handwriting Practice",
+    "Spoken English",
+    "Reading & Writing Skills"
+  ],
+  "2nd Class": [
+    "English",
+    "Mathematics",
+    "Telugu / Hindi (Second Language)",
+    "Environmental Science (EVS)",
+    "General Knowledge (GK)",
+    "Computer Basics",
+    "Handwriting Practice",
+    "Spoken English",
+    "Reading & Writing Skills"
+  ],
+  "3rd Class": [
+    "English",
+    "Mathematics",
+    "Telugu / Hindi (Second Language)",
+    "Environmental Science (EVS)",
+    "General Knowledge (GK)",
+    "Computer Basics",
+    "Handwriting Practice",
+    "Spoken English",
+    "Reading & Writing Skills"
+  ],
+  "4th Class": [
+    "English",
+    "Mathematics",
+    "Telugu / Hindi (Second Language)",
+    "Environmental Science (EVS)",
+    "General Knowledge (GK)",
+    "Computer Basics",
+    "Handwriting Practice",
+    "Spoken English",
+    "Reading & Writing Skills"
+  ],
+  "5th Class": [
+    "English",
+    "Mathematics",
+    "Telugu / Hindi (Second Language)",
+    "Environmental Science (EVS)",
+    "General Knowledge (GK)",
+    "Computer Basics",
+    "Handwriting Practice",
+    "Spoken English",
+    "Reading & Writing Skills"
+  ],
+  "6th Class": [
+    "Mathematics",
+    "Science",
+    "English",
+    "Telugu / Hindi",
+    "Social Studies",
+    "Computer Science",
+    "General Knowledge (GK)",
+    "Grammar & Communication Skills",
+    "Spoken English",
+    "Aptitude / Logical Reasoning"
+  ],
+  "7th Class": [
+    "Mathematics",
+    "Science",
+    "English",
+    "Telugu / Hindi",
+    "Social Studies",
+    "Computer Science",
+    "General Knowledge (GK)",
+    "Grammar & Communication Skills",
+    "Spoken English",
+    "Aptitude / Logical Reasoning"
+  ],
+  "8th Class": [
+    "Mathematics",
+    "Science",
+    "English",
+    "Telugu / Hindi",
+    "Social Studies",
+    "Computer Science",
+    "General Knowledge (GK)",
+    "Grammar & Communication Skills",
+    "Spoken English",
+    "Aptitude / Logical Reasoning"
+  ],
+  "9th Class": [
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "General Science",
+    "English",
+    "Telugu / Hindi",
+    "Social Studies",
+    "Computer Science",
+    "Grammar & Writing Skills",
+    "Spoken English",
+    "SSC Exam Preparation",
+    "Olympiad Preparation",
+    "Competitive Exam Foundation"
+  ],
+  "10th Class": [
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "General Science",
+    "English",
+    "Telugu / Hindi",
+    "Social Studies",
+    "Computer Science",
+    "Grammar & Writing Skills",
+    "Spoken English",
+    "SSC Exam Preparation",
+    "Olympiad Preparation",
+    "Competitive Exam Foundation"
+  ],
+  "Special Courses": [
+    "Personality Development",
+    "Homework Assistance",
+    "Doubt Clarification Sessions",
+    "Weekly Tests & Assessments",
+    "Summer Coaching Programs",
+    "Board Exam Preparation",
+    "Fast Revision Batches",
+    "Study Skills & Time Management"
+  ]
 };
 
 import { Review, Message, TestScore } from "./types";
@@ -367,7 +491,7 @@ export const INITIAL_TESTS: TestScore[] = [
     studentId: "ST-101",
     studentName: "Alex Johnson",
     title: "React JS Test",
-    subject: "Comp Sci Principles",
+    subject: "Computer Science",
     score: 23,
     total: 25,
     date: "2026-05-19"
@@ -377,7 +501,7 @@ export const INITIAL_TESTS: TestScore[] = [
     studentId: "ST-102",
     studentName: "Leo Henderson",
     title: "UI Design Principles",
-    subject: "Algebra II",
+    subject: "Mathematics",
     score: 25,
     total: 30,
     date: "2026-05-18"
@@ -387,7 +511,7 @@ export const INITIAL_TESTS: TestScore[] = [
     studentId: "ST-103",
     studentName: "Eleanor Lance",
     title: "Python Basics",
-    subject: "Geometry Essentials",
+    subject: "Mathematics",
     score: 26,
     total: 29,
     date: "2026-05-16"

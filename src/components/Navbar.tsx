@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BookOpen, Menu, X, Sun, Moon, LogIn, LogOut, ChevronDown, UserPlus, PhoneIncoming } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { STANDARDS } from "../data";
 
 interface NavbarProps {
   onOpenRegister: () => void;
@@ -26,7 +27,7 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
   const [selectedLang, setSelectedLang] = useState("English");
   const [selectedClassType, setSelectedClassType] = useState("Online & Offline");
 
-  const standards = Array.from({ length: 10 }, (_, i) => `${i + 1}${i === 0 ? "st" : i === 1 ? "nd" : i === 2 ? "rd" : "th"} Class`);
+  const standards = STANDARDS;
 
   // Derive current role from URL path
   const pathSegment = location.pathname.split("/")[1] || "landing";

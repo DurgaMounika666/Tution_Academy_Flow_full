@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
 import { Student, Tutor, FeePayment } from "../types";
+import { STANDARDS } from "../data";
+import { buildAllCoursesFromCatalog, CatalogCourse } from "../utils/courseCatalog";
+import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
+import { FeeReceiptModal } from "./FeeReceiptModal";
 
 interface AdminDashboardProps {
   students: Student[];
@@ -22,16 +26,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-interface Course {
-  id: string;
-  name: string;
-  tutorName: string;
-  category: string;
-  studentsCount: number;
-  duration: string;
-  mode: "Online" | "Offline";
-  status: "Active" | "Upcoming";
-}
+type Course = CatalogCourse;
 
 interface Batch {
   id: string;
@@ -65,18 +60,13 @@ export function AdminDashboard({
   const [localStudents, setLocalStudents] = useState<Student[]>(students);
   const [localTutors, setLocalTutors] = useState<Tutor[]>(tutors);
   const [localFees, setLocalFees] = useState<FeePayment[]>(fees);
-  const [courses, setCourses] = useState<Course[]>([
-    { id: "C-301", name: "Advanced Mathematics", tutorName: "Dr. Elena Vance", category: "Mathematics", studentsCount: 45, duration: "16 weeks", mode: "Online", status: "Active" },
-    { id: "C-302", name: "Quantum Physics", tutorName: "Prof. Julian Thorne", category: "Physics", studentsCount: 32, duration: "12 weeks", mode: "Online", status: "Active" },
-    { id: "C-303", name: "Comp Sci Principles", tutorName: "Mr. Anand Kumar", category: "Computer Science", studentsCount: 28, duration: "10 weeks", mode: "Offline", status: "Active" },
-    { id: "C-304", name: "World Literature", tutorName: "Dr. Elena Vance", category: "Literature", studentsCount: 15, duration: "8 weeks", mode: "Online", status: "Active" },
-    { id: "C-305", name: "Algebra II", tutorName: "Dr. Elena Vance", category: "Mathematics", studentsCount: 22, duration: "14 weeks", mode: "Offline", status: "Active" },
-    { id: "C-306", name: "Modern Science", tutorName: "Prof. Julian Thorne", category: "Science", studentsCount: 19, duration: "12 weeks", mode: "Offline", status: "Active" }
-  ]);
+  const [courses, setCourses] = useState<Course[]>(() => buildAllCoursesFromCatalog(students));
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<FeeReceiptData | null>(null);
   const [batches, setBatches] = useState<Batch[]>([
-    { id: "B-401", name: "Batch A - Morning STEM", courseName: "Advanced Mathematics", tutorName: "Dr. Elena Vance", timings: "09:00 AM - 10:30 AM", days: "Monday, Wednesday", studentsCount: 15, status: "Active" },
-    { id: "B-402", name: "Batch B - Evening Physics", courseName: "Quantum Physics", tutorName: "Prof. Julian Thorne", timings: "04:00 PM - 05:30 PM", days: "Tuesday, Thursday", studentsCount: 12, status: "Active" },
-    { id: "B-403", name: "Batch C - Friday Coding", courseName: "Comp Sci Principles", tutorName: "Mr. Anand Kumar", timings: "02:00 PM - 05:00 PM", days: "Friday", studentsCount: 18, status: "Active" }
+    { id: "B-401", name: "Batch A - Morning STEM", courseName: "Mathematics", tutorName: "Dr. Elena Vance", timings: "09:00 AM - 10:30 AM", days: "Monday, Wednesday", studentsCount: 15, status: "Active" },
+    { id: "B-402", name: "Batch B - Evening Physics", courseName: "Physics", tutorName: "Prof. Julian Thorne", timings: "04:00 PM - 05:30 PM", days: "Tuesday, Thursday", studentsCount: 12, status: "Active" },
+    { id: "B-403", name: "Batch C - Friday Coding", courseName: "Computer Science", tutorName: "Mr. Anand Kumar", timings: "02:00 PM - 05:00 PM", days: "Friday", studentsCount: 18, status: "Active" }
   ]);
   const [notifications, setNotifications] = useState<SystemNotification[]>([
     { id: "N-501", title: "Term 2 Examination Schedule", message: "Term 2 exams will start from June 15th. Detailed schedule published.", target: "All", date: "2026-05-28" },
@@ -105,7 +95,7 @@ export function AdminDashboard({
   const [showPublishResult, setShowPublishResult] = useState(false);
 
   // Form Field States
-  const [newStudent, setNewStudent] = useState({ name: "", grade: "Grade 9", section: "Section A", parentEmail: "" });
+  const [newStudent, setNewStudent] = useState({ name: "", grade: "9th Class", section: "Section A", parentEmail: "" });
   const [newTutor, setNewTutor] = useState({ name: "", specialty: "", email: "" });
   const [newCourse, setNewCourse] = useState({ name: "", tutorName: "", category: "Mathematics", duration: "12 weeks", mode: "Online" as "Online" | "Offline" });
   const [newBatch, setNewBatch] = useState({ name: "", courseName: "", tutorName: "", timings: "09:00 AM - 10:30 AM", days: "Monday, Wednesday" });
@@ -115,7 +105,7 @@ export function AdminDashboard({
   const [newResult, setNewResult] = useState({ studentId: "", term: "Current", testTitle: "", subject: "", score: 0, total: 100 });
 
   // Attendance Sheet States
-  const [attendanceGrade, setAttendanceGrade] = useState("Grade 9");
+  const [attendanceGrade, setAttendanceGrade] = useState("9th Class");
   const [attendanceDate, setAttendanceDate] = useState("2026-06-01");
   const [attendanceRoster, setAttendanceRoster] = useState<Record<string, boolean>>({});
 
@@ -150,6 +140,18 @@ export function AdminDashboard({
     setTimeout(() => setToast(null), 3500);
   };
 
+  const openFeeReceipt = (fee: FeePayment) => {
+    setReceiptData(buildFeeReceiptFromPayment(fee, localStudents));
+    setIsReceiptModalOpen(true);
+  };
+
+  const paidFeesHistory = localFees
+    .filter((f) => f.status === "Paid")
+    .map((f) => ({
+      fee: f,
+      receipt: buildFeeReceiptFromPayment(f, localStudents),
+    }));
+
   // Helper clock icon mapping
   function ClockIcon(props: any) {
     return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
@@ -171,13 +173,13 @@ export function AdminDashboard({
       presentCount: 0,
       absentCount: 0,
       learningSubjects: [
-        { name: "Algebra II", completedPercentage: 0, completedWeeks: 0 }
+        { name: "Mathematics", completedPercentage: 0, completedWeeks: 0 }
       ],
       results: [
         { term: "Current", gpa: 4.0, mathsScore: 100, physicsScore: 100, literatureScore: 100, compSciScore: 100 }
       ],
       classTimings: [
-        { subject: "Algebra II", time: "02:00 PM", day: "Monday, Thursday", mode: "Offline" }
+        { subject: "Mathematics", time: "02:00 PM", day: "Monday, Thursday", mode: "Offline" }
       ],
       upcomingEvents: [
         { title: "Induction Diagnostic Exam", time: "Next Monday", description: "Standard orientation test.", badge: "Diagnostic" }
@@ -188,7 +190,7 @@ export function AdminDashboard({
     };
     setLocalStudents([...localStudents, created]);
     setShowAddStudent(false);
-    setNewStudent({ name: "", grade: "Grade 9", section: "Section A", parentEmail: "" });
+    setNewStudent({ name: "", grade: "9th Class", section: "Section A", parentEmail: "" });
     triggerToast(`Successfully enrolled student ${created.name} (${created.id})`);
   };
 
@@ -857,10 +859,9 @@ export function AdminDashboard({
                     className="px-3 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-bold outline-none"
                   >
                     <option value="All">All Grades</option>
-                    <option value="Grade 8">Grade 8</option>
-                    <option value="Grade 9">Grade 9</option>
-                    <option value="Grade 10">Grade 10</option>
-                    <option value="Grade 12">Grade 12</option>
+                    {STANDARDS.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1117,14 +1118,14 @@ export function AdminDashboard({
                 <select
                   value={courseCategoryFilter}
                   onChange={(e) => setCourseCategoryFilter(e.target.value)}
-                  className="px-3 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-bold outline-none"
+                  className="px-3 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-bold outline-none interactive"
                 >
-                  <option value="All">All Categories</option>
-                  <option value="Mathematics">Mathematics</option>
-                  <option value="Physics">Physics</option>
-                  <option value="Computer Science">Computer Science</option>
-                  <option value="Science">Science</option>
-                  <option value="Literature">Literature</option>
+                  <option value="All">All Grades / Categories</option>
+                  {STANDARDS.map((standard) => (
+                    <option key={standard} value={standard}>
+                      {standard}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1136,7 +1137,11 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <p className="text-xs font-bold text-slate-500 px-1">
+              Showing {filteredCourses.length} of {courses.length} institutional course modules
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-h-[70vh] overflow-y-auto pr-1">
               {filteredCourses.map((course) => (
                 <div
                   key={course.id}
@@ -1241,10 +1246,9 @@ export function AdminDashboard({
                     onChange={(e) => setAttendanceGrade(e.target.value)}
                     className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none"
                   >
-                    <option value="Grade 8">Grade 8</option>
-                    <option value="Grade 9">Grade 9</option>
-                    <option value="Grade 10">Grade 10</option>
-                    <option value="Grade 12">Grade 12</option>
+                    {STANDARDS.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -1440,12 +1444,13 @@ export function AdminDashboard({
                     <th className="px-5 py-3">Invoice Amount</th>
                     <th className="px-5 py-3">Due Date / Tx ID</th>
                     <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-center">Receipt</th>
                     <th className="px-5 py-3 text-center">Ledger Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
                   {filteredFees.map((fee) => (
-                    <tr key={fee.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                    <tr key={fee.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors interactive">
                       <td className="px-5 py-3 font-mono text-[#2563eb] font-bold">{fee.id}</td>
                       <td className="px-5 py-3 font-bold text-slate-900 dark:text-white">{fee.studentName}</td>
                       <td className="px-5 py-3 font-medium">{fee.title}</td>
@@ -1463,9 +1468,24 @@ export function AdminDashboard({
                         </span>
                       </td>
                       <td className="px-5 py-3 text-center">
+                        {fee.status === "Paid" ? (
+                          <button
+                            type="button"
+                            onClick={() => openFeeReceipt(fee)}
+                            className="px-3 py-1.5 border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-700 dark:text-slate-350 font-black text-[10px] rounded-lg shadow-sm active:scale-95 transition-all cursor-pointer flex items-center gap-1 mx-auto interactive"
+                          >
+                            <CreditCard className="h-3 w-3" />
+                            <span>Receipt</span>
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-center">
                         <button
+                          type="button"
                           onClick={() => toggleInvoiceStatus(fee.id)}
-                          className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all ${fee.status === "Paid" ? "bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 dark:bg-slate-800" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
+                          className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all interactive ${fee.status === "Paid" ? "bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 dark:bg-slate-800" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
                         >
                           {fee.status === "Paid" ? "Mark Pending" : "Mark Paid"}
                         </button>
@@ -1474,6 +1494,63 @@ export function AdminDashboard({
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Payment history — same receipt layout as parent portal */}
+            <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 space-y-4">
+              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Payment History & Receipts</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
+                      <th className="py-3 px-4 font-extrabold">Transaction ID</th>
+                      <th className="py-3 px-4 font-extrabold">Student</th>
+                      <th className="py-3 px-4 font-extrabold">Payment Date</th>
+                      <th className="py-3 px-4 font-extrabold">Paid Amount</th>
+                      <th className="py-3 px-4 font-extrabold">Payment Method</th>
+                      <th className="py-3 px-4 font-extrabold">Status</th>
+                      <th className="py-3 px-4 font-extrabold">Receipt</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40 font-medium">
+                    {paidFeesHistory.map(({ fee, receipt }) => (
+                      <tr key={fee.id} className="hover:bg-white/60 dark:hover:bg-slate-900/40 interactive">
+                        <td className="py-4 px-4 font-bold text-indigo-650 dark:text-indigo-400">{receipt.transactionId}</td>
+                        <td className="py-4 px-4 font-bold text-slate-900 dark:text-white">{receipt.studentName}</td>
+                        <td className="py-4 px-4">{receipt.paymentDate}</td>
+                        <td className="py-4 px-4 font-black">${receipt.amountPaid}</td>
+                        <td className="py-4 px-4">
+                          <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-[10px] uppercase font-bold text-slate-655 dark:text-slate-350">
+                            {receipt.paymentMethod}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450">
+                            {receipt.paymentStatus}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <button
+                            type="button"
+                            onClick={() => openFeeReceipt(fee)}
+                            className="px-3 py-1.5 bg-[#2563eb]/10 hover:bg-[#2563eb]/20 text-[#2563eb] font-black text-[10px] rounded-lg transition-all cursor-pointer flex items-center gap-1 interactive"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            <span>Download Receipt</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {paidFeesHistory.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-6 text-center text-slate-450 font-bold">
+                          No paid invoices yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -1941,10 +2018,9 @@ export function AdminDashboard({
                     onChange={(e) => setNewStudent({ ...newStudent, grade: e.target.value })}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
                   >
-                    <option value="Grade 8">Grade 8</option>
-                    <option value="Grade 9">Grade 9</option>
-                    <option value="Grade 10">Grade 10</option>
-                    <option value="Grade 12">Grade 12</option>
+                    {STANDARDS.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="space-y-1">
@@ -2508,6 +2584,12 @@ export function AdminDashboard({
           </form>
         </div>
       )}
+
+      <FeeReceiptModal
+        isOpen={isReceiptModalOpen}
+        receiptData={receiptData}
+        onClose={() => setIsReceiptModalOpen(false)}
+      />
 
     </div>
   );
