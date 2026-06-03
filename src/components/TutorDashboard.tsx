@@ -33,6 +33,7 @@ type ViewKey =
 const NAV_ITEMS: Array<{ key: ViewKey; label: string; icon: React.ComponentType<any> }> = [
   { key: "dashboard", label: "Dashboard", icon: Home },
   { key: "students", label: "My Students", icon: Users },
+  { key: "attendance", label: "Attendance", icon: UserCheck },
   { key: "tests", label: "Tests", icon: FileText },
   { key: "assignments", label: "Assignments", icon: BookOpen },
   { key: "results", label: "Results", icon: Award },
@@ -134,20 +135,30 @@ export function TutorDashboard({
   const [newSubj, setNewSubj] = useState("Algebraic Systems");
   const [newDue, setNewDue] = useState("2026-06-15");
 
-  const handleToggleAttendance = async (studentId: string) => {
+  const handleMarkAttendance = async (studentId: string, status: "Present" | "Absent") => {
     try {
       const today = new Date().toISOString().split("T")[0];
-      const isMarkedPresent = attendanceMarkedToday[studentId] === true;
-      const nextStatus = isMarkedPresent ? "Absent" : "Present";
-      await apiClient.attendance.mark(studentId, today, nextStatus);
+      const prevStatus = attendanceMarkedToday[studentId] === true
+        ? "Present"
+        : attendanceMarkedToday[studentId] === false
+          ? "Absent"
+          : null;
+      if (prevStatus === status) {
+        showNotif(`Already marked ${status.toLowerCase()}.`);
+        return;
+      }
+      await apiClient.attendance.mark(studentId, today, status);
       const updated = students.map((s) => {
         if (s.id === studentId) {
-          const nextPresent = nextStatus === "Present"
-            ? s.presentCount + 1
-            : Math.max(0, s.presentCount - 1);
-          const nextAbsent = nextStatus === "Absent"
-            ? s.absentCount + 1
-            : Math.max(0, s.absentCount - 1);
+          let nextPresent = s.presentCount;
+          let nextAbsent = s.absentCount;
+          if (status === "Present") {
+            nextPresent += 1;
+            if (prevStatus === "Absent") nextAbsent = Math.max(0, nextAbsent - 1);
+          } else {
+            nextAbsent += 1;
+            if (prevStatus === "Present") nextPresent = Math.max(0, nextPresent - 1);
+          }
           const total = nextPresent + nextAbsent;
           const rate = total > 0 ? Math.round((nextPresent / total) * 100) : 100;
           return { ...s, presentCount: nextPresent, absentCount: nextAbsent, attendanceRate: rate };
@@ -155,8 +166,8 @@ export function TutorDashboard({
         return s;
       });
       onUpdateStudents(updated);
-      setAttendanceMarkedToday((prev) => ({ ...prev, [studentId]: nextStatus === "Present" }));
-      showNotif(`Attendance updated: ${nextStatus}`);
+      setAttendanceMarkedToday((prev) => ({ ...prev, [studentId]: status === "Present" }));
+      showNotif(`Attendance updated: ${status}`);
     } catch (error) {
       console.warn("Unable to mark attendance", error);
       showNotif("Unable to mark attendance right now. Please try again.");
@@ -364,6 +375,8 @@ export function TutorDashboard({
             myMessages={myMessages}
             stats={{ totalStudents, todaysClassCount, pendingTests, avgAttendance }}
             onJumpView={setActiveView}
+            attendanceMarkedToday={attendanceMarkedToday}
+            onMarkAttendance={handleMarkAttendance}
           />
         )}
 
@@ -372,7 +385,7 @@ export function TutorDashboard({
         {activeView === "attendance" && (
           <AttendanceView
             students={myStudents}
-            onMark={handleToggleAttendance}
+            onMark={handleMarkAttendance}
             attendanceMarkedToday={attendanceMarkedToday}
           />
         )}
@@ -425,7 +438,8 @@ export function TutorDashboard({
 /* ---------- Dashboard sub-view redrawn based on mockup image ---------- */
 
 function DashboardView({
-  myStudents, todaysClasses, myTests, myReviews, myMessages, stats, onJumpView
+  myStudents, todaysClasses, myTests, myReviews, myMessages, stats, onJumpView,
+  attendanceMarkedToday, onMarkAttendance
 }: {
   myStudents: Student[];
   todaysClasses: Array<{ subject: string; time: string; mode: string }>;
@@ -434,7 +448,27 @@ function DashboardView({
   myMessages: Message[];
   stats: { totalStudents: number; todaysClassCount: number; pendingTests: number; avgAttendance: number };
   onJumpView: (v: ViewKey) => void;
+  attendanceMarkedToday: Record<string, boolean>;
+  onMarkAttendance: (id: string, status: "Present" | "Absent") => void;
 }) {
+  const [attendanceFilter, setAttendanceFilter] = useState<"all" | "present" | "absent">("all");
+
+  const attendanceRows = myStudents.map((s) => ({
+    student: s,
+    status: attendanceMarkedToday[s.id] === true ? "Present"
+      : attendanceMarkedToday[s.id] === false ? "Absent"
+      : "Not marked"
+  }));
+
+  const presentRows = attendanceRows.filter((row) => row.status === "Present");
+  const absentRows = attendanceRows.filter((row) => row.status === "Absent");
+  const unmarkedRows = attendanceRows.filter((row) => row.status === "Not marked");
+  const filteredRows = attendanceFilter === "present"
+    ? presentRows
+    : attendanceFilter === "absent"
+      ? absentRows
+      : attendanceRows;
+
   return (
     <>
       {/* 4 Stats Cards Grid */}
@@ -486,18 +520,87 @@ function DashboardView({
       {/* Middle Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
         
-        {/* Left Card: My Students (Col 7) */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">My Students</h3>
-            <button
-              onClick={() => onJumpView("students")}
-              className="text-xs font-extrabold text-[#10b981] hover:underline flex items-center gap-0.5 cursor-pointer"
-            >
-              <span>View All Students</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+        {/* Left Card: Attendance + My Students (Col 7) */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Attendance Summary</h3>
+                <p className="text-[10px] text-slate-500 mt-1">Toggle between present and absent students for today.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(["all", "present", "absent"] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setAttendanceFilter(filter)}
+                    className={`rounded-full px-3 py-2 text-[10px] font-black transition ${attendanceFilter === filter ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"}`}
+                  >
+                    {filter === "all" ? "All" : filter === "present" ? "Present" : "Absent"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-3 text-[11px] text-slate-600 dark:text-slate-300">
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-950 p-3">
+                <p className="uppercase font-black tracking-wider text-[9px] text-slate-400">Present</p>
+                <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{presentRows.length}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-950 p-3">
+                <p className="uppercase font-black tracking-wider text-[9px] text-slate-400">Absent</p>
+                <p className="text-lg font-black text-rose-600 dark:text-rose-400">{absentRows.length}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-950 p-3">
+                <p className="uppercase font-black tracking-wider text-[9px] text-slate-400">Unmarked</p>
+                <p className="text-lg font-black text-slate-700 dark:text-slate-200">{unmarkedRows.length}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {filteredRows.slice(0, 4).map(({ student, status }) => (
+                <div key={student.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-3xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">{student.name}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">{getCourse(student)} • {student.attendanceRate}%</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`text-[10px] px-2 py-1 rounded-full font-black ${status === "Present" ? "bg-emerald-100 text-emerald-700" : status === "Absent" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}`}>
+                      {status}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onMarkAttendance(student.id, "Present")}
+                      className={`text-[10px] font-black uppercase tracking-wider rounded-xl px-3 py-2 ${status === "Present" ? "bg-emerald-600 text-white" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+                    >
+                      Present
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onMarkAttendance(student.id, "Absent")}
+                      className={`text-[10px] font-black uppercase tracking-wider rounded-xl px-3 py-2 ${status === "Absent" ? "bg-rose-600 text-white" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+                    >
+                      Absent
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {filteredRows.length === 0 && (
+                <p className="text-xs text-slate-500">No {attendanceFilter === "all" ? "attendance records" : `${attendanceFilter} students`} to show.</p>
+              )}
+            </div>
           </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">My Students</h3>
+              <button
+                onClick={() => onJumpView("students")}
+                className="text-xs font-extrabold text-[#10b981] hover:underline flex items-center gap-0.5 cursor-pointer"
+              >
+                <span>View All Students</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
 
           <div className="overflow-x-auto rounded-2xl border border-slate-105">
             <table className="w-full text-xs">
@@ -531,6 +634,7 @@ function DashboardView({
                 )}
               </tbody>
             </table>
+          </div>
           </div>
         </div>
 
@@ -679,35 +783,47 @@ function AttendanceView({
   attendanceMarkedToday,
 }: {
   students: Student[];
-  onMark: (id: string) => void;
+  onMark: (id: string, status: "Present" | "Absent") => void;
   attendanceMarkedToday: Record<string, boolean>;
 }) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
       <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Attendance Log</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {students.map((s) => (
-          <div key={s.id} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <StudentAvatar name={s.name} />
-              <div>
-                <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{s.name}</p>
-                <p className="text-[10px] text-slate-500 mt-1">{s.attendanceRate}% • {s.presentCount} present, {s.absentCount} absent</p>
+        {students.map((s) => {
+          const status = attendanceMarkedToday[s.id] === true ? "Present" : attendanceMarkedToday[s.id] === false ? "Absent" : "Not marked";
+          const actionStatus = status === "Present" ? "Absent" : "Present";
+          return (
+            <div key={s.id} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <StudentAvatar name={s.name} />
+                <div>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{s.name}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">{s.attendanceRate}% • {s.presentCount} present, {s.absentCount} absent</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <span className={`text-[10px] px-2 py-1 rounded-full font-black ${status === "Present" ? "bg-emerald-100 text-emerald-700" : status === "Absent" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}`}>
+                  {status}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onMark(s.id, "Present")}
+                    className={`px-3.5 py-2 rounded-xl text-[10px] font-bold ${status === "Present" ? "bg-emerald-600 text-white" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+                  >
+                    Present
+                  </button>
+                  <button
+                    onClick={() => onMark(s.id, "Absent")}
+                    className={`px-3.5 py-2 rounded-xl text-[10px] font-bold ${status === "Absent" ? "bg-rose-600 text-white" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+                  >
+                    Absent
+                  </button>
+                </div>
               </div>
             </div>
-            <button
-              onClick={() => onMark(s.id)}
-              className={`px-3.5 py-2 rounded-xl text-[10px] font-bold inline-flex items-center gap-1.5 cursor-pointer ${
-                attendanceMarkedToday[s.id]
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-250 hover:bg-emerald-100"
-                  : "bg-rose-50 text-rose-700 border border-rose-250 hover:bg-rose-100"
-              }`}
-            >
-              <UserCheck className="h-4 w-4 shrink-0" />
-              <span>{attendanceMarkedToday[s.id] ? "Present" : "Absent"}</span>
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
