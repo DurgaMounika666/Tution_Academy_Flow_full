@@ -6,9 +6,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Phone, MapPin, Mail, Instagram, Youtube, HelpCircle, Shield, FileText } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 export function Footer() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
     <footer id="footer" className="bg-slate-900 text-white dark:bg-slate-950 border-t border-slate-800 pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
@@ -27,7 +29,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              Providing top-tier online and offline coaching structures for Classes 1st through 10th. Tailoring high-impact curriculum designed inside state regulations.
+              {t("footerTitle")}
             </p>
             <div className="flex gap-4 pt-1 text-slate-400">
               <a 
@@ -53,7 +55,7 @@ export function Footer() {
 
           {/* Quick links (Col 4) */}
           <div className="md:col-span-4 text-left space-y-4">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-sky-400">Company Policies & About</h4>
+            <h4 className="text-sm font-bold uppercase tracking-wider text-sky-400">{t("quickLinks")}</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
               <a href="#" className="hover:text-white flex items-center gap-1.5 transition-colors">
                 <Shield className="h-3.5 w-3.5 text-sky-400" />
@@ -76,8 +78,8 @@ export function Footer() {
 
           {/* Contacts (Col 4) */}
           <div className="md:col-span-4 text-left space-y-4">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-sky-400">Contact & Support</h4>
-            <div className="space-y-2.5 text-xs text-slate-350">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-sky-400">{t("contactInfo")}</h4>
+            <div className="space-y-2.5 text-xs text-slate-355">
               <div className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Tutor Enquiries: <strong className="text-white">+91 954239546</strong></span>
@@ -88,7 +90,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-2.5">
                 <MapPin className="h-4 w-4 text-rose-500 shrink-0" />
-                <span>Centers: Hyderabad, Warangal, Karimnagar, Telangana</span>
+                <span>{t("address")}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail className="h-4 w-4 text-indigo-400 shrink-0" />
@@ -101,7 +103,7 @@ export function Footer() {
 
         {/* Bottom Rights */}
         <div className="pt-8 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-400 gap-4">
-          <p>© 2026 Academy Flow Institutions. All rights reserved.</p>
+          <p>© 2026 Academy Flow Institutions. {t("rightsReserved")}</p>
           <div className="flex gap-4">
             <span>ISO 9001:2015 Bureau Certified</span>
             <span>•</span>

@@ -5,31 +5,34 @@
 
 import React from "react";
 import { Star, Quote, MapPin } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 export function Reviews() {
+  const { t } = useLanguage();
+
   const testimonials = [
     {
-      name: "Ananya Reddy",
+      name: t("review1Author"),
       city: "Hyderabad",
-      standard: "Class 10",
+      standard: t("review1Role"),
       rating: 5,
-      review: "Academy Flow completely changed my approach to Mathematics. The tutors here explain complex concepts with such ease that I started loving the subject I once feared. The metrics page helped my mom stay relaxed!",
+      review: t("review1Text"),
       avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
     },
     {
-      name: "Siddharth Rao",
+      name: t("review2Author"),
       city: "Warangal",
-      standard: "Class 9",
+      standard: t("review2Role"),
       rating: 5,
-      review: "The weekly assessments and parent-teacher meetings kept me focused. I moved from 75% to 92% in my final exams thanks to the personalized attention and help from Prof. Julian. Highly recommended for logic building!",
+      review: t("review2Text"),
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
     },
     {
-      name: "Kavya P.",
+      name: t("review3Author"),
       city: "Karimnagar",
-      standard: "Class 8",
+      standard: t("review3Role"),
       rating: 5,
-      review: "The quality of teaching is unparalleled. The teachers are very patient and focus on conceptual understanding rather than just rote learning. The parent dashboard made online/offline coordination very simple.",
+      review: t("review3Text"),
       avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80"
     }
   ];
@@ -44,10 +47,10 @@ export function Reviews() {
             Success Stories
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-            Hear from Our High Achievers
+            {t("reviewsTitle")}
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            Real feedback from pupils and parents who experienced the Academy Flow learning system. All reviews are verified by independent counselor registries.
+            {t("reviewsSub")}
           </p>
         </div>
 

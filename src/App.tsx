@@ -18,6 +18,11 @@ import { ParentDashboard } from "./components/ParentDashboard";
 import { TutorDashboard } from "./components/TutorDashboard";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { RegisterModal } from "./components/RegisterModal";
+import { ClassInfo } from "./components/ClassInfo";
+import { ChatSupportWidget } from "./components/ChatSupportWidget";
+import { DemoBookingModal } from "./components/DemoBookingModal";
+import { ScrollToTop } from "./components/ScrollToTop";
+import { useLanguage } from "./context/LanguageContext";
 
 import {
   INITIAL_STUDENTS, INITIAL_TUTORS, INITIAL_FEES, INITIAL_ASSIGNMENTS,
@@ -27,6 +32,7 @@ import { Student, Tutor, FeePayment, Assignment, Review, Message, TestScore } fr
 
 export default function App() {
   const navigate = useNavigate();
+  const { setLanguage } = useLanguage();
 
   // Global Memory state allowing bidirectional edits in-sandbox
   const [studentsState, setStudentsState] = useState<Student[]>(INITIAL_STUDENTS);
@@ -235,6 +241,7 @@ export default function App() {
   const handleLogout = () => {
     apiClient.clearAuthToken();
     setLoggedInRole(null);
+    setLanguage("English");
     navigate("/login");
   };
 
@@ -244,6 +251,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      <ScrollToTop />
       <div className="site-interactive min-h-screen flex flex-col bg-slate-50 text-slate-800 dark:bg-[#0b1329] dark:text-slate-100 transition-colors duration-300">
 
         {/* Sticky Global Top Header */}

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { MapPin, GraduationCap, ChevronRight, MessageSquareCode, Sparkles, BookOpen } from "lucide-react";
 import { LOCATIONS, STANDARDS, SUBJECTS_BY_CLASS } from "../data";
+import { useLanguage } from "../context/LanguageContext";
 
 interface HeroProps {
   onRoleChange: (role: "landing" | "student" | "parent" | "tutor" | "admin" | "login_select") => void;
@@ -16,6 +17,7 @@ interface HeroProps {
 
 export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStandard }: HeroProps) {
   const [selectedLocation, setSelectedLocation] = useState("Hyderabad");
+  const { t } = useLanguage();
 
   const activeSubjects = SUBJECTS_BY_CLASS[selectedStandard] || [
     "Comprehensive General Mathematics",
@@ -93,49 +95,49 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
           <div className="lg:col-span-7 space-y-6 text-left relative z-10">
             <div className="inline-flex items-center gap-2 rounded-full bg-sky-100/80 px-4 py-1.5 text-xs font-bold text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
               <Sparkles className="h-3.5 w-3.5 text-sky-500 animate-pulse" />
-              <span>Empowering over 10,000+ students</span>
+              <span>{t("empowering")}</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1] hero-animate hero-delay-2">
-              Empower Your Future with{' '}
+              {t("heroTitle")}{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-indigo-500 to-indigo-600 dark:from-sky-400 dark:to-indigo-300 hero-heading-shimmer">
                 Academy Flow
               </span>
             </h1>
 
             <p className="mt-4 hero-subtag hero-animate hero-delay-2">
-              <span>Personalized learning paths</span>
+              <span>{t("personalizedPaths")}</span>
               <span className="hero-sep" aria-hidden>•</span>
-              <span>Live &amp; recorded classes</span>
+              <span>{t("liveRecorded")}</span>
               <span className="hero-sep" aria-hidden>•</span>
-              <span>Proven results</span>
+              <span>{t("provenResults")}</span>
             </p>
 
             <div className="space-y-3">
               <p className="hero-quote hero-animate hero-delay-2">
-                Unlock curiosity — every lesson builds a brighter tomorrow.
+                {t("unlockCuriosity")}
               </p>
 
               <p className="text-base sm:text-lg max-w-2x1 leading-relaxed hero-animate hero-delay-3 glossy-text shimmer">
-                Premium quality online & offline tuition for Classes 1st to 10th. Tailored learning paths, state-of-the-art mock dashboards, veteran faculty and a proven record of high academic excellence.
+                {t("heroDescription")}
               </p>
 
               <div className="flex flex-wrap gap-4 pt-0 hero-animate hero-delay-4">
                 <button
                   onClick={() => {
                     const finder = document.getElementById('hero-finder');
-                    if (finder) finder.scrollIntoView({ behavior: 'smooth' });
+                    if (finder) finder.scrollIntoView({ behavior: "smooth" });
                   }}
                   className="rounded-xl bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-extrabold px-6 py-3.5 text-sm transition-all shadow-lg active:scale-95 inline-flex items-center gap-2 hover:shadow-sky-500/10"
                 >
-                  <span>Get Started Now</span>
+                  <span>{t("getStarted")}</span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => onRoleChange('login_select')}
                   className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 backdrop-blur dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-6 py-3.5 text-sm transition-all active:scale-95 shadow-sm"
                 >
-                  Explore Portals
+                  {t("explorePortals")}
                 </button>
               </div>
             </div>
@@ -143,17 +145,17 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-200/60 dark:border-slate-800/60 max-w-3xl hero-animate hero-delay-5">
               <div>
                 <p className="text-2xl sm:text-3xl font-black hero-stat-number">100%</p>
-                <p className="text-xs hero-stat-label">Concept-Oriented Syllabus</p>
+                <p className="text-xs hero-stat-label">{t("conceptSyllabus")}</p>
               </div>
               <div>
                 <p className="text-2xl sm:text-3xl font-black hero-stat-number">94%</p>
-                <p className="text-xs hero-stat-label">Attendance Consistency</p>
+                <p className="text-xs hero-stat-label">{t("attendanceConsistency")}</p>
               </div>
               <div>
                 <p className="text-2xl sm:text-3xl font-black hero-stat-number">92%</p>
-                <p className="text-xs hero-stat-label">Average Achievement</p>
+                <p className="text-xs hero-stat-label">{t("avgAchievement")}</p>
               </div>
-            </div>
+            </div></div>
           </div>
 
           <div className="lg:col-span-5 relative flex justify-center items-center hero-animate-scale hero-delay-3">
@@ -165,15 +167,15 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
 
         <div id="hero-finder" className="mt-16 bg-white dark:bg-slate-950 rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-100 dark:border-slate-800/80 max-w-5xl mx-auto hover:shadow-2xl transition-all hero-animate hero-delay-6">
           <div className="text-center mb-6">
-            <span className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Find Your Perfect Class</span>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1">Select location and class to unlock course options and book a free session</h3>
+            <span className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">{t("findPerfectClass")}</span>
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1">{t("selectCenterAndClass")}</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
             <div className="space-y-2">
               <label className="text-xs font-extrabold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 uppercase tracking-widest">
                 <MapPin className="h-4 w-4 text-sky-500" />
-                <span>Select Learning Center</span>
+                <span>{t("selectCenter")}</span>
               </label>
               <select
                 value={selectedLocation}
@@ -189,7 +191,7 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
             <div className="space-y-2">
               <label className="text-xs font-extrabold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 uppercase tracking-widest">
                 <GraduationCap className="h-4 w-4 text-sky-500" />
-                <span>Select Learning Class</span>
+                <span>{t("selectClass")}</span>
               </label>
               <select
                 value={selectedStandard}
@@ -208,13 +210,13 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl px-4 py-3 text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm"
               >
                 <MessageSquareCode className="h-4.5 w-4.5" />
-                <span>Book a Demo</span>
+                <span>{t("bookDemo")}</span>
               </button>
             </div>
           </div>
 
           <div className="mt-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-slate-800 text-left">
-            <p className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Active Lessons syllabus in {selectedLocation} for {selectedStandard}:</p>
+            <p className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">{t("activeSyllabus")} {selectedLocation} for {selectedStandard}:</p>
             <div className="flex flex-wrap gap-2 mt-2">
               {activeSubjects.map((sub, idx) => (
                 <span

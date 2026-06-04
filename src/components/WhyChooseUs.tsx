@@ -4,32 +4,35 @@
  */
 
 import React from "react";
-import { Award, Layers, Users, RefreshCw, Star, ArrowUpRight, CheckSquare } from "lucide-react";
+import { Award, Layers, Users, RefreshCw, ArrowUpRight, CheckSquare } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 export function WhyChooseUs() {
+  const { t } = useLanguage();
+
   const points = [
     {
       icon: Award,
-      title: "Expert Certified Tutors",
-      desc: "Work with highly distinguished tutors containing decades of proven training experience in conceptual subjects.",
+      title: t("expertTutorsTitle"),
+      desc: t("expertTutorsDesc"),
       badge: "Top Rated"
     },
     {
       icon: Layers,
-      title: "Real-Time Tracking & Growth Maps",
-      desc: "Live student growth charts, results, and comprehensive attendance details accessible securely anytime by parents.",
+      title: t("customCurriculumTitle"),
+      desc: t("customCurriculumDesc"),
       badge: "Dynamic"
     },
     {
       icon: Users,
-      title: "Small Classroom Batches",
-      desc: "We strictly limit class sizes enabling deep personal attention, personalized focus, and consistent support.",
+      title: t("progressTrackingTitle"),
+      desc: t("progressTrackingDesc"),
       badge: "1-on-1 Focus"
     },
     {
       icon: RefreshCw,
-      title: "Offline & Online Hybrid Flexibility",
-      desc: "Switch between comfortable online learning classrooms and offline centers in Hyderabad, Warangal, and Karimnagar.",
+      title: t("interactiveDashboardsTitle"),
+      desc: t("interactiveDashboardsDesc"),
       badge: "Flexible"
     }
   ];
@@ -44,10 +47,10 @@ export function WhyChooseUs() {
             Our Educational Methodology
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-            Why Academy Flow Stands Out
+            {t("whyChooseTitle")}
           </h2>
           <p className="text-slate-600 dark:text-slate-300">
-            We don't just teach for grades; we ignite constructive curiosity and build conceptual foundations that last a lifetime. Our modern digital platform keeps tutors, parents, and students in constant, flowing synergy.
+            {t("whyChooseSub")}
           </p>
         </div>
 
