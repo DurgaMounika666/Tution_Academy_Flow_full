@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BookOpen, Menu, X, Sun, Moon, LogIn, LogOut, ChevronDown, UserPlus, PhoneIncoming } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
@@ -26,6 +26,7 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
 
   const [selectedLang, setSelectedLang] = useState("English");
   const [selectedClassType, setSelectedClassType] = useState("Online & Offline");
+  const navbarRef = useRef<HTMLDivElement>(null);
 
   const standards = STANDARDS;
 
@@ -39,17 +40,49 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
     onSelectStandard(std);
     setStandardsDropdownOpen(false);
     setMobileMenuOpen(false);
-    // Smooth scroll to hero finder
     const heroSection = document.getElementById("hero-finder");
     if (heroSection) {
       heroSection.scrollIntoView({ behavior: "smooth" });
     }
   };
 
+  const handleClassTypeSelect = (label: string, route: string) => {
+    setSelectedClassType(label);
+    setClassDropdownOpen(false);
+    setLangDropdownOpen(false);
+    setStandardsDropdownOpen(false);
+    setMobileMenuOpen(false);
+    navigate(route);
+  };
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (navbarRef.current && !navbarRef.current.contains(event.target as Node)) {
+        setClassDropdownOpen(false);
+        setLangDropdownOpen(false);
+        setStandardsDropdownOpen(false);
+      }
+    };
+
+    if (classDropdownOpen || langDropdownOpen || standardsDropdownOpen) {
+      document.addEventListener("mousedown", handleDocumentClick);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentClick);
+    };
+  }, [classDropdownOpen, langDropdownOpen, standardsDropdownOpen]);
+
+  useEffect(() => {
+    setClassDropdownOpen(false);
+    setLangDropdownOpen(false);
+    setStandardsDropdownOpen(false);
+  }, [location.pathname]);
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-md dark:border-slate-800/50 dark:bg-slate-900/80 transition-colors duration-300">
+    <nav className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/90 transition-colors duration-300">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+        <div ref={navbarRef} className="flex h-16 items-center justify-between">
 
           {/* Logo Brand */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
@@ -69,7 +102,7 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
             <div className="hidden lg:flex items-center gap-6">
               <button
                 onClick={() => navigate("/")}
-                className="text-sm font-semibold text-sky-500 dark:text-sky-400"
+                className="text-sm font-semibold text-slate-700 transition hover:text-sky-500 dark:text-slate-200 dark:hover:text-sky-400"
               >
                 Home
               </button>
@@ -78,20 +111,27 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
               <div className="relative">
                 <button
                   onClick={() => { setClassDropdownOpen(!classDropdownOpen); setLangDropdownOpen(false); setStandardsDropdownOpen(false); }}
-                  className="flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-sky-500 dark:text-slate-300 dark:hover:text-white"
+                  className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-sky-300 hover:text-sky-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:text-white"
                 >
-                  Mode of class
+                  <span>Mode of Class</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                    {selectedClassType}
+                  </span>
                   <ChevronDown className="h-4 w-4 opacity-70" />
                 </button>
                 {classDropdownOpen && (
-                  <div className="absolute left-0 mt-2 w-48 rounded-xl border border-slate-100 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-                    {["Online Only", "Offline Only", "Online & Offline"].map((type) => (
+                  <div className="absolute left-0 z-20 mt-2 w-56 rounded-3xl border border-slate-100 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+                    {[
+                      { label: "Online Only", route: "/classes/online-only" },
+                      { label: "Offline Only", route: "/classes/offline-only" },
+                      { label: "Online & Offline", route: "/classes/online-offline" },
+                    ].map(({ label, route }) => (
                       <button
-                        key={type}
-                        onClick={() => { setSelectedClassType(type); setClassDropdownOpen(false); }}
-                        className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300"
+                        key={label}
+                        onClick={() => handleClassTypeSelect(label, route)}
+                        className="w-full rounded-2xl px-4 py-2 text-left text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
                       >
-                        {type}
+                        {label}
                       </button>
                     ))}
                   </div>
@@ -102,7 +142,7 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
               <div className="relative">
                 <button
                   onClick={() => { setLangDropdownOpen(!langDropdownOpen); setClassDropdownOpen(false); setStandardsDropdownOpen(false); }}
-                  className="flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-sky-500 dark:text-slate-300 dark:hover:text-white"
+                  className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-sky-300 hover:text-sky-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:text-white"
                 >
                   Language
                   <ChevronDown className="h-4 w-4 opacity-70" />
@@ -184,6 +224,25 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
             >
               Home
             </button>
+
+            <div className="py-3 border-b border-slate-100 dark:border-slate-900">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Mode of Class</p>
+              <div className="space-y-2">
+                {[
+                  { label: "Online Only", route: "/classes/online-only" },
+                  { label: "Offline Only", route: "/classes/offline-only" },
+                  { label: "Online & Offline", route: "/classes/online-offline" },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={() => handleClassTypeSelect(item.label, item.route)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-left text-sm font-medium text-slate-700 hover:border-sky-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-950"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Dropdown in mobile for Standards */}
             <div className="py-2 border-b border-slate-100 dark:border-slate-900">

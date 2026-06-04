@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
-import { X, Sparkles, UserPlus, CheckCircle2, ChevronRight, UserCheck } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { X, Sparkles, UserPlus, CheckCircle2, ChevronRight, UserCheck, Eye, EyeOff } from "lucide-react";
 import { STANDARDS } from "../data";
 import { apiClient } from "../services/apiClient";
 
@@ -15,38 +15,176 @@ interface RegisterModalProps {
 }
 
 export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterModalProps) {
+  const [parentName, setParentName] = useState("");
   const [parentEmail, setParentEmail] = useState("");
-  const [parentPassword, setParentPassword] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [childName, setChildName] = useState("");
-  const [childGrade, setChildGrade] = useState("9th Class");
+  const [childGrade, setChildGrade] = useState("");
   const [success, setSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const parentNameRef = useRef<HTMLInputElement>(null);
+  const parentEmailRef = useRef<HTMLInputElement>(null);
+  const parentPhoneRef = useRef<HTMLInputElement>(null);
+  const newPasswordRef = useRef<HTMLInputElement>(null);
+  const confirmPasswordRef = useRef<HTMLInputElement>(null);
+  const childNameRef = useRef<HTMLInputElement>(null);
+  const childGradeRef = useRef<HTMLSelectElement>(null);
+
+  const isValidName = (value: string) => /^[A-Za-z\s]+$/.test(value);
+  const isValidGmail = (value: string) => /^[^\s@]+@gmail\.com$/i.test(value);
+  
+  const isValidPhoneNumber = (value: string) => {
+    const normalized = value.replace(/\s+/g, "");
+    return /^(\+91)?\d{10}$/.test(normalized);
+  };
+
+  const isValidPassword = (value: string) => {
+    const hasUppercase = /[A-Z]/.test(value);
+    const hasLowercase = /[a-z]/.test(value);
+    const hasNumber = /\d/.test(value);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value);
+    const isLongEnough = value.length >= 8;
+    return hasUppercase && hasLowercase && hasNumber && hasSpecial && isLongEnough;
+  };
+
+  const resetForm = () => {
+    setParentName("");
+    setParentEmail("");
+    setParentPhone("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setChildName("");
+    setChildGrade("");
+    setErrorMessage("");
+    setPasswordVisible(false);
+    setConfirmPasswordVisible(false);
+    setFieldErrors({});
+  };
+
+  const validateField = (field: string, value: string) => {
+    switch (field) {
+      case "parentName":
+        if (!value.trim()) return "Please enter your full name.";
+        if (!isValidName(value.trim())) return "Please enter valid details for your name.";
+        return "";
+      case "parentEmail":
+        if (!value.trim()) return "Please enter your email address.";
+        if (!isValidGmail(value.trim().toLowerCase())) return "Please enter a valid Gmail address (name@gmail.com).";
+        return "";
+      case "parentPhone":
+        if (!value.trim()) return "Please enter your phone number.";
+        if (!isValidPhoneNumber(value.trim())) return "Please enter a valid phone number (10 digits or +91 format).";
+        return "";
+      case "newPassword":
+        if (!value.trim()) return "Please enter a new password.";
+        if (!isValidPassword(value)) return "Password should include at least one uppercase letter, one lowercase letter, a number, a symbol, and be at least 8 characters long.";
+        return "";
+      case "confirmPassword":
+        if (!value.trim()) return "Please confirm your password.";
+        if (value !== newPassword) return "Passwords do not match.";
+        return "";
+      case "childName":
+        if (!value.trim()) return "Please enter your child's full name.";
+        return "";
+      case "childGrade":
+        if (!value.trim()) return "Please select your child's class.";
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  const validateAndSetFieldError = (field: string, value: string) => {
+    const error = validateField(field, value);
+    setFieldErrors((prev) => ({ ...prev, [field]: error }));
+    return error;
+  };
+
+  const focusNextField = (field: string) => {
+    switch (field) {
+      case "parentName":
+        parentEmailRef.current?.focus();
+        break;
+      case "parentEmail":
+        parentPhoneRef.current?.focus();
+        break;
+      case "parentPhone":
+        newPasswordRef.current?.focus();
+        break;
+      case "newPassword":
+        confirmPasswordRef.current?.focus();
+        break;
+      case "confirmPassword":
+        childNameRef.current?.focus();
+        break;
+      case "childName":
+        childGradeRef.current?.focus();
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleEnterKey = (field: string, value: string) => (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const error = validateAndSetFieldError(field, value);
+    if (!error) {
+      focusNextField(field);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!parentEmail || !parentPassword || !childName) {
-      alert("All fields are strictly required.");
+    setErrorMessage("");
+
+    const normalizedEmail = parentEmail.trim().toLowerCase();
+    const validations = [
+      ["parentName", parentName],
+      ["parentEmail", parentEmail],
+      ["parentPhone", parentPhone],
+      ["newPassword", newPassword],
+      ["confirmPassword", confirmPassword],
+      ["childName", childName],
+      ["childGrade", childGrade],
+    ] as const;
+
+    let hasErrors = false;
+    validations.forEach(([field, value]) => {
+      const error = validateAndSetFieldError(field, value);
+      if (error) {
+        hasErrors = true;
+      }
+    });
+
+    if (hasErrors) {
+      setErrorMessage("Please correct the highlighted fields before continuing.");
       return;
     }
 
     try {
       const result = await apiClient.auth.registerParent(
-        parentEmail.trim().toLowerCase(),
-        parentPassword,
+        normalizedEmail,
+        newPassword,
         childName,
         childGrade
       );
       apiClient.setAuthToken(result.token);
-      onRegisterSuccess(parentEmail.trim().toLowerCase(), parentPassword, childName, childGrade);
+      onRegisterSuccess(normalizedEmail, newPassword, childName, childGrade);
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
-        setParentEmail("");
-        setParentPassword("");
-        setChildName("");
+        resetForm();
         onClose();
       }, 3000);
     } catch (error: any) {
-      alert(error.message || "Registration failed. Please try again.");
+      setErrorMessage(error.message || "Registration failed. Please try again.");
     }
   };
 
@@ -92,28 +230,148 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
+              {errorMessage && (
+                <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-700 p-3 text-rose-700 dark:text-rose-300 text-xs font-bold">
+                  {errorMessage}
+                </div>
+              )}
+
               <div className="space-y-1">
-                <label className="text-slate-600 dark:text-slate-350">Parent Email Address</label>
+                <label className="text-slate-600 dark:text-slate-350">Parent Full Name</label>
                 <input
-                  type="email"
-                  value={parentEmail}
-                  onChange={(e) => setParentEmail(e.target.value)}
-                  placeholder="name@parent.com"
-                  className="w-full p-2.5 rounded-xl border border-slate-205 dark:bg-slate-900 font-sans"
+                  ref={parentNameRef}
+                  type="text"
+                  value={parentName}
+                  onChange={(e) => {
+                    setParentName(e.target.value);
+                    if (fieldErrors.parentName) validateAndSetFieldError("parentName", e.target.value);
+                  }}
+                  onBlur={() => validateAndSetFieldError("parentName", parentName)}
+                  onKeyDown={handleEnterKey("parentName", parentName)}
+                  placeholder="E.g. John Smith"
+                  autoComplete="name"
+                  className={`w-full p-2.5 rounded-xl border ${fieldErrors.parentName ? "border-rose-500" : "border-slate-205"} dark:bg-slate-900 font-sans`}
                   required
                 />
+                {fieldErrors.parentName && (
+                  <p className="text-rose-600 text-[10px]">{fieldErrors.parentName}</p>
+                )}
               </div>
 
               <div className="space-y-1">
-                <label className="text-slate-600 dark:text-slate-350">Setup Security Password</label>
+                <label className="text-slate-600 dark:text-slate-350">Parent Email Address</label>
                 <input
-                  type="password"
-                  value={parentPassword}
-                  onChange={(e) => setParentPassword(e.target.value)}
-                  placeholder="Min 6 characters"
-                  className="w-full p-2.5 rounded-xl border border-slate-205 dark:bg-slate-900"
+                  ref={parentEmailRef}
+                  type="email"
+                  value={parentEmail}
+                  onChange={(e) => {
+                    setParentEmail(e.target.value);
+                    if (fieldErrors.parentEmail) validateAndSetFieldError("parentEmail", e.target.value);
+                  }}
+                  onBlur={() => validateAndSetFieldError("parentEmail", parentEmail)}
+                  onKeyDown={handleEnterKey("parentEmail", parentEmail)}
+                  placeholder="name@gmail.com"
+                  autoComplete="email"
+                  className={`w-full p-2.5 rounded-xl border ${fieldErrors.parentEmail ? "border-rose-500" : "border-slate-205"} dark:bg-slate-900 font-sans`}
                   required
                 />
+                {fieldErrors.parentEmail && (
+                  <p className="text-rose-600 text-[10px]">{fieldErrors.parentEmail}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-600 dark:text-slate-350">Parent Phone Number</label>
+                <input
+                  ref={parentPhoneRef}
+                  type="tel"
+                  value={parentPhone}
+                  onChange={(e) => {
+                    setParentPhone(e.target.value);
+                    if (fieldErrors.parentPhone) validateAndSetFieldError("parentPhone", e.target.value);
+                  }}
+                  onBlur={() => validateAndSetFieldError("parentPhone", parentPhone)}
+                  onKeyDown={handleEnterKey("parentPhone", parentPhone)}
+                  placeholder="+91 90000 00000"
+                  autoComplete="tel"
+                  className={`w-full p-2.5 rounded-xl border ${fieldErrors.parentPhone ? "border-rose-500" : "border-slate-205"} dark:bg-slate-900 font-sans`}
+                  required
+                />
+                {fieldErrors.parentPhone && (
+                  <p className="text-rose-600 text-[10px]">{fieldErrors.parentPhone}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-600 dark:text-slate-350">New Password</label>
+                <div className="relative">
+                  <input
+                    ref={newPasswordRef}
+                    type={passwordVisible ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      if (fieldErrors.newPassword) validateAndSetFieldError("newPassword", e.target.value);
+                    }}
+                    onBlur={() => validateAndSetFieldError("newPassword", newPassword)}
+                    onKeyDown={handleEnterKey("newPassword", newPassword)}
+                    placeholder="Enter your password"
+                    autoComplete="new-password"
+                    className={`w-full p-2.5 rounded-xl border ${fieldErrors.newPassword ? "border-rose-500" : "border-slate-205"} dark:bg-slate-900 pr-10`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPasswordVisible(!passwordVisible)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {newPassword ? (
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                    <p className="font-semibold">Your Password should include Atleast :</p>
+                    <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                      <li>one uppercase letter (A-Z)</li>
+                      <li>one lowercase letter (a-z)</li>
+                      <li>a number (0-9)</li>
+                      <li>a symbol (!@#$%^&*)</li>
+                      <li>must contain 8 characters</li>
+                    </ul>
+                  </div>
+                ) : null}
+                
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-600 dark:text-slate-350">Confirm Password</label>
+                <div className="relative">
+                  <input
+                    ref={confirmPasswordRef}
+                    type={confirmPasswordVisible ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (fieldErrors.confirmPassword) validateAndSetFieldError("confirmPassword", e.target.value);
+                    }}
+                    onBlur={() => validateAndSetFieldError("confirmPassword", confirmPassword)}
+                    onKeyDown={handleEnterKey("confirmPassword", confirmPassword)}
+                    placeholder="Re-enter your password"
+                    autoComplete="new-password"
+                    className={`w-full p-2.5 rounded-xl border ${fieldErrors.confirmPassword ? "border-rose-500" : "border-slate-205"} dark:bg-slate-900 pr-10`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {confirmPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {fieldErrors.confirmPassword && (
+                  <p className="text-rose-600 text-[10px]">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
 
               <div className="border-t border-slate-100 my-4 pt-3 space-y-3">
@@ -123,26 +381,45 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                   <div className="space-y-1">
                     <label className="text-slate-600">Child Full Name</label>
                     <input
+                      ref={childNameRef}
                       type="text"
                       value={childName}
-                      onChange={(e) => setChildName(e.target.value)}
+                      onChange={(e) => {
+                        setChildName(e.target.value);
+                        if (fieldErrors.childName) validateAndSetFieldError("childName", e.target.value);
+                      }}
+                      onBlur={() => validateAndSetFieldError("childName", childName)}
+                      onKeyDown={handleEnterKey("childName", childName)}
                       placeholder="E.g. David Smith"
-                      className="w-full p-2.5 rounded-xl border border-slate-205 dark:bg-slate-900"
+                      className={`w-full p-2.5 rounded-xl border ${fieldErrors.childName ? "border-rose-500" : "border-slate-205"} dark:bg-slate-900`}
                       required
                     />
+                    {fieldErrors.childName && (
+                      <p className="text-rose-600 text-[10px]">{fieldErrors.childName}</p>
+                    )}
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-slate-600">Standard Grade</label>
                     <select
+                      ref={childGradeRef}
                       value={childGrade}
-                      onChange={(e) => setChildGrade(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-255 dark:bg-slate-900 text-xs"
+                      onChange={(e) => {
+                        setChildGrade(e.target.value);
+                        if (fieldErrors.childGrade) validateAndSetFieldError("childGrade", e.target.value);
+                      }}
+                      onBlur={() => validateAndSetFieldError("childGrade", childGrade)}
+                      className={`w-full p-2.5 rounded-xl border ${fieldErrors.childGrade ? "border-rose-500" : "border-slate-255"} dark:bg-slate-900 text-xs`}
+                      required
                     >
+                      <option value="" disabled>Select class</option>
                       {STANDARDS.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
+                    {fieldErrors.childGrade && (
+                      <p className="text-rose-600 text-[10px]">{fieldErrors.childGrade}</p>
+                    )}
                   </div>
                 </div>
               </div>

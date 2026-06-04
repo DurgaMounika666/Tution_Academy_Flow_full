@@ -12,11 +12,13 @@
  * const response = await apiClient.auth.loginParent(email, password);
  */
 
-const configuredApiBase = import.meta.env.VITE_API_URL;
+const configuredApiBase = (import.meta as any).env?.VITE_API_URL;
 const API_BASE_CANDIDATES = [
   configuredApiBase,
   "http://localhost:5000/api",
   "http://localhost:5001/api",
+  "http://localhost:5002/api",
+  "http://localhost:5003/api",
 ].filter((value, index, self): value is string => Boolean(value) && self.indexOf(value) === index);
 
 let activeApiBase = API_BASE_CANDIDATES[0];
@@ -102,6 +104,18 @@ export const apiClient = {
       request("POST", "/auth/login-admin", { email, password }),
 
     logout: () => request("POST", "/auth/logout"),
+  },
+
+  bookings: {
+    createDemoBooking: (booking: {
+      fullName: string;
+      email: string;
+      whatsappNumber: string;
+      course: string;
+      preferredDate?: string;
+      location?: string;
+      studentClass?: string;
+    }) => request("POST", "/bookings/demo", booking),
   },
 
   students: {
