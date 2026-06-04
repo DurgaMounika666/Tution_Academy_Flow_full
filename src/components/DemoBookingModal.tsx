@@ -31,6 +31,15 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  const isValidName = (value: string) => /^[a-zA-Z\s]+$/.test(value);
+  const isValidGmail = (value: string) => /^[^\s@]+@gmail\.com$/i.test(value);
+  const isValidPhoneNumber = (value: string) => {
+    const normalized = value.replace(/\s+/g, "");
+    return /^(\+91)?\d{10}$/.test(normalized);
+  };
+
   const resetForm = () => {
     setFullName("");
     setEmail("");
@@ -40,12 +49,76 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
     setErrorMessage("");
   };
 
+  const handleFullNameChange = (value: string) => {
+    setFullName(value);
+    setErrorMessage("");
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setErrorMessage("");
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setWhatsappNumber(value);
+    setErrorMessage("");
+  };
+
+  const handleDateChange = (value: string) => {
+    setPreferredDate(value);
+    setErrorMessage("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
-    if (!fullName.trim() || !email.trim() || !whatsappNumber.trim() || !course.trim()) {
-      setErrorMessage("Please complete all required fields before booking your free demo seat.");
+    if (!fullName.trim()) {
+      setErrorMessage("Please enter your full name.");
+      return;
+    }
+
+    if (!isValidName(fullName.trim())) {
+      setErrorMessage("Please enter a valid name (letters and spaces only).");
+      return;
+    }
+
+    if (!email.trim()) {
+      setErrorMessage("Please enter your email address.");
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidGmail(normalizedEmail)) {
+      setErrorMessage("Please enter a valid Gmail address.");
+      return;
+    }
+
+    if (!whatsappNumber.trim()) {
+      setErrorMessage("Please enter your phone number.");
+      return;
+    }
+
+    const normalizedWhatsapp = whatsappNumber.trim();
+    if (!isValidPhoneNumber(normalizedWhatsapp)) {
+      setErrorMessage("Please enter a valid phone number (10 digits) or include country code like +91.");
+      return;
+    }
+
+    if (!course.trim()) {
+      setErrorMessage("Please select a course.");
+      return;
+    }
+
+    if (!preferredDate.trim()) {
+      setErrorMessage("Please select a preferred demo date.");
+      return;
+    }
+
+    const selectedDate = new Date(preferredDate);
+    const earliestAllowed = new Date(tomorrow);
+    if (selectedDate < earliestAllowed) {
+      setErrorMessage("Please select a demo date from tomorrow onwards.");
       return;
     }
 
@@ -54,10 +127,10 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
     try {
       await apiClient.bookings.createDemoBooking({
         fullName: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        whatsappNumber: whatsappNumber.trim(),
+        email: normalizedEmail,
+        whatsappNumber: normalizedWhatsapp,
         course: course.trim(),
-        preferredDate: preferredDate || undefined,
+        preferredDate: preferredDate,
       });
 
       setSuccess(true);
@@ -116,7 +189,7 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
                   <input
                     type="text"
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    onChange={(e) => handleFullNameChange(e.target.value)}
                     placeholder="Enter your full name"
                     className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
                     required
@@ -128,19 +201,19 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    placeholder="name@gmail.com"
                     className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
                     required
                   />
                 </label>
 
                 <label className="space-y-2 text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
-                  WhatsApp Number *
+                  Phone Number *
                   <input
                     type="tel"
                     value={whatsappNumber}
-                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
                     placeholder="+91 90000 00000"
                     className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
                     required
@@ -162,12 +235,14 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
                 </label>
 
                 <label className="space-y-2 text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
-                  Preferred Demo Date
+                  Preferred Demo Date *
                   <input
                     type="date"
+                    min={tomorrow}
                     value={preferredDate}
-                    onChange={(e) => setPreferredDate(e.target.value)}
+                    onChange={(e) => handleDateChange(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
+                    required
                   />
                 </label>
               </div>
