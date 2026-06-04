@@ -12,6 +12,7 @@ import { connectDB } from "./config/database";
 import { config } from "./config/env";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 import { User } from "./models/User";
+import { Student } from "./models/Student";
 import { BookingController } from "./controllers/BookingController";
 
 // Routes
@@ -28,10 +29,14 @@ app.use(helmet());
 const allowedOrigins = new Set([
   config.frontendUrl,
   "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:3002",
+  "http://localhost:3003",
   "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001",
+  "http://127.0.0.1:3002",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  "http://localhost:3002",
 ]);
 
 app.use(
@@ -127,21 +132,84 @@ const seedDemoAuthUsers = async () => {
     { email: "narayana@academyflow.com", password: "password", role: "tutor" as const },
     { email: "elena.vance@academyflow.com", password: "password", role: "tutor" as const },
     { email: "julian.thorne@academyflow.com", password: "password", role: "tutor" as const },
+    { email: "alex@example.com", password: "password", role: "student" as const },
+    { email: "leo@example.com", password: "password", role: "student" as const },
+    { email: "aditya@example.com", password: "password", role: "student" as const },
   ];
 
   for (const demoUser of demoUsers) {
-    const existing = await User.findOne({ email: demoUser.email, role: demoUser.role });
-    if (existing) {
-      continue;
+    let existing = await User.findOne({ email: demoUser.email, role: demoUser.role });
+    if (!existing) {
+      const hashedPassword = await bcrypt.hash(demoUser.password, 10);
+      existing = await User.create({
+        email: demoUser.email,
+        password: hashedPassword,
+        role: demoUser.role,
+      });
+      console.log(`Seeded demo ${demoUser.role} account: ${demoUser.email}`);
     }
+  }
 
-    const hashedPassword = await bcrypt.hash(demoUser.password, 10);
-    await User.create({
-      email: demoUser.email,
-      password: hashedPassword,
-      role: demoUser.role,
-    });
-    console.log(`Seeded demo ${demoUser.role} account: ${demoUser.email}`);
+  const demoStudents = [
+    {
+      studentId: "ST-101",
+      email: "alex@example.com",
+      name: "Alex Johnson",
+      grade: "9th Class",
+      parentEmail: "parent@example.com",
+      section: "Section A",
+      learningSubjects: ["Mathematics", "Physics"],
+      attendanceRate: 94,
+      presentCount: 31,
+      absentCount: 2
+    },
+    {
+      studentId: "ST-102",
+      email: "leo@example.com",
+      name: "Leo Henderson",
+      grade: "9th Class",
+      parentEmail: "parent@example.com",
+      section: "Section A",
+      learningSubjects: ["Mathematics", "Computer Science"],
+      attendanceRate: 97,
+      presentCount: 33,
+      absentCount: 1
+    },
+    {
+      studentId: "ST-103",
+      email: "aditya@example.com",
+      name: "Aditya Varma",
+      grade: "10th Class",
+      parentEmail: "parent@example.com",
+      section: "Section B",
+      learningSubjects: ["Mathematics", "Physics", "Chemistry"],
+      attendanceRate: 95,
+      presentCount: 38,
+      absentCount: 2
+    }
+  ];
+
+  for (const ds of demoStudents) {
+    const existingStudent = await Student.findOne({ studentId: ds.studentId });
+    if (!existingStudent) {
+      const user = await User.findOne({ email: ds.email, role: "student" });
+      if (user) {
+        await Student.create({
+          studentId: ds.studentId,
+          userId: user._id,
+          name: ds.name,
+          grade: ds.grade,
+          section: ds.section,
+          parentEmail: ds.parentEmail,
+          learningSubjects: ds.learningSubjects,
+          attendanceRate: ds.attendanceRate,
+          presentCount: ds.presentCount,
+          absentCount: ds.absentCount,
+          assignedTutorIds: ["T-201"]
+        });
+        console.log(`Seeded demo Student profile: ${ds.name} (${ds.studentId})`);
+      }
+    }
   }
 };
 

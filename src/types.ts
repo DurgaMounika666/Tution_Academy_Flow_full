@@ -19,6 +19,7 @@ export interface Student {
   results: Array<{
     term: string; // e.g. "Term 1", "Term 2", "Current"
     gpa: number; // Max 4.0 or percentage
+    score?: number;
     mathsScore: number;
     physicsScore: number;
     literatureScore: number;

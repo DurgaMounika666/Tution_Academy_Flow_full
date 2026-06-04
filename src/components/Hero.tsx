@@ -156,7 +156,6 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
                 <p className="text-xs hero-stat-label">{t("avgAchievement")}</p>
               </div>
             </div></div>
-          </div>
 
           <div className="lg:col-span-5 relative flex justify-center items-center hero-animate-scale hero-delay-3">
              
