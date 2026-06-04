@@ -19,6 +19,7 @@ import { TutorDashboard } from "./components/TutorDashboard";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { RegisterModal } from "./components/RegisterModal";
 import { DemoBookingModal } from "./components/DemoBookingModal";
+import { ClassInfo } from "./components/ClassInfo";
 
 import {
   INITIAL_STUDENTS, INITIAL_TUTORS, INITIAL_FEES, INITIAL_ASSIGNMENTS,
@@ -280,6 +281,8 @@ export default function App() {
                 tutors={tutorsState}
               />
             } />
+
+            <Route path="/classes/:type" element={<ClassInfo />} />
 
             {/* Student Dashboard */}
             <Route path="/student" element={
