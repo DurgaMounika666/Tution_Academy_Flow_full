@@ -18,8 +18,6 @@ import { ParentDashboard } from "./components/ParentDashboard";
 import { TutorDashboard } from "./components/TutorDashboard";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { RegisterModal } from "./components/RegisterModal";
-import { DemoBookingModal } from "./components/DemoBookingModal";
-import { ClassInfo } from "./components/ClassInfo";
 
 import {
   INITIAL_STUDENTS, INITIAL_TUTORS, INITIAL_FEES, INITIAL_ASSIGNMENTS,
@@ -339,6 +337,9 @@ export default function App() {
 
         {/* Global Footer info bar layout */}
         <Footer />
+
+        {/* Chat support widget */}
+        <ChatSupportWidget />
 
         {/* Dynamic Modal Registrations */}
         <RegisterModal

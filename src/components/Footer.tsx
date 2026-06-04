@@ -40,7 +40,7 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
               </a>
               <a 
-                href="https://youtube.com" 
+                href="https://www.youtube.com/@AcademyFlowTution" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-rose-500 transition-colors"
