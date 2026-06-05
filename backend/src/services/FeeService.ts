@@ -4,20 +4,37 @@
  */
 
 import { FeePayment } from "../models/FeePayment";
+import { Student } from "../models/Student";
 
 export class FeeService {
+  static async generateFeeId() {
+    const count = await FeePayment.countDocuments();
+    return `FP-${500 + count + 1}`;
+  }
+
   static async createFee(
-    feeId: string,
     studentId: string,
-    studentName: string,
     title: string,
     amount: number,
-    dueDate: Date
+    dueDate: Date,
+    feeId?: string,
+    studentName?: string
   ) {
+    const resolvedFeeId = feeId || (await this.generateFeeId());
+    let resolvedStudentName = studentName;
+
+    if (!resolvedStudentName) {
+      const student = await Student.findOne({ studentId });
+      if (!student) {
+        throw new Error(`Student ${studentId} not found`);
+      }
+      resolvedStudentName = student.name;
+    }
+
     const fee = new FeePayment({
-      feeId,
+      feeId: resolvedFeeId,
       studentId,
-      studentName,
+      studentName: resolvedStudentName,
       title,
       amount,
       dueDate,
@@ -25,6 +42,10 @@ export class FeeService {
     });
 
     return fee.save();
+  }
+
+  static async getAllFees() {
+    return FeePayment.find().sort({ createdAt: -1 });
   }
 
   static async getFeesByStudent(studentId: string) {
@@ -60,13 +81,11 @@ export class FeeService {
   }
 
   static async generateFeeReport(month?: number, year?: number) {
-    const query = {};
+    const query: Record<string, unknown> = {};
     if (month && year) {
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 1);
-      Object.assign(query, {
-        createdAt: { $gte: startDate, $lt: endDate },
-      });
+      query.createdAt = { $gte: startDate, $lt: endDate };
     }
 
     const fees = await FeePayment.find(query);

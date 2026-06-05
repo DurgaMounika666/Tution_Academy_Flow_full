@@ -118,15 +118,27 @@ export class AuthService {
       }
 
       // Also create Parent profile record
-      const existingParent = await Parent.findOne({ email });
-      if (!existingParent) {
-        await Parent.create({
+      let parentRecord = await Parent.findOne({ email });
+      if (!parentRecord) {
+        parentRecord = await Parent.create({
           userId: user._id,
           email,
           name: name || email.split("@")[0],
           phone: phone || "",
           childrenIds: studentId ? [studentId] : [],
         });
+      } else if (studentId) {
+        await Parent.findOneAndUpdate(
+          { email },
+          { $addToSet: { childrenIds: studentId } }
+        );
+      }
+
+      if (studentId) {
+        await Student.findOneAndUpdate(
+          { studentId },
+          { parentId: parentRecord._id }
+        );
       }
 
       const token = this.generateToken(user._id.toString(), "parent");
@@ -174,9 +186,20 @@ export class AuthService {
 
   static async loginStudent(studentId: string) {
     try {
+      const student = await Student.findOne({ studentId: studentId.trim() });
+      if (!student) {
+        throw new Error("Invalid student ID. Please check and try again.");
+      }
+
       const token = this.generateToken(studentId, "student");
       const refreshToken = this.generateRefreshToken(studentId, "student");
-      return { token, refreshToken, userId: studentId };
+      return {
+        token,
+        refreshToken,
+        userId: studentId,
+        studentName: student.name,
+        parentEmail: student.parentEmail,
+      };
     } catch (error) {
       throw error;
     }

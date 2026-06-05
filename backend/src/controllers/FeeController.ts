@@ -10,22 +10,19 @@ import { FeeService } from "../services/FeeService";
 export class FeeController {
   static async createFee(req: AuthenticatedRequest, res: Response) {
     try {
-      const {
-        feeId,
-        studentId,
-        studentName,
-        title,
-        amount,
-        dueDate,
-      } = req.body;
+      const { feeId, studentId, studentName, title, amount, dueDate } = req.body;
+
+      if (!studentId || !title || !amount || !dueDate) {
+        return res.status(400).json({ error: "studentId, title, amount, and dueDate are required" });
+      }
 
       const fee = await FeeService.createFee(
-        feeId,
         studentId,
-        studentName,
         title,
-        amount,
-        new Date(dueDate)
+        Number(amount),
+        new Date(dueDate),
+        feeId,
+        studentName
       );
 
       res.status(201).json({
@@ -34,6 +31,15 @@ export class FeeController {
       });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  }
+
+  static async getAllFees(req: AuthenticatedRequest, res: Response) {
+    try {
+      const fees = await FeeService.getAllFees();
+      res.json(fees);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   }
 
@@ -70,9 +76,13 @@ export class FeeController {
 
       const fee = await FeeService.updateFeePayment(
         feeId,
-        transactionId,
-        paymentMethod
+        transactionId || `AF-TXN-${Math.floor(10000 + Math.random() * 90000)}`,
+        paymentMethod || "Online"
       );
+
+      if (!fee) {
+        return res.status(404).json({ error: "Fee not found" });
+      }
 
       res.json({
         message: "Fee payment updated successfully",

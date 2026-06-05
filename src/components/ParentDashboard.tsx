@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   Users, MapPin, PhoneCall, DollarSign, CheckCircle2, AlertCircle,
   HelpCircle, ChevronRight, BookOpen, GraduationCap, Clock, PlusCircle,
@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { Student, Tutor, FeePayment } from "../types";
 import { SUBJECTS_BY_CLASS, STANDARDS, LOCATIONS } from "../data";
+import { apiClient } from "../services/apiClient";
+import { normalizeFee, normalizeParent } from "../utils/normalizers";
 import { useTheme } from "../context/ThemeContext";
 import { FeeReceiptModal } from "./FeeReceiptModal";
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
@@ -24,15 +26,20 @@ interface ParentDashboardProps {
   fees: FeePayment[];
   onUpdateFees: (updatedFees: FeePayment[]) => void;
   onUpdateStudents: (updatedStudents: Student[]) => void;
+  onRefreshFees: () => Promise<void>;
   onLogout: () => void;
 }
 
 export function ParentDashboard({
-  students, tutors, fees, onUpdateFees, onUpdateStudents, onLogout
+  students, tutors, fees, onUpdateFees, onUpdateStudents, onRefreshFees, onLogout
 }: ParentDashboardProps) {
 
-  // Choose which child is viewing
-  const [selectedStudentId, setSelectedStudentId] = useState("ST-101"); // Default to ST-101 (Abhilash) or first available
+  const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || "");
+  useEffect(() => {
+    if (students[0]?.id && !students.find(s => s.id === selectedStudentId)) {
+      setSelectedStudentId(students[0].id);
+    }
+  }, [students, selectedStudentId]);
   const activeStudent = students.find((s) => s.id === selectedStudentId) || students[0];
 
   // Active Tab/Menu state for the Sidebar
@@ -45,7 +52,7 @@ export function ParentDashboard({
   const [wizardClass, setWizardClass] = useState("9th Class");
   const [wizardSubjects, setWizardSubjects] = useState<string[]>([]);
   const [wizardMode, setWizardMode] = useState<"Online" | "Offline">("Online");
-  const [wizardTutorId, setWizardTutorId] = useState("T-201");
+  const [wizardTutorId, setWizardTutorId] = useState(tutors[0]?.id || "");
   const [wizardLocation, setWizardLocation] = useState("Hyderabad");
 
   // General Support redirect state
@@ -53,16 +60,18 @@ export function ParentDashboard({
 
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState("");
 
-  const handlePayFee = (feeId: string) => {
-    const updated = fees.map((f) => {
-      if (f.id === feeId) {
-        return { ...f, status: "Paid" as const, transactionId: `AF-TXN-${Math.floor(10000 + Math.random() * 90000)}` };
-      }
-      return f;
-    });
-    onUpdateFees(updated);
-    setPaymentSuccessMsg("Invoice payment processed successfully! Checkout complete.");
-    setTimeout(() => setPaymentSuccessMsg(""), 4000);
+  const handlePayFee = async (feeId: string) => {
+    try {
+      const response = await apiClient.fees.markAsPaid(feeId);
+      const updatedFee = normalizeFee(response.fee || response);
+      onUpdateFees(fees.map((f) => (f.id === feeId ? updatedFee : f)));
+      await onRefreshFees();
+      setPaymentSuccessMsg("Invoice payment processed successfully! Checkout complete.");
+      setTimeout(() => setPaymentSuccessMsg(""), 4000);
+    } catch (error: any) {
+      setPaymentSuccessMsg(error.message || "Payment failed. Please try again.");
+      setTimeout(() => setPaymentSuccessMsg(""), 4000);
+    }
   };
 
   // Compute pricing
@@ -77,83 +86,77 @@ export function ParentDashboard({
     }
   };
 
-  const handleResolveWizard = () => {
+  const handleResolveWizard = async () => {
     if (wizardSubjects.length === 0) {
       alert("Please check at least one learning subject.");
       return;
     }
 
-    // Update student's subjects list
-    const updatedStudents = students.map((s) => {
-      if (s.id === selectedStudentId) {
-        const currentSubs = s.learningSubjects.map((sub) => sub.name);
-        const nextSubsObj = [...s.learningSubjects];
+    try {
+      const subjectNames = [
+        ...activeStudent.learningSubjects.map((sub) => sub.name),
+        ...wizardSubjects.filter((sub) => !activeStudent.learningSubjects.some((s) => s.name === sub)),
+      ];
 
-        wizardSubjects.forEach((sub) => {
-          if (!currentSubs.includes(sub)) {
-            nextSubsObj.push({
-              name: sub,
-              completedPercentage: 0,
-              completedWeeks: 0
-            });
-          }
-        });
-
-        // Add class timings for the subject
-        const nextTimings = [...s.classTimings];
-        wizardSubjects.forEach((sub) => {
-          if (!nextTimings.find(t => t.subject === sub)) {
-            nextTimings.push({
-              subject: sub,
-              time: "03:30 PM",
-              day: "Monday, Thursday",
-              mode: wizardMode
-            });
-          }
-        });
-
-        return {
-          ...s,
-          learningSubjects: nextSubsObj,
-          classTimings: nextTimings
-        };
+      await apiClient.students.addSubjects(selectedStudentId, subjectNames);
+      if (wizardTutorId) {
+        await apiClient.students.assignTutor(selectedStudentId, wizardTutorId);
       }
-      return s;
-    });
 
-    onUpdateStudents(updatedStudents);
+      const updatedStudents = students.map((s) => {
+        if (s.id === selectedStudentId) {
+          const nextSubsObj = [...s.learningSubjects];
+          wizardSubjects.forEach((sub) => {
+            if (!nextSubsObj.find((item) => item.name === sub)) {
+              nextSubsObj.push({ name: sub, completedPercentage: 0, completedWeeks: 0 });
+            }
+          });
+          const nextTimings = [...s.classTimings];
+          wizardSubjects.forEach((sub) => {
+            if (!nextTimings.find((t) => t.subject === sub)) {
+              nextTimings.push({ subject: sub, time: "03:30 PM", day: "Monday, Thursday", mode: wizardMode });
+            }
+          });
+          return {
+            ...s,
+            learningSubjects: nextSubsObj,
+            classTimings: nextTimings,
+            assignedTutorIds: wizardTutorId ? [...new Set([...s.assignedTutorIds, wizardTutorId])] : s.assignedTutorIds,
+          };
+        }
+        return s;
+      });
+      onUpdateStudents(updatedStudents);
 
-    // Dynamic fee entry addition to state
-    const newInvoice: FeePayment = {
-      id: `FP-NEW-${Math.floor(1000 + Math.random() * 9000)}`,
-      studentId: selectedStudentId,
-      studentName: activeStudent.name,
-      title: `Rollout: ${wizardSubjects.join(", ")} (${wizardClass})`,
-      amount: computedFee,
-      status: "Paid", // automatically paid in simulation
-      dueDate: "2026-06-30",
-      transactionId: `AF-AUTO-${Math.floor(50000 + Math.random() * 49999)}`
-    };
+      const feeResponse = await apiClient.fees.create({
+        studentId: selectedStudentId,
+        title: `Rollout: ${wizardSubjects.join(", ")} (${wizardClass})`,
+        amount: computedFee,
+        dueDate: new Date().toISOString().split("T")[0],
+      });
+      const newInvoice = normalizeFee(feeResponse.fee || feeResponse);
+      const paidResponse = await apiClient.fees.markAsPaid(newInvoice.id);
+      const paidInvoice = normalizeFee(paidResponse.fee || paidResponse);
+      onUpdateFees([paidInvoice, ...fees]);
+      await onRefreshFees();
 
-    onUpdateFees([newInvoice, ...fees]);
+      const tutorObj = tutors.find((t) => t.id === wizardTutorId) || tutors[0];
+      const textMsg = encodeURIComponent(
+        `Hello Academy Flow institution! I am parent of ${activeStudent.name}. We bought a new subject module: ${wizardSubjects.join(", ")} for class: ${wizardClass}. Selection mode: ${wizardMode}. Assigned Tutor: ${tutorObj?.name || "TBD"}, Location center: ${wizardLocation}. Calculated tuition fee total: $${computedFee}. Confirmed details.`
+      );
+      const waUrl = `https://wa.me/916300227011?text=${textMsg}`;
 
-    // Simulate WhatsApp message receipt for registration confirmation:
-    const tutorObj = tutors.find(t => t.id === wizardTutorId) || tutors[0];
-    const textMsg = encodeURIComponent(
-      `Hello Academy Flow institution! I am parent of ${activeStudent.name}. We bought a new subject module: ${wizardSubjects.join(", ")} for class: ${wizardClass}. Selection mode: ${wizardMode}. Assigned Tutor: ${tutorObj.name}, Location center: ${wizardLocation}. Calculated tuition fee total: $${computedFee}. Confirmed details.`
-    );
-    const waUrl = `https://wa.me/916300227011?text=${textMsg}`;
-
-    setWizardOpen(false);
-    setWizardStep(1);
-    setWizardSubjects([]);
-
-    // Toast success and redirect to WA
-    setPaymentSuccessMsg(`Success! Rollout registered and tuition receipt created. Redirecting receipt confirmation to Whatsapp.`);
-    setTimeout(() => {
-      setPaymentSuccessMsg("");
-      window.open(waUrl, "_blank");
-    }, 3000);
+      setWizardOpen(false);
+      setWizardStep(1);
+      setWizardSubjects([]);
+      setPaymentSuccessMsg(`Success! Rollout registered and tuition receipt created. Redirecting receipt confirmation to Whatsapp.`);
+      setTimeout(() => {
+        setPaymentSuccessMsg("");
+        window.open(waUrl, "_blank");
+      }, 3000);
+    } catch (error: any) {
+      alert(error.message || "Failed to complete subject rollout. Please try again.");
+    }
   };
 
   const handleWhatsAppTalk = () => {
@@ -181,13 +184,39 @@ export function ParentDashboard({
 
   // 1. Parent Profile state
   const [parentProfile, setParentProfile] = useState({
-    name: "Robert Johnson",
-    email: "parent@example.com",
-    phone: "+91 6300227011",
-    address: "Flat 402, Oakwood Apartments, Gachibowli, Hyderabad",
-    relationship: "Father",
-    registrationDate: "2025-08-15"
+    name: "",
+    email: activeStudent?.parentEmail || "",
+    phone: "",
+    address: "",
+    relationship: "Parent",
+    registrationDate: new Date().toISOString().split("T")[0],
   });
+
+  useEffect(() => {
+    const loadParentProfile = async () => {
+      const email = activeStudent?.parentEmail;
+      if (!email) return;
+      try {
+        const data = await apiClient.parents.getByEmail(email);
+        const normalized = normalizeParent(data);
+        setParentProfile({
+          name: normalized.name || email.split("@")[0],
+          email: normalized.email,
+          phone: normalized.phone || "",
+          address: normalized.address || "",
+          relationship: "Parent",
+          registrationDate: new Date().toISOString().split("T")[0],
+        });
+        setEditName(normalized.name || "");
+        setEditPhone(normalized.phone || "");
+        setEditAddress(normalized.address || "");
+      } catch (error) {
+        console.warn("Unable to load parent profile", error);
+        setParentProfile((prev) => ({ ...prev, email }));
+      }
+    };
+    loadParentProfile();
+  }, [activeStudent?.parentEmail]);
 
   // Edit Profile form state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -196,17 +225,27 @@ export function ParentDashboard({
   const [editAddress, setEditAddress] = useState(parentProfile.address);
   const [editSuccessMsg, setEditSuccessMsg] = useState("");
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setParentProfile((prev) => ({
-      ...prev,
-      name: editName,
-      phone: editPhone,
-      address: editAddress
-    }));
-    setIsEditingProfile(false);
-    setEditSuccessMsg("Parent Profile details updated successfully!");
-    setTimeout(() => setEditSuccessMsg(""), 4000);
+    try {
+      await apiClient.parents.update(parentProfile.email, {
+        name: editName,
+        phone: editPhone,
+        address: editAddress,
+      });
+      setParentProfile((prev) => ({
+        ...prev,
+        name: editName,
+        phone: editPhone,
+        address: editAddress,
+      }));
+      setIsEditingProfile(false);
+      setEditSuccessMsg("Parent Profile details updated successfully!");
+      setTimeout(() => setEditSuccessMsg(""), 4000);
+    } catch (error: any) {
+      setEditSuccessMsg(error.message || "Failed to update profile.");
+      setTimeout(() => setEditSuccessMsg(""), 4000);
+    }
   };
 
   // 2. Chat / Messages state
@@ -216,21 +255,9 @@ export function ParentDashboard({
     senderName: string;
     text: string;
     time: string;
-  }>>>({
-    "T-201": [
-      { id: "msg-1-1", sender: "tutor", senderName: "Dr. Anitha", text: "Hello Robert, Abhilash performed exceptionally well in the mathematics quiz today.", time: "10:30 AM" },
-      { id: "msg-1-2", sender: "parent", senderName: "Robert Johnson", text: "Glad to hear that! Please let me know if he needs to focus on any specific area.", time: "10:45 AM" },
-      { id: "msg-1-3", sender: "tutor", senderName: "Dr. Anitha", text: "Please ensure he completes the coursework review exercises scheduled for tomorrow morning.", time: "10:50 AM" }
-    ],
-    "T-202": [
-      { id: "msg-2-1", sender: "tutor", senderName: "Prof. Narayana", text: "Hi Robert, just wanted to update you that physics homework submission is pending.", time: "Yesterday" }
-    ],
-    "T-203": [
-      { id: "msg-3-1", sender: "tutor", senderName: "Mr. Anand Kumar", text: "Hi Robert, the advanced data structures logic files have been uploaded.", time: "2 days ago" }
-    ]
-  });
+  }>>>({});
 
-  const [selectedChatTutorId, setSelectedChatTutorId] = useState("T-201");
+  const [selectedChatTutorId, setSelectedChatTutorId] = useState(tutors[0]?.id || "");
   const [chatSearch, setChatSearch] = useState("");
   const [newMessageText, setNewMessageText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -504,7 +531,7 @@ export function ParentDashboard({
     return Object.keys(errors).length === 0;
   };
 
-  const handleProcessPayment = (e: React.FormEvent) => {
+  const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validatePaymentForm()) return;
 
@@ -517,40 +544,41 @@ export function ParentDashboard({
       ? `Custom Payment (${paymentInvoiceNumber})`
       : (fees.find(f => f.id === targetInvoiceId)?.title || "Tuition Fee");
 
-    if (!isCustom) {
-      const updatedFees = fees.map(f => {
-        if (f.id === targetInvoiceId) {
-          return { ...f, status: "Paid" as const, transactionId: txnId };
-        }
-        return f;
-      });
-      onUpdateFees(updatedFees);
-    } else {
-      const customInvoice: FeePayment = {
-        id: paymentInvoiceNumber,
-        studentId: activeStudent.id,
-        studentName: activeStudent.name,
-        title: invoiceTitle,
-        amount: paymentAmount,
-        status: "Paid",
-        dueDate: paymentDate,
-        transactionId: txnId
-      };
-      onUpdateFees([customInvoice, ...fees]);
-    }
+    try {
+      if (!isCustom) {
+        const response = await apiClient.fees.markAsPaid(targetInvoiceId, txnId, paymentMethod);
+        const updatedFee = normalizeFee(response.fee || response);
+        onUpdateFees(fees.map(f => (f.id === targetInvoiceId ? updatedFee : f)));
+      } else {
+        const feeResponse = await apiClient.fees.create({
+          studentId: activeStudent.id,
+          title: invoiceTitle,
+          amount: paymentAmount,
+          dueDate: paymentDate,
+        });
+        const created = normalizeFee(feeResponse.fee || feeResponse);
+        const paidResponse = await apiClient.fees.markAsPaid(created.id, txnId, paymentMethod);
+        const paidFee = normalizeFee(paidResponse.fee || paidResponse);
+        onUpdateFees([paidFee, ...fees]);
+      }
+      await onRefreshFees();
 
-    const newHistoryRecord = {
-      transactionId: txnId,
-      studentName: activeStudent.name,
-      parentName: parentProfile.name,
-      invoiceId: isCustom ? paymentInvoiceNumber : targetInvoiceId,
-      invoiceTitle: invoiceTitle,
-      amount: paymentAmount,
-      paymentMethod: paymentMethod,
-      date: paymentDate,
-      status: "Success"
-    };
-    setPaymentHistory([newHistoryRecord, ...paymentHistory]);
+      const newHistoryRecord = {
+        transactionId: txnId,
+        studentName: activeStudent.name,
+        parentName: parentProfile.name,
+        invoiceId: isCustom ? paymentInvoiceNumber : targetInvoiceId,
+        invoiceTitle: invoiceTitle,
+        amount: paymentAmount,
+        paymentMethod: paymentMethod,
+        date: paymentDate,
+        status: "Success"
+      };
+      setPaymentHistory([newHistoryRecord, ...paymentHistory]);
+    } catch (error: any) {
+      setPaymentErrors({ general: error.message || "Payment processing failed." });
+      return;
+    }
 
     // Clear Modal inputs
     setCardHolderName("");

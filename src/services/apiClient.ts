@@ -5,11 +5,6 @@
 
 /**
  * API Client for Academy Flow Backend
- * This file provides convenient methods for all API calls
- * 
- * Usage in frontend components:
- * import { apiClient } from './services/apiClient';
- * const response = await apiClient.auth.loginParent(email, password);
  */
 
 const configuredApiBase = (import.meta as any).env?.VITE_API_URL;
@@ -25,7 +20,6 @@ let activeApiBase = API_BASE_CANDIDATES[0];
 
 let authToken: string | null = null;
 
-// Initialize token from localStorage
 if (typeof window !== "undefined") {
   authToken = localStorage.getItem("authToken");
 }
@@ -61,7 +55,6 @@ const request = async (method: string, endpoint: string, body?: any) => {
 
       return await response.json();
     } catch (error) {
-      // Retry only for network-level errors (wrong/offline backend port).
       if (error instanceof TypeError) {
         lastNetworkError = error;
         continue;
@@ -119,17 +112,32 @@ export const apiClient = {
   },
 
   students: {
+    getAll: () => request("GET", "/students"),
+
     getById: (studentId: string) =>
       request("GET", `/students/${studentId}`),
 
     getByParent: (parentEmail: string) =>
-      request("GET", `/students/parent/${parentEmail}`),
+      request("GET", `/students/parent/${encodeURIComponent(parentEmail)}`),
 
-    create: (student: any) =>
-      request("POST", "/students", student),
+    getByTutor: (tutorId: string) =>
+      request("GET", `/students/tutor/${tutorId}`),
+
+    create: (student: {
+      name: string;
+      grade: string;
+      section?: string;
+      parentEmail: string;
+      assignedTutorIds?: string[];
+      learningSubjects?: string[];
+      phone?: string;
+    }) => request("POST", "/students", student),
 
     update: (studentId: string, updateData: any) =>
       request("PUT", `/students/${studentId}`, updateData),
+
+    delete: (studentId: string) =>
+      request("DELETE", `/students/${studentId}`),
 
     assignTutor: (studentId: string, tutorId: string) =>
       request("POST", `/students/${studentId}/assign-tutor`, { tutorId }),
@@ -139,8 +147,10 @@ export const apiClient = {
   },
 
   fees: {
-    create: (fee: any) =>
+    create: (fee: { studentId: string; title: string; amount: number; dueDate: string }) =>
       request("POST", "/fees", fee),
+
+    getAll: () => request("GET", "/fees/all"),
 
     getByStudent: (studentId: string) =>
       request("GET", `/fees/${studentId}`),
@@ -148,8 +158,11 @@ export const apiClient = {
     getById: (feeId: string) =>
       request("GET", `/fees/fee/${feeId}`),
 
-    markAsPaid: (feeId: string, transactionId: string, paymentMethod: string) =>
-      request("PUT", `/fees/${feeId}/payment`, { transactionId, paymentMethod }),
+    markAsPaid: (feeId: string, transactionId?: string, paymentMethod?: string) =>
+      request("PUT", `/fees/${feeId}/payment`, {
+        transactionId: transactionId || `AF-TXN-${Math.floor(10000 + Math.random() * 90000)}`,
+        paymentMethod: paymentMethod || "Online",
+      }),
 
     getPending: () =>
       request("GET", "/fees/pending/all"),
@@ -180,10 +193,21 @@ export const apiClient = {
     getAll: () => request("GET", "/tutors"),
     getById: (tutorId: string) => request("GET", `/tutors/${tutorId}`),
     getByEmail: (email: string) => request("GET", `/tutors/by-email/${encodeURIComponent(email)}`),
+    create: (tutor: { name: string; specialty: string; email: string; subjects?: string[]; password?: string }) =>
+      request("POST", "/tutors", tutor),
+    update: (tutorId: string, data: any) => request("PUT", `/tutors/${tutorId}`, data),
+    delete: (tutorId: string) => request("DELETE", `/tutors/${tutorId}`),
   },
 
   parents: {
+    getAll: () => request("GET", "/parents"),
     getByEmail: (email: string) => request("GET", `/parents/by-email/${encodeURIComponent(email)}`),
+    create: (parent: { email: string; password: string; name: string; phone?: string }) =>
+      request("POST", "/parents", parent),
+    update: (email: string, data: any) =>
+      request("PUT", `/parents/by-email/${encodeURIComponent(email)}`, data),
+    delete: (email: string) =>
+      request("DELETE", `/parents/by-email/${encodeURIComponent(email)}`),
   },
 
   timetable: {

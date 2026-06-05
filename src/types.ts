@@ -69,6 +69,16 @@ export interface FeePayment {
   transactionId?: string;
 }
 
+export interface ParentProfile {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  address?: string;
+  occupation?: string;
+  childrenIds: string[];
+}
+
 export interface DemoBooking {
   location: string;
   studentClass: string;

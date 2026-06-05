@@ -11,7 +11,7 @@ import { apiClient } from "../services/apiClient";
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onRegisterSuccess: (email: string, pass: string, parentName: string, parentPhone: string, childName: string, childGrade: string) => void;
+  onRegisterSuccess: (email: string, pass: string) => void;
 }
 
 export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterModalProps) {
@@ -178,7 +178,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
         childGrade
       );
       apiClient.setAuthToken(result.token);
-      onRegisterSuccess(normalizedEmail, newPassword, parentName, parentPhone, childName, childGrade);
+      onRegisterSuccess(normalizedEmail, newPassword);
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);

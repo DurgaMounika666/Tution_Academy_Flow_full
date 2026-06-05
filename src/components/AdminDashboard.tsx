@@ -12,6 +12,7 @@ import {
   Clock, CheckCircle, AlertCircle, Eye, CreditCard, School
 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
+import { normalizeStudent, normalizeTutor, normalizeFee } from "../utils/normalizers";
 import { Student, Tutor, FeePayment } from "../types";
 import { STANDARDS } from "../data";
 import { buildAllCoursesFromCatalog, CatalogCourse } from "../utils/courseCatalog";
@@ -23,6 +24,9 @@ interface AdminDashboardProps {
   students: Student[];
   tutors: Tutor[];
   fees: FeePayment[];
+  onRefreshStudents: () => Promise<void>;
+  onRefreshTutors: () => Promise<void>;
+  onRefreshFees: () => Promise<void>;
   onBypassLogin: (role: "student" | "parent" | "tutor") => void;
   onLogout: () => void;
 }
@@ -49,7 +53,7 @@ interface SystemNotification {
 }
 
 export function AdminDashboard({
-  students, tutors, fees, onBypassLogin, onLogout
+  students, tutors, fees, onRefreshStudents, onRefreshTutors, onRefreshFees, onBypassLogin, onLogout
 }: AdminDashboardProps) {
 
   // Main Tabs Configuration
@@ -140,6 +144,18 @@ export function AdminDashboard({
     room: "Room 101",
     assignedStudentIds: [] as string[]
   });
+
+  useEffect(() => {
+    setLocalStudents(students);
+  }, [students]);
+
+  useEffect(() => {
+    setLocalTutors(tutors);
+  }, [tutors]);
+
+  useEffect(() => {
+    setLocalFees(fees);
+  }, [fees]);
 
   useEffect(() => {
     if (activeTab === "timetable") {
@@ -259,61 +275,57 @@ export function AdminDashboard({
   }
 
   // --- FORM HANDLERS ---
-  const handleAddStudent = (e: React.FormEvent) => {
+  const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudent.name || !newStudent.parentEmail) {
       triggerToast("Please fill all required fields");
       return;
     }
-    const created: Student = {
-      id: `ST-${100 + localStudents.length + 1}`,
-      name: newStudent.name,
-      grade: newStudent.grade,
-      section: newStudent.section,
-      attendanceRate: 100,
-      presentCount: 0,
-      absentCount: 0,
-      learningSubjects: [
-        { name: "Mathematics", completedPercentage: 0, completedWeeks: 0 }
-      ],
-      results: [
-        { term: "Current", gpa: 4.0, mathsScore: 100, physicsScore: 100, literatureScore: 100, compSciScore: 100 }
-      ],
-      classTimings: [
-        { subject: "Mathematics", time: "02:00 PM", day: "Monday, Thursday", mode: "Offline" }
-      ],
-      upcomingEvents: [
-        { title: "Induction Diagnostic Exam", time: "Next Monday", description: "Standard orientation test.", badge: "Diagnostic" }
-      ],
-      videoResources: [],
-      parentEmail: newStudent.parentEmail,
-      assignedTutorIds: ["T-201"]
-    };
-    setLocalStudents([...localStudents, created]);
-    setShowAddStudent(false);
-    setNewStudent({ name: "", grade: "9th Class", section: "Section A", parentEmail: "" });
-    triggerToast(`Successfully enrolled student ${created.name} (${created.id})`);
+    try {
+      const response = await apiClient.students.create({
+        name: newStudent.name,
+        grade: newStudent.grade,
+        section: newStudent.section,
+        parentEmail: newStudent.parentEmail.toLowerCase(),
+        assignedTutorIds: localTutors[0] ? [localTutors[0].id] : [],
+        learningSubjects: ["Mathematics"],
+      });
+      const created = response.student ? normalizeStudent(response.student) : null;
+      if (created) {
+        setLocalStudents([...localStudents, created]);
+      }
+      await onRefreshStudents();
+      setShowAddStudent(false);
+      setNewStudent({ name: "", grade: "9th Class", section: "Section A", parentEmail: "" });
+      triggerToast(`Successfully enrolled student ${newStudent.name}`);
+    } catch (error: any) {
+      triggerToast(error.message || "Failed to create student");
+    }
   };
 
-  const handleAddTutor = (e: React.FormEvent) => {
+  const handleAddTutor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTutor.name || !newTutor.email) {
       triggerToast("Please fill all required fields");
       return;
     }
-    const created: Tutor = {
-      id: `T-${200 + localTutors.length + 1}`,
-      name: newTutor.name,
-      specialty: newTutor.specialty || "General Educator",
-      email: newTutor.email,
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
-      assignedStudentIds: ["ST-101"],
-      pendingTasksCount: 0
-    };
-    setLocalTutors([...localTutors, created]);
-    setShowAddTutor(false);
-    setNewTutor({ name: "", specialty: "", email: "" });
-    triggerToast(`Successfully added Tutor ${created.name}`);
+    try {
+      const response = await apiClient.tutors.create({
+        name: newTutor.name,
+        specialty: newTutor.specialty || "General Educator",
+        email: newTutor.email.toLowerCase(),
+      });
+      const created = response.tutor ? normalizeTutor(response.tutor) : null;
+      if (created) {
+        setLocalTutors([...localTutors, created]);
+      }
+      await onRefreshTutors();
+      setShowAddTutor(false);
+      setNewTutor({ name: "", specialty: "", email: "" });
+      triggerToast(`Successfully added Tutor ${newTutor.name}`);
+    } catch (error: any) {
+      triggerToast(error.message || "Failed to create tutor");
+    }
   };
 
   const handleAddCourse = (e: React.FormEvent) => {
@@ -372,28 +384,22 @@ export function AdminDashboard({
       return;
     }
     try {
-      const created = await apiClient.fees.create({
+      const response = await apiClient.fees.create({
         studentId: newFee.studentId,
         title: newFee.title,
         amount: Number(newFee.amount),
         dueDate: newFee.dueDate
       });
-      const createdFee: FeePayment = {
-        id: created.feeId || created.id || `FP-${500 + localFees.length + 1}`,
-        studentId: targetSt.id,
-        studentName: targetSt.name,
-        title: created.title,
-        amount: created.amount,
-        status: created.status || "Pending",
-        dueDate: created.dueDate
-      };
+      const feeData = response.fee || response;
+      const createdFee: FeePayment = normalizeFee(feeData);
       setLocalFees([createdFee, ...localFees]);
+      await onRefreshFees();
       setShowAddFee(false);
       setNewFee({ studentId: "", title: "", amount: 0, dueDate: "" });
-      triggerToast(`Created outstanding invoice of $${createdFee.amount} for ${createdFee.studentName}`);
-    } catch (error) {
+      triggerToast(`Created outstanding invoice of $${createdFee.amount} for ${targetSt.name}`);
+    } catch (error: any) {
       console.warn("Unable to create fee", error);
-      triggerToast("Unable to create fee invoice. Please try again.");
+      triggerToast(error.message || "Unable to create fee invoice. Please try again.");
     }
   };
 
@@ -454,33 +460,48 @@ export function AdminDashboard({
     triggerToast("Academic score report recorded and GPA updated successfully!");
   };
 
-  const toggleInvoiceStatus = (id: string) => {
-    const updated = localFees.map(f => {
-      if (f.id === id) {
-        const nextStatus = f.status === "Paid" ? "Pending" : "Paid";
-        return {
-          ...f,
-          status: nextStatus as "Paid" | "Pending",
-          transactionId: nextStatus === "Paid" ? `AF-${Math.floor(10000 + Math.random() * 90000)}` : undefined
-        };
+  const toggleInvoiceStatus = async (id: string) => {
+    const target = localFees.find(f => f.id === id);
+    if (!target) return;
+    try {
+      if (target.status === "Pending") {
+        const response = await apiClient.fees.markAsPaid(id);
+        const updatedFee = normalizeFee(response.fee || response);
+        setLocalFees(localFees.map(f => f.id === id ? updatedFee : f));
+      } else {
+        triggerToast("Cannot revert a paid invoice via API");
+        return;
       }
-      return f;
-    });
-    setLocalFees(updated);
-    triggerToast("Invoice ledger transaction status modified!");
-  };
-
-  const deleteStudent = (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to remove student ${name} (${id}) from the database?`)) {
-      setLocalStudents(localStudents.filter(s => s.id !== id));
-      triggerToast(`Removed student ${name} from institutional rosters`);
+      await onRefreshFees();
+      triggerToast("Invoice ledger transaction status modified!");
+    } catch (error: any) {
+      triggerToast(error.message || "Failed to update invoice status");
     }
   };
 
-  const deleteTutor = (id: string, name: string) => {
+  const deleteStudent = async (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to remove student ${name} (${id}) from the database?`)) {
+      try {
+        await apiClient.students.delete(id);
+        setLocalStudents(localStudents.filter(s => s.id !== id));
+        await onRefreshStudents();
+        triggerToast(`Removed student ${name} from institutional rosters`);
+      } catch (error: any) {
+        triggerToast(error.message || "Failed to delete student");
+      }
+    }
+  };
+
+  const deleteTutor = async (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to remove tutor ${name} (${id}) from faculty rosters?`)) {
-      setLocalTutors(localTutors.filter(t => t.id !== id));
-      triggerToast(`Tutor ${name} deleted`);
+      try {
+        await apiClient.tutors.delete(id);
+        setLocalTutors(localTutors.filter(t => t.id !== id));
+        await onRefreshTutors();
+        triggerToast(`Tutor ${name} deleted`);
+      } catch (error: any) {
+        triggerToast(error.message || "Failed to delete tutor");
+      }
     }
   };
 
@@ -495,25 +516,24 @@ export function AdminDashboard({
     triggerToast(`Loaded attendance sheet for ${attendanceGrade}`);
   };
 
-  const saveAttendanceRoster = () => {
-    const updated = localStudents.map(s => {
-      if (s.grade === attendanceGrade) {
+  const saveAttendanceRoster = async () => {
+    try {
+      for (const s of localStudents.filter(st => st.grade === attendanceGrade)) {
         const isPresent = attendanceRoster[s.id] !== false;
         const nextPresent = s.presentCount + (isPresent ? 1 : 0);
         const nextAbsent = s.absentCount + (isPresent ? 0 : 1);
-        const nextTotal = nextPresent + nextAbsent;
-        const nextRate = Math.round((nextPresent / nextTotal) * 100);
-        return {
-          ...s,
+        await apiClient.students.update(s.id, {
           presentCount: nextPresent,
           absentCount: nextAbsent,
-          attendanceRate: nextRate
-        };
+          attendanceRate: Math.round((nextPresent / (nextPresent + nextAbsent)) * 100),
+        });
+        await apiClient.attendance.mark(s.id, attendanceDate, isPresent ? "Present" : "Absent");
       }
-      return s;
-    });
-    setLocalStudents(updated);
-    triggerToast(`Successfully archived attendance log on ${attendanceDate} for ${attendanceGrade}!`);
+      await onRefreshStudents();
+      triggerToast(`Successfully archived attendance log on ${attendanceDate} for ${attendanceGrade}!`);
+    } catch (error: any) {
+      triggerToast(error.message || "Failed to save attendance");
+    }
   };
 
   // --- FILTERS & COMPUTATIONS ---
