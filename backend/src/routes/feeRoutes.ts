@@ -11,6 +11,8 @@ const router = Router();
 
 router.post("/", authMiddleware, FeeController.createFee);
 router.get("/pending/all", authMiddleware, FeeController.getPendingFees);
+router.get("/pending/approvals", authMiddleware, FeeController.getPendingApprovals);
+router.put("/:feeId/approval", authMiddleware, FeeController.updateApproval);
 router.get("/reports/monthly", authMiddleware, FeeController.getFeeReport);
 router.get("/all", authMiddleware, FeeController.getAllFees);
 router.get("/fee/:feeId", authMiddleware, FeeController.getFeeById);

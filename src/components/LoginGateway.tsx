@@ -4,10 +4,8 @@
  */
 
 import React, { useState } from "react";
-import { GraduationCap, Users, ShieldAlert, Notebook, Shield, Key, Eye, EyeOff, Check, UserPlus } from "lucide-react";
-
+import { GraduationCap, Users, ShieldAlert, Notebook, Shield, Eye, EyeOff, Check, UserPlus } from "lucide-react";
 import { apiClient } from "../services/apiClient";
-import { Tutor } from "../types";
 
 interface LoginGatewayProps {
   onLoginSuccess: (
@@ -15,16 +13,14 @@ interface LoginGatewayProps {
     userId?: string
   ) => void;
   onOpenRegister: () => void;
-  registeredParents: Array<{ email: string; pass: string }>;
-  tutors: Tutor[];
 }
 
-export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents, tutors }: LoginGatewayProps) {
-  const [studentId, setStudentId] = useState("ST-101");
-  const [parentEmail, setParentEmail] = useState("priya.sharma@gmail.com");
-  const [parentPassword, setParentPassword] = useState("Password@123");
-  const [tutorEmail, setTutorEmail] = useState("anitha.sharma@academyflow.com");
-  const [tutorPassword, setTutorPassword] = useState("password");
+export function LoginGateway({ onLoginSuccess, onOpenRegister }: LoginGatewayProps) {
+  const [studentId, setStudentId] = useState("");
+  const [parentEmail, setParentEmail] = useState("");
+  const [parentPassword, setParentPassword] = useState("");
+  const [tutorEmail, setTutorEmail] = useState("");
+  const [tutorPassword, setTutorPassword] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
 
@@ -51,27 +47,25 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
   const handleParentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parentEmail.trim() || !parentPassword.trim()) {
-      setErrorMessage("Email and Password are required parameters.");
+      setErrorMessage("Email and Password are required.");
       return;
     }
-
     try {
       const response = await apiClient.auth.loginParent(parentEmail.trim().toLowerCase(), parentPassword);
       apiClient.setAuthToken(response.token);
       setErrorMessage("");
       onLoginSuccess("parent", parentEmail.trim().toLowerCase());
     } catch (error: any) {
-      setErrorMessage(error.message || "Invalid parent credentials. Try registering a new parent account first.");
+      setErrorMessage(error.message || "Invalid credentials. Please check your email and password.");
     }
   };
 
   const handleTutorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tutorEmail.trim() || !tutorPassword.trim()) {
-      setErrorMessage("Email and Password are required parameters.");
+      setErrorMessage("Email and Password are required.");
       return;
     }
-
     try {
       const response = await apiClient.auth.loginTutor(tutorEmail.trim().toLowerCase(), tutorPassword);
       apiClient.setAuthToken(response.token);
@@ -79,17 +73,17 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
         setErrorMessage("");
         onLoginSuccess("tutor", response.tutorId);
       } else {
-        setErrorMessage("Access Denied: Tutor not found in the roster.");
+        setErrorMessage("Tutor profile not found.");
       }
     } catch (error: any) {
-      setErrorMessage(error.message || "Tutor login failed.");
+      setErrorMessage(error.message || "Invalid credentials. Please check your email and password.");
     }
   };
 
   const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminEmail.trim() || !adminPassword.trim()) {
-      setErrorMessage("Email and Password are required parameters.");
+      setErrorMessage("Email and Password are required.");
       return;
     }
     try {
@@ -98,45 +92,39 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
       setErrorMessage("");
       onLoginSuccess("admin");
     } catch (error: any) {
-      setErrorMessage(error.message || "Access Denied: Invalid administrator credentials.");
+      setErrorMessage(error.message || "Invalid administrator credentials.");
     }
   };
 
   return (
     <div className="relative min-h-[60vh] bg-gradient-to-tr from-sky-50 to-indigo-50 dark:from-slate-950 dark:to-slate-900 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
-
-      {/* Decorative Orbs */}
       <div className="absolute top-10 left-10 w-72 h-72 bg-sky-300/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="mx-auto max-w-5xl w-full z-10">
-
-        {/* Title */}
         <div className="text-center mb-10 space-y-3">
           <span className="text-xs uppercase font-extrabold tracking-widest text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/50 px-3.5 py-1.5 rounded-full">
             Authorized Personnel Access Only
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
-            Academic Gateway
-          </h1>
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Academic Gateway</h1>
           <p className="text-slate-600 dark:text-slate-350 max-w-2xl mx-auto text-xs sm:text-sm">
-            Select your professional portal role below to manage coursework, schedules, parent feedback parameters, and grades.
+            Select your portal role below to manage coursework, schedules, and grades.
           </p>
         </div>
 
-        {/* Roles Toggles (Grid Layout) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { id: "student", label: "Student Login", desc: "Enter Institute ID", icon: GraduationCap, color: "text-sky-600 dark:text-sky-400" },
-            { id: "parent", label: "Parent Login", desc: "Progress & Fees tracker", icon: Users, color: "text-indigo-600 dark:text-indigo-400" },
+            { id: "parent", label: "Parent Login", desc: "Progress & Fees", icon: Users, color: "text-indigo-600 dark:text-indigo-400" },
             { id: "tutor", label: "Tutor Login", desc: "Grades & Attendance", icon: Notebook, color: "text-emerald-500" },
-            { id: "admin", label: "Admin Login", desc: "Full Center CRM Control", icon: Shield, color: "text-amber-500" }
+            { id: "admin", label: "Admin Login", desc: "Center Control", icon: Shield, color: "text-amber-500" },
           ].map((role) => {
             const Icon = role.icon;
             const isActive = activeTab === role.id;
             return (
               <button
                 key={role.id}
+                type="button"
                 onClick={() => { setActiveTab(role.id as any); setErrorMessage(""); }}
                 className={`relative flex flex-col items-center text-center p-5 rounded-2xl border transition-all hover:scale-[1.02] shadow-sm ${isActive
                   ? "bg-white border-sky-400 ring-2 ring-sky-400/20 dark:bg-slate-900 dark:border-sky-500"
@@ -158,281 +146,149 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
           })}
         </div>
 
-        {/* Dynamic Form block */}
         <div className="max-w-md mx-auto bg-white dark:bg-slate-950 rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-100 dark:border-slate-800">
-
           {errorMessage && (
             <div className="mb-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-lg p-3 text-xs text-rose-600 dark:text-rose-400 font-bold">
               {errorMessage}
             </div>
           )}
 
-          {/* Tab 1: Student Login */}
           {activeTab === "student" && (
             <form onSubmit={handleStudentSubmit} className="space-y-4">
               <div className="text-left space-y-1">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white">Student Login</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Use unique student IDs provided directly by your local Center registrar.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Enter your unique student ID from the academy registrar.</p>
               </div>
-
               <div className="space-y-1.5 text-left">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Institute Student Identifier</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-sans">#</span>
-                  <input
-                    type="text"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    placeholder="E.g. ST-101"
-                    className="w-full pl-7 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-950 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
-                    required
-                  />
-                </div>
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Student ID</label>
+                <input
+                  type="text"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  placeholder="E.g. ST-101"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-950 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
+                  required
+                />
               </div>
-
-              {/* Demo Pre-fill triggers */}
-              <div className="bg-sky-50/50 dark:bg-sky-950/30 rounded-xl p-3 text-left space-y-1.5 border border-sky-100 dark:border-slate-900">
-                <span className="text-[9px] uppercase font-extrabold tracking-wider text-sky-700 dark:text-sky-300">Demo Instant IDs:</span>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setStudentId("ST-101")}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200"
-                  >
-                    Alex Johnson (#ST-101)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStudentId("ST-102")}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200"
-                  >
-                    Leo Henderson (#ST-102)
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-black py-3.5 rounded-xl text-sm transition-all shadow-md active:scale-95"
-              >
+              <button type="submit" className="w-full bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-black py-3.5 rounded-xl text-sm transition-all shadow-md active:scale-95">
                 Log In to Student Dashboard
               </button>
             </form>
           )}
 
-          {/* Tab 2: Parent Login */}
           {activeTab === "parent" && (
             <form onSubmit={handleParentSubmit} className="space-y-4 text-left">
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white">Parent Portal Login</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Manage student profiles, results logs, assigned tutors, and check pending fees. Register below if you don't have an account.
-                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Use the email and password from your registration.</p>
               </div>
-
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Registered Email Address</label>
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Email Address</label>
                 <input
                   type="email"
                   value={parentEmail}
                   onChange={(e) => setParentEmail(e.target.value)}
-                  placeholder="parent@example.com"
+                  placeholder="example@gmail.com"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-950 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                   required
                 />
               </div>
-
               <div className="space-y-1.5 relative">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Account Password</label>
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     value={parentPassword}
-                    onChange={(e) => setParentPassword(e.target.value)} // keep types safe
+                    onChange={(e) => setParentPassword(e.target.value)}
+                    placeholder="example"
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  >
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
-
-              {/* Demo auto logins */}
-              <div className="bg-sky-50/50 dark:bg-sky-950/30 rounded-xl p-3 text-left space-y-1 border border-sky-105 dark:border-slate-900">
-                <span className="text-[9px] uppercase font-extrabold tracking-wider text-sky-700 dark:text-sky-300">Click to Preload Credentials:</span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => { setParentEmail("priya.sharma@gmail.com"); setParentPassword("Password@123"); }}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-750 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200"
-                  >
-                    Priya Sharma Account
-                  </button>
-                </div>
-              </div>
-
               <div className="flex flex-col gap-2 pt-2">
-                <button
-                  type="submit"
-                  className="w-full bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-black py-3.5 rounded-xl text-sm transition-all shadow-md active:scale-95"
-                >
+                <button type="submit" className="w-full bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-black py-3.5 rounded-xl text-sm transition-all shadow-md active:scale-95">
                   Log In to Parent Centre
                 </button>
-                <button
-                  type="button"
-                  onClick={onOpenRegister}
-                  className="w-full border-2 border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-800 dark:text-white font-bold py-3 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5"
-                >
+                <button type="button" onClick={onOpenRegister} className="w-full border-2 border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-800 dark:text-white font-bold py-3 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5">
                   <UserPlus className="h-4 w-4" />
-                  <span>Register for a New Member Account</span>
+                  <span>Register for a New Account</span>
                 </button>
               </div>
             </form>
           )}
 
-          {/* Tab 3: Tutor Login */}
           {activeTab === "tutor" && (
             <form onSubmit={handleTutorSubmit} className="space-y-4 text-left">
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white">Tutor Login</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Expert tutor interface to trace class rosters, enter assessments, and record attendance details.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Enter your registered academy email and password.</p>
               </div>
-
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Instructor Registered Email</label>
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Email</label>
                 <input
                   type="email"
                   value={tutorEmail}
                   onChange={(e) => setTutorEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-55 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
+                  placeholder="example@gmail.com"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                   required
                 />
               </div>
-
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-slate-700 dark:text-slate-300">Password</label>
                 <input
                   type="password"
                   value={tutorPassword}
                   onChange={(e) => setTutorPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-55 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
+                  placeholder="example"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                   required
                 />
               </div>
-
-              {/* Demo selector */}
-              <div className="bg-sky-50/50 dark:bg-sky-950/30 rounded-xl p-3 border border-sky-100 dark:border-slate-900 space-y-1">
-                <span className="text-[9px] uppercase font-extrabold tracking-wider text-sky-700 dark:text-sky-300">Demo Instant IDs:</span>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => { setTutorEmail("anitha.sharma@academyflow.com"); setTutorPassword("password"); }}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
-                  >
-                    Dr. Anitha (Maths)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setTutorEmail("narayana.rao@academyflow.com"); setTutorPassword("password"); }}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
-                  >
-                    Prof. Narayana (Physics)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setTutorEmail("anand.krishna@academyflow.com"); setTutorPassword("password"); }}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
-                  >
-                    Mr. Anand (CS)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setTutorEmail("lakshmi.devi@academyflow.com"); setTutorPassword("password"); }}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
-                  >
-                    Mrs. Lakshmi (English)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setTutorEmail("venkat.reddy@academyflow.com"); setTutorPassword("password"); }}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
-                  >
-                    Mr. Venkat (Social/Telugu)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setTutorEmail("sunita.pandey@academyflow.com"); setTutorPassword("password"); }}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
-                  >
-                    Ms. Sunita (Biology)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setTutorEmail("ramesh.gupta@academyflow.com"); setTutorPassword("password"); }}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
-                  >
-                    Mr. Ramesh (Competitive)
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-black py-3.5 rounded-xl text-sm transition-all shadow-md active:scale-95"
-              >
+              <button type="submit" className="w-full bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-black py-3.5 rounded-xl text-sm transition-all shadow-md active:scale-95">
                 Log In to Instructors Dashboard
               </button>
             </form>
           )}
 
-          {/* Tab 4: Admin Login */}
           {activeTab === "admin" && (
             <form onSubmit={handleAdminSubmit} className="space-y-4 text-left">
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white">Admin Management</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Access master center financial dashboards, geolocation geography charts, and assigned class rosters.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Administrator access for center management.</p>
               </div>
-
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Administrator Mail ID</label>
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Email</label>
                 <input
                   type="email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  placeholder="example@academyflow.com"
+                  placeholder="example@gmail.com"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                   required
                 />
               </div>
-
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Admin Security Key</label>
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">Password</label>
                 <input
                   type="password"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="example"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                   required
                 />
               </div>
-
-              <button
-                type="submit"
-                className="w-full bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-black py-3.5 rounded-xl text-sm transition-all shadow-md active:scale-95"
-              >
+              <button type="submit" className="w-full bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-black py-3.5 rounded-xl text-sm transition-all shadow-md active:scale-95">
                 Log In to Administrator Portal
               </button>
             </form>
           )}
-
         </div>
-
       </div>
     </div>
   );

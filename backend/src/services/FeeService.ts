@@ -73,6 +73,18 @@ export class FeeService {
     );
   }
 
+  static async getPendingApprovals() {
+    return FeePayment.find({ approvalStatus: "PendingApproval" }).sort({ createdAt: -1 });
+  }
+
+  static async updateApprovalStatus(feeId: string, status: "Approved" | "Rejected") {
+    return FeePayment.findOneAndUpdate(
+      { feeId },
+      { approvalStatus: status },
+      { new: true }
+    );
+  }
+
   static async getPendingFees(studentId?: string) {
     const query = studentId
       ? { studentId, status: "Pending" }

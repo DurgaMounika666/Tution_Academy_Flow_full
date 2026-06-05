@@ -9,6 +9,7 @@ import { User } from "../models/User";
 import { Parent } from "../models/Parent";
 import { Tutor } from "../models/Tutor";
 import { Student } from "../models/Student";
+import { FeeService } from "./FeeService";
 import { config } from "../config/env";
 
 export class AuthService {
@@ -60,17 +61,19 @@ export class AuthService {
     name?: string,
     phone?: string,
     childName?: string,
-    childGrade?: string
+    childGrade?: string,
+    classMode?: string
   ) {
     try {
-      const existingUser = await User.findOne({ email });
+      const normalizedEmail = email.toLowerCase().trim();
+      const existingUser = await User.findOne({ email: normalizedEmail });
       if (existingUser) {
         throw new Error("An account with this email already exists. Please login.");
       }
 
       const hashedPassword = await this.hashPassword(password);
       const user = new User({
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         role: "parent",
       });
@@ -106,30 +109,45 @@ export class AuthService {
           name: childName,
           grade: childGrade || "9th Class",
           section: "Section A",
-          parentEmail: email,
+          parentEmail: normalizedEmail,
           parentId: user._id,
           assignedTutorIds: ["T-201"],
           learningSubjects: ["Basic Mathematics"],
+          classMode: classMode || "Online",
           phone: phone || "",
           attendanceRate: 100,
-          presentCount: 12,
+          presentCount: 0,
           absentCount: 0,
+        });
+
+        await FeeService.createFee(
+          studentId,
+          "Enrollment & Registration Fee (Advance)",
+          150,
+          new Date(),
+          undefined,
+          childName
+        ).then(async (fee) => {
+          fee.approvalStatus = "PendingApproval";
+          fee.status = "Paid";
+          fee.transactionId = `REG-${Date.now()}`;
+          fee.paymentMethod = "Registration";
+          await fee.save();
         });
       }
 
-      // Also create Parent profile record
-      let parentRecord = await Parent.findOne({ email });
+      let parentRecord = await Parent.findOne({ email: normalizedEmail });
       if (!parentRecord) {
         parentRecord = await Parent.create({
           userId: user._id,
-          email,
-          name: name || email.split("@")[0],
+          email: normalizedEmail,
+          name: name || normalizedEmail.split("@")[0],
           phone: phone || "",
           childrenIds: studentId ? [studentId] : [],
         });
       } else if (studentId) {
         await Parent.findOneAndUpdate(
-          { email },
+          { email: normalizedEmail },
           { $addToSet: { childrenIds: studentId } }
         );
       }
@@ -144,7 +162,7 @@ export class AuthService {
       const token = this.generateToken(user._id.toString(), "parent");
       const refreshToken = this.generateRefreshToken(user._id.toString(), "parent");
 
-      return { token, refreshToken, userId: user._id.toString(), email };
+      return { token, refreshToken, userId: user._id.toString(), email: normalizedEmail, studentId };
     } catch (error) {
       throw error;
     }
@@ -152,7 +170,8 @@ export class AuthService {
 
   static async loginParent(email: string, password: string) {
     try {
-      const user = await User.findOne({ email, role: "parent" }).select("+password");
+      const normalizedEmail = email.toLowerCase().trim();
+      const user = await User.findOne({ email: normalizedEmail, role: "parent" }).select("+password");
       if (!user) {
         throw new Error("Invalid credentials. Please check your email and password.");
       }
@@ -166,7 +185,7 @@ export class AuthService {
       }
 
       // Fetch parent profile for additional info
-      const parentProfile = await Parent.findOne({ email });
+      const parentProfile = await Parent.findOne({ email: normalizedEmail });
 
       const token = this.generateToken(user._id.toString(), "parent");
       const refreshToken = this.generateRefreshToken(user._id.toString(), "parent");
@@ -175,7 +194,7 @@ export class AuthService {
         token,
         refreshToken,
         userId: user._id.toString(),
-        email,
+        email: normalizedEmail,
         parentName: parentProfile?.name || "",
         childrenIds: parentProfile?.childrenIds || [],
       };

@@ -8,7 +8,7 @@ import {
   Users, MapPin, PhoneCall, DollarSign, CheckCircle2, AlertCircle,
   HelpCircle, ChevronRight, BookOpen, GraduationCap, Clock, PlusCircle,
   TrendingUp, CreditCard, Sparkles, X, ArrowRight,
-  MessageSquare, Bell, Settings, Award, Calendar, FileText, User, LayoutDashboard, Send,
+  MessageSquare, Bell, Settings, Award, Calendar, FileText, User, LayoutDashboard, Send, Star,
   Download, Save, Edit2, Shield, Lock, Globe, Inbox, Filter, Check, Eye
 } from "lucide-react";
 import { Student, Tutor, FeePayment } from "../types";
@@ -19,6 +19,7 @@ import { useTheme } from "../context/ThemeContext";
 import { FeeReceiptModal } from "./FeeReceiptModal";
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
 import { Footer } from "./Footer";
+import { LogoutButton } from "./LogoutButton";
 
 interface ParentDashboardProps {
   students: Student[];
@@ -59,6 +60,43 @@ export function ParentDashboard({
   const [supportChoice, setSupportChoice] = useState<"tutor" | "admin">("admin");
 
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState("");
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackMsg, setFeedbackMsg] = useState("");
+  const [tuitionFeedbacks, setTuitionFeedbacks] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadFeedbacks = async () => {
+      if (!activeStudent?.parentEmail) return;
+      try {
+        const data = await apiClient.reviews.getByParent(activeStudent.parentEmail);
+        setTuitionFeedbacks(data);
+      } catch {
+        setTuitionFeedbacks([]);
+      }
+    };
+    loadFeedbacks();
+  }, [activeStudent?.parentEmail]);
+
+  const handleSubmitTuitionFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackComment.trim() || !activeStudent?.parentEmail) return;
+    try {
+      const response = await apiClient.reviews.create({
+        type: "parent_tuition",
+        parentEmail: activeStudent.parentEmail,
+        studentId: activeStudent.id,
+        rating: feedbackRating,
+        comment: feedbackComment,
+      });
+      setTuitionFeedbacks([response.review || response, ...tuitionFeedbacks]);
+      setFeedbackComment("");
+      setFeedbackMsg("Thank you! Your tuition feedback has been submitted.");
+      setTimeout(() => setFeedbackMsg(""), 4000);
+    } catch (error: any) {
+      setFeedbackMsg(error.message || "Failed to submit feedback.");
+    }
+  };
 
   const handlePayFee = async (feeId: string) => {
     try {
@@ -618,6 +656,7 @@ export function ParentDashboard({
     { id: "schedule", label: "Schedule", icon: Calendar },
     { id: "messages", label: "Messages", icon: MessageSquare },
     { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "feedback", label: "Tuition Feedback", icon: MessageSquare },
     { id: "support", label: "Support", icon: HelpCircle },
     { id: "profile", label: "Profile", icon: User },
     { id: "settings", label: "Settings", icon: Settings },
@@ -625,7 +664,7 @@ export function ParentDashboard({
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
-    mainPanelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    if (mainPanelRef.current) mainPanelRef.current.scrollTop = 0;
   };
 
   // --- DYNAMIC TABS RENDER SYSTEM ---
@@ -1887,6 +1926,56 @@ export function ParentDashboard({
           </div>
         );
 
+      case "feedback":
+        return (
+          <div className="space-y-6 text-left">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
+              <h3 className="text-sm uppercase font-extrabold tracking-wider text-slate-400">Tuition Feedback</h3>
+              <p className="text-xs text-slate-500">Share your experience about tuition quality, teaching, and academy services.</p>
+              {feedbackMsg && <p className="text-xs font-bold text-emerald-600">{feedbackMsg}</p>}
+              <form onSubmit={handleSubmitTuitionFeedback} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500">Rating</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button key={s} type="button" onClick={() => setFeedbackRating(s)} className="cursor-pointer">
+                        <Star className={`h-6 w-6 ${s <= feedbackRating ? "fill-amber-500 text-amber-500" : "text-slate-300"}`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <textarea
+                  value={feedbackComment}
+                  onChange={(e) => setFeedbackComment(e.target.value)}
+                  placeholder="Write your feedback about tuition and academy services..."
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-950 text-sm"
+                  required
+                />
+                <button type="submit" className="px-4 py-2 bg-[#f27a3d] hover:bg-[#ff8950] text-white font-bold text-xs rounded-xl cursor-pointer">
+                  Submit Feedback
+                </button>
+              </form>
+            </div>
+            {tuitionFeedbacks.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-sm uppercase font-extrabold tracking-wider text-slate-400">Previous Feedback</h3>
+                {tuitionFeedbacks.map((fb: any) => (
+                  <div key={fb.reviewId || fb._id} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} className={`h-4 w-4 ${s <= fb.rating ? "fill-amber-500 text-amber-500" : "text-slate-300"}`} />
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">{fb.comment}</p>
+                    <p className="text-[10px] text-slate-400 mt-1">{new Date(fb.createdAt).toLocaleDateString()}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
       case "support":
         const faqList = [
           { q: "How do I update my child's registered learning mode?", a: "To change learning mode from online to offline batch lessons, click the 'Roll Out New Subjects' button in dashboard and pick appropriate offline options, or contact the counseling support desk." },
@@ -2416,20 +2505,15 @@ export function ParentDashboard({
               <p className="text-[10px] text-amber-200/50">Parent Member</p>
             </div>
           </div>
-          <button
-            onClick={onLogout}
-            className="text-[10px] uppercase font-black tracking-wider text-amber-200/60 hover:text-[#f27a3d] transition-colors"
-          >
-            Logout
-          </button>
         </div>
       </aside>
 
-      {/* Main Panel Content Area — scrollable */}
-      <main ref={mainPanelRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6">
+      <main ref={mainPanelRef} data-scroll-container className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6 relative">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
+          <LogoutButton onLogout={onLogout} />
+        </div>
 
-        {/* Portal Greeting Board */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left mt-8">
           <div className="space-y-1">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
               Welcome back, {parentProfile.name.split(" ")[0]} 👋

@@ -104,6 +104,32 @@ export class FeeController {
     }
   }
 
+  static async getPendingApprovals(req: AuthenticatedRequest, res: Response) {
+    try {
+      const fees = await FeeService.getPendingApprovals();
+      res.json(fees);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async updateApproval(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { feeId } = req.params;
+      const { status } = req.body;
+      if (!["Approved", "Rejected"].includes(status)) {
+        return res.status(400).json({ error: "status must be Approved or Rejected" });
+      }
+      const fee = await FeeService.updateApprovalStatus(feeId, status);
+      if (!fee) {
+        return res.status(404).json({ error: "Fee not found" });
+      }
+      res.json({ message: `Registration fee ${status.toLowerCase()}`, fee });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
   static async getFeeReport(req: AuthenticatedRequest, res: Response) {
     try {
       const { month, year } = req.query;

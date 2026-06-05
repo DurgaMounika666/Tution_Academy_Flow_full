@@ -16,6 +16,7 @@ export interface IFeePayment extends Document {
   transactionId?: string;
   paidDate?: Date;
   paymentMethod?: string;
+  approvalStatus?: "None" | "PendingApproval" | "Approved" | "Rejected";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -61,6 +62,11 @@ const FeePaymentSchema = new Schema<IFeePayment>(
     },
     paymentMethod: {
       type: String,
+    },
+    approvalStatus: {
+      type: String,
+      enum: ["None", "PendingApproval", "Approved", "Rejected"],
+      default: "None",
     },
   },
   { timestamps: true }

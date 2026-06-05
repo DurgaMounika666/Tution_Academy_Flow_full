@@ -19,6 +19,7 @@ import { buildAllCoursesFromCatalog, CatalogCourse } from "../utils/courseCatalo
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
 import { FeeReceiptModal } from "./FeeReceiptModal";
 import { Footer } from "./Footer";
+import { LogoutButton } from "./LogoutButton";
 
 interface AdminDashboardProps {
   students: Student[];
@@ -88,6 +89,8 @@ export function AdminDashboard({
   // Selection & Detail Panel states
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
+  const [editingTutor, setEditingTutor] = useState<Tutor | null>(null);
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   
   // Modals Toggles
@@ -161,7 +164,49 @@ export function AdminDashboard({
     if (activeTab === "timetable") {
       fetchTimetableData();
     }
+    if (activeTab === "fees") {
+      fetchPendingApprovals();
+    }
   }, [activeTab]);
+
+  const fetchPendingApprovals = async () => {
+    try {
+      const data = await apiClient.fees.getPendingApprovals();
+      setPendingApprovals(data);
+    } catch {
+      setPendingApprovals([]);
+    }
+  };
+
+  const handleApproval = async (feeId: string, status: "Approved" | "Rejected") => {
+    try {
+      await apiClient.fees.updateApproval(feeId, status);
+      triggerToast(`Registration request ${status.toLowerCase()}`);
+      await fetchPendingApprovals();
+      await onRefreshFees();
+    } catch (error: any) {
+      triggerToast(error.message || "Failed to update approval");
+    }
+  };
+
+  const handleSaveTutorEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTutor) return;
+    try {
+      await apiClient.tutors.update(editingTutor.id, {
+        name: editingTutor.name,
+        specialty: editingTutor.specialty,
+        email: editingTutor.email,
+      });
+      setLocalTutors(localTutors.map((t) => (t.id === editingTutor.id ? editingTutor : t)));
+      await onRefreshTutors();
+      setEditingTutor(null);
+      setSelectedTutor(null);
+      triggerToast("Tutor details updated successfully");
+    } catch (error: any) {
+      triggerToast(error.message || "Failed to update tutor");
+    }
+  };
 
   const fetchTimetableData = async () => {
     setLoadingTimetable(true);
@@ -248,7 +293,7 @@ export function AdminDashboard({
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
     setSearchTerm("");
-    mainPanelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    if (mainPanelRef.current) mainPanelRef.current.scrollTop = 0;
   };
 
   // Trigger Toast Notification Helper
@@ -617,17 +662,13 @@ export function AdminDashboard({
               <p className="text-[10px] text-slate-400">Super User</p>
             </div>
           </div>
-          <button
-            onClick={onLogout}
-            className="text-[10px] uppercase font-black tracking-wider text-[#2563eb] hover:text-white transition-colors"
-          >
-            Logout
-          </button>
         </div>
       </aside>
 
-      {/* Main Content Area — scrollable */}
-      <main ref={mainPanelRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6 relative text-left">
+      <main ref={mainPanelRef} data-scroll-container className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6 relative text-left">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
+          <LogoutButton onLogout={onLogout} />
+        </div>
 
         {/* Interactive Floating Toast */}
         {toast && (
@@ -638,7 +679,7 @@ export function AdminDashboard({
         )}
 
         {/* Welcome Greeting Board */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left mt-8">
           <div className="space-y-1">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white capitalize">
               {activeTab} Management Panel
@@ -662,12 +703,6 @@ export function AdminDashboard({
                 Analyze School Analytics
               </button>
             )}
-            <button
-              onClick={onLogout}
-              className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-350 dark:hover:bg-slate-850 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-            >
-              Sign Out Portal
-            </button>
           </div>
         </div>
 
@@ -1650,6 +1685,23 @@ export function AdminDashboard({
         {/* ========================================================================= */}
         {activeTab === "fees" && (
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+            {pendingApprovals.length > 0 && (
+              <div className="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-5 space-y-3">
+                <h3 className="text-sm font-black text-amber-800 dark:text-amber-300">Registration Advance Fee — Pending Approval</h3>
+                {pendingApprovals.map((fee: any) => (
+                  <div key={fee.feeId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-amber-900">
+                    <div className="text-xs">
+                      <p className="font-bold text-slate-800 dark:text-white">{fee.studentName} — {fee.title}</p>
+                      <p className="text-slate-500">${fee.amount} • TX: {fee.transactionId}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => handleApproval(fee.feeId, "Approved")} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg cursor-pointer">Accept</button>
+                      <button type="button" onClick={() => handleApproval(fee.feeId, "Rejected")} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg cursor-pointer">Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-3">
                 <div className="relative w-full sm:w-64">
@@ -2127,6 +2179,32 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {/* MODAL: VIEW TUTOR PROFILE DETAILS */}
       {/* ========================================================================= */}
+      {editingTutor && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <form onSubmit={handleSaveTutorEdit} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+            <div className="p-6 bg-amber-500 text-white flex justify-between items-center">
+              <h3 className="text-md font-black">Edit Tutor Details</h3>
+              <button type="button" onClick={() => setEditingTutor(null)} className="text-white hover:opacity-80"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-400">Name</label>
+                <input type="text" value={editingTutor.name} onChange={(e) => setEditingTutor({ ...editingTutor, name: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none" required />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-400">Specialty</label>
+                <input type="text" value={editingTutor.specialty} onChange={(e) => setEditingTutor({ ...editingTutor, specialty: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none" required />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-400">Email</label>
+                <input type="email" value={editingTutor.email} onChange={(e) => setEditingTutor({ ...editingTutor, email: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none" required />
+              </div>
+              <button type="submit" className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {selectedTutor && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left flex flex-col">
@@ -2178,7 +2256,14 @@ export function AdminDashboard({
               </div>
             </div>
 
-            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-end">
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => { setEditingTutor({ ...selectedTutor }); setSelectedTutor(null); }}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1"
+              >
+                <Edit3 className="h-3.5 w-3.5" /> Edit Tutor
+              </button>
               <button
                 onClick={() => setSelectedTutor(null)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-750 text-white font-bold text-xs rounded-xl shadow-md transition-all"

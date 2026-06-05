@@ -27,6 +27,7 @@ import attendanceRoutes from "./routes/attendanceRoutes";
 import tutorRoutes from "./routes/tutorRoutes";
 import parentRoutes from "./routes/parentRoutes";
 import timetableRoutes from "./routes/timetableRoutes";
+import reviewRoutes from "./routes/reviewRoutes";
 
 const app: Express = express();
 
@@ -83,6 +84,7 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/tutors", tutorRoutes);
 app.use("/api/parents", parentRoutes);
 app.use("/api/timetable", timetableRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 // Error Handling
 app.use(notFound);

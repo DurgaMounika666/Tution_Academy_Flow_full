@@ -22,6 +22,8 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
   const [confirmPassword, setConfirmPassword] = useState("");
   const [childName, setChildName] = useState("");
   const [childGrade, setChildGrade] = useState("");
+  const [classMode, setClassMode] = useState<"" | "Online" | "Offline" | "Online & Offline">("");
+  const [formStep, setFormStep] = useState(1);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -37,7 +39,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
   const childGradeRef = useRef<HTMLSelectElement>(null);
 
   const isValidName = (value: string) => /^[A-Za-z\s]+$/.test(value);
-  const isValidGmail = (value: string) => /^[^\s@]+@gmail\.com$/i.test(value);
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   
   const isValidPhoneNumber = (value: string) => {
     const normalized = value.replace(/\s+/g, "");
@@ -61,6 +63,8 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
     setConfirmPassword("");
     setChildName("");
     setChildGrade("");
+    setClassMode("");
+    setFormStep(1);
     setErrorMessage("");
     setPasswordVisible(false);
     setConfirmPasswordVisible(false);
@@ -75,7 +79,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
         return "";
       case "parentEmail":
         if (!value.trim()) return "Please enter your email address.";
-        if (!isValidGmail(value.trim().toLowerCase())) return "Please enter a valid Gmail address (name@gmail.com).";
+        if (!isValidEmail(value.trim().toLowerCase())) return "Please enter a valid email address.";
         return "";
       case "parentPhone":
         if (!value.trim()) return "Please enter your phone number.";
@@ -94,6 +98,9 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
         return "";
       case "childGrade":
         if (!value.trim()) return "Please select your child's class.";
+        return "";
+      case "classMode":
+        if (!value.trim()) return "Please select a class mode.";
         return "";
       default:
         return "";
@@ -140,19 +147,36 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
     }
   };
 
+  const handleNextStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    const step1Fields = [
+      ["parentName", parentName],
+      ["parentEmail", parentEmail],
+      ["parentPhone", parentPhone],
+      ["newPassword", newPassword],
+      ["confirmPassword", confirmPassword],
+    ] as const;
+    let hasErrors = false;
+    step1Fields.forEach(([field, value]) => {
+      if (validateAndSetFieldError(field, value)) hasErrors = true;
+    });
+    if (hasErrors) {
+      setErrorMessage("Please correct the highlighted fields before continuing.");
+      return;
+    }
+    setFormStep(2);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
     const normalizedEmail = parentEmail.trim().toLowerCase();
     const validations = [
-      ["parentName", parentName],
-      ["parentEmail", parentEmail],
-      ["parentPhone", parentPhone],
-      ["newPassword", newPassword],
-      ["confirmPassword", confirmPassword],
       ["childName", childName],
       ["childGrade", childGrade],
+      ["classMode", classMode],
     ] as const;
 
     let hasErrors = false;
@@ -175,9 +199,10 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
         parentName,
         parentPhone,
         childName,
-        childGrade
+        childGrade,
+        classMode
       );
-      apiClient.setAuthToken(result.token);
+      apiClient.clearAuthToken();
       onRegisterSuccess(normalizedEmail, newPassword);
       setSuccess(true);
       setTimeout(() => {
@@ -231,12 +256,20 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
+            <form onSubmit={formStep === 1 ? handleNextStep : handleSubmit} className="space-y-4 text-xs font-semibold">
               {errorMessage && (
                 <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-700 p-3 text-rose-700 dark:text-rose-300 text-xs font-bold">
                   {errorMessage}
                 </div>
               )}
+
+              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                <span className={`px-2 py-1 rounded-lg ${formStep === 1 ? "bg-sky-100 text-sky-700" : "bg-slate-100"}`}>Step 1: Parent</span>
+                <ChevronRight className="h-3 w-3" />
+                <span className={`px-2 py-1 rounded-lg ${formStep === 2 ? "bg-sky-100 text-sky-700" : "bg-slate-100"}`}>Step 2: Child & Class</span>
+              </div>
+
+              {formStep === 1 && (<>
 
               <div className="space-y-1">
                 <label className="text-slate-600 dark:text-slate-350">Parent Full Name</label>
@@ -376,7 +409,16 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                 )}
               </div>
 
-              <div className="border-t border-slate-100 my-4 pt-3 space-y-3">
+              <button
+                type="submit"
+                className="w-full mt-4 bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 text-white font-black py-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                Continue to Child Details <ChevronRight className="h-4 w-4" />
+              </button>
+              </>)}
+
+              {formStep === 2 && (<>
+              <div className="border-t border-slate-100 pt-3 space-y-3">
                 <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Student Child Details:</p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -424,14 +466,50 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                     )}
                   </div>
                 </div>
+
+                <div className="space-y-2 pt-2">
+                  <label className="text-slate-600">Mode of Class</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {(["Online", "Offline", "Online & Offline"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => {
+                          setClassMode(mode);
+                          if (fieldErrors.classMode) validateAndSetFieldError("classMode", mode);
+                        }}
+                        className={`w-full p-3 rounded-xl border text-left font-bold transition-all ${classMode === mode
+                          ? "border-sky-500 bg-sky-50 dark:bg-sky-950/30 text-sky-700"
+                          : "border-slate-200 dark:border-slate-700 hover:border-sky-300"
+                          }`}
+                      >
+                        {mode === "Online" ? "Online Class" : mode === "Offline" ? "Offline Class" : "Online & Offline Class"}
+                      </button>
+                    ))}
+                  </div>
+                  {fieldErrors.classMode && (
+                    <p className="text-rose-600 text-[10px]">{fieldErrors.classMode}</p>
+                  )}
+                </div>
               </div>
 
-              <button
-                type="submit"
-                className="w-full mt-4 bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 text-white font-black py-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow"              >
-                <UserCheck className="h-4 w-4" />
-                <span>Confirm Registrar Enrollment</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormStep(1)}
+                  className="flex-1 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-xs"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="flex-[2] bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 text-white font-black py-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  <UserCheck className="h-4 w-4" />
+                  <span>Confirm Enrollment</span>
+                </button>
+              </div>
+              </>)}
             </form>
           )}
         </div>

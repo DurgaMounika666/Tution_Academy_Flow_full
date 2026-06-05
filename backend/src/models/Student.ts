@@ -18,6 +18,7 @@ export interface IStudent extends Document {
   phone?: string;
   dateOfBirth?: string;
   address?: string;
+  classMode?: "Online" | "Offline" | "Online & Offline";
   attendanceRate: number;
   presentCount: number;
   absentCount: number;
@@ -74,6 +75,10 @@ const StudentSchema = new Schema<IStudent>(
     },
     address: {
       type: String,
+    },
+    classMode: {
+      type: String,
+      enum: ["Online", "Offline", "Online & Offline"],
     },
     attendanceRate: {
       type: Number,

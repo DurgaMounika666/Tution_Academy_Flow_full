@@ -3,25 +3,75 @@
  * SPDX-License-Identifier: Apache-2.5
  */
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   GraduationCap, Calendar, Clock, BookOpen, Film, HelpCircle,
   CheckCircle, ArrowUpRight, TrendingUp, Sparkles, User, Video,
   MapPin, AlertCircle, FileText, Download, LayoutDashboard, Award,
   DollarSign, MessageSquare, Bell, Settings, Star
 } from "lucide-react";
-import { Student } from "../types";
+import { Student, Tutor } from "../types";
 import { Footer } from "./Footer";
+import { LogoutButton } from "./LogoutButton";
+import { apiClient } from "../services/apiClient";
 
 interface StudentDashboardProps {
   currentStudent: Student;
+  tutors: Tutor[];
   onLogout: () => void;
 }
 
-export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardProps) {
+export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDashboardProps) {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [syllabusNoticeOpen, setSyllabusNoticeOpen] = useState(false);
+  const [tutorReviews, setTutorReviews] = useState<any[]>([]);
+  const [reviewTutorId, setReviewTutorId] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubject, setReviewSubject] = useState("");
+  const [reviewMsg, setReviewMsg] = useState("");
   const mainPanelRef = useRef<HTMLElement | null>(null);
+
+  const assignedTutors = tutors.filter((t) => currentStudent.assignedTutorIds.includes(t.id));
+
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        const data = await apiClient.reviews.getByStudent(currentStudent.id);
+        setTutorReviews(data);
+      } catch {
+        setTutorReviews([]);
+      }
+    };
+    loadReviews();
+  }, [currentStudent.id]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewTutorId || !reviewComment.trim()) {
+      setReviewMsg("Please select a tutor and write a review.");
+      return;
+    }
+    const tutor = tutors.find((t) => t.id === reviewTutorId);
+    try {
+      const response = await apiClient.reviews.create({
+        type: "student_tutor",
+        studentId: currentStudent.id,
+        tutorId: reviewTutorId,
+        tutorName: tutor?.name || "",
+        rating: reviewRating,
+        comment: reviewComment,
+        subject: reviewSubject || tutor?.specialty || "General",
+      });
+      setTutorReviews([response.review || response, ...tutorReviews]);
+      setReviewComment("");
+      setReviewSubject("");
+      setReviewMsg("Review submitted successfully!");
+      setTimeout(() => setReviewMsg(""), 3000);
+    } catch (error: any) {
+      setReviewMsg(error.message || "Failed to submit review.");
+    }
+  };
 
   const handleSupportClick = () => {
     const textMsg = encodeURIComponent(
@@ -40,7 +90,7 @@ export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardP
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
-    mainPanelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    if (mainPanelRef.current) mainPanelRef.current.scrollTop = 0;
   };
 
   // Mocked details matching the mockup layout
@@ -109,20 +159,15 @@ export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardP
               <p className="text-[10px] text-indigo-200/50">Student</p>
             </div>
           </div>
-          <button
-            onClick={onLogout}
-            className="text-[10px] uppercase font-black tracking-wider text-indigo-200/60 hover:text-[#7c3aed] transition-colors"
-          >
-            Logout
-          </button>
         </div>
       </aside>
 
-      {/* Main Content Area — scrollable */}
-      <main ref={mainPanelRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6">
+      <main ref={mainPanelRef} data-scroll-container className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6 relative">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
+          <LogoutButton onLogout={onLogout} />
+        </div>
 
-        {/* Welcome Greeting Board — Always visible */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left mt-8">
           <div className="space-y-1">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
               Welcome back, {currentStudent.name.split(" ")[0]} 👋
@@ -601,47 +646,75 @@ export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardP
         {/* ===================== TAB: REVIEWS ===================== */}
         {activeTab === "reviews" && (
           <div className="space-y-6 text-left">
-            {/* Average rating header */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center gap-6">
-              <div className="text-center">
-                <p className="text-5xl font-black text-slate-900 dark:text-white">4.8</p>
-                <div className="flex items-center gap-0.5 mt-2 justify-center">
-                  {[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-5 w-5 ${s <= 4 ? "fill-amber-500 text-amber-500" : "fill-amber-500/50 text-amber-500/50"}`} />)}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
+              <h3 className="text-sm uppercase font-extrabold tracking-wider text-slate-400">Rate Your Tutor</h3>
+              {reviewMsg && <p className="text-xs font-bold text-emerald-600">{reviewMsg}</p>}
+              <form onSubmit={handleSubmitReview} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500">Select Tutor</label>
+                  <select
+                    value={reviewTutorId}
+                    onChange={(e) => setReviewTutorId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-950 text-sm"
+                    required
+                  >
+                    <option value="">Choose tutor...</option>
+                    {assignedTutors.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name} — {t.specialty}</option>
+                    ))}
+                  </select>
                 </div>
-                <p className="text-xs text-slate-400 mt-1 font-bold">Based on 4 reviews</p>
-              </div>
-              <div className="flex-grow space-y-2 w-full sm:w-auto">
-                {[{ stars: 5, count: 2 }, { stars: 4, count: 1 }, { stars: 3, count: 1 }, { stars: 2, count: 0 }, { stars: 1, count: 0 }].map(row => (
-                  <div key={row.stars} className="flex items-center gap-2 text-xs">
-                    <span className="text-slate-500 font-bold w-4">{row.stars}</span>
-                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                    <div className="h-2 flex-grow bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(row.count / 4) * 100}%` }} />
-                    </div>
-                    <span className="text-slate-400 font-bold w-4 text-right">{row.count}</span>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500">Subject (optional)</label>
+                  <input
+                    value={reviewSubject}
+                    onChange={(e) => setReviewSubject(e.target.value)}
+                    placeholder="e.g. Mathematics"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-950 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500">Star Rating</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button key={s} type="button" onClick={() => setReviewRating(s)} className="cursor-pointer">
+                        <Star className={`h-6 w-6 ${s <= reviewRating ? "fill-amber-500 text-amber-500" : "text-slate-300"}`} />
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500">Your Review</label>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Share your experience with this tutor..."
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-950 text-sm"
+                    required
+                  />
+                </div>
+                <button type="submit" className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold text-xs rounded-xl cursor-pointer">
+                  Submit Review
+                </button>
+              </form>
             </div>
 
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
-              <h3 className="text-sm uppercase font-extrabold tracking-wider text-slate-400">Tutor Feedback</h3>
+              <h3 className="text-sm uppercase font-extrabold tracking-wider text-slate-400">Your Submitted Reviews</h3>
               <div className="space-y-4">
-                {[
-                  { tutor: "Dr. Elena Vance", subject: "Mathematics", rating: 5, comment: "Excellent problem-solving skills! Consistently completes assignments on time and shows deep understanding of algebraic concepts. Keep up the great work!", date: "May 28, 2026" },
-                  { tutor: "Prof. Marcus Chen", subject: "Physics", rating: 5, comment: "Outstanding lab performance this term. Your Newton's Laws report was one of the best in the class. Very thorough experimentation and analysis.", date: "May 22, 2026" },
-                  { tutor: "Ms. Sarah Williams", subject: "Literature", rating: 4, comment: "Good critical thinking in essay writing. Could improve on citing sources more consistently. Your Hamlet analysis showed promising depth of insight.", date: "May 15, 2026" },
-                  { tutor: "Dr. Raj Patel", subject: "Computer Science", rating: 3, comment: "Solid understanding of fundamentals but needs to work on implementing complex data structures. Recommend practicing binary trees and graph algorithms more.", date: "May 10, 2026" },
-                ].map((review, idx) => (
-                  <div key={idx} className="p-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-3">
+                {tutorReviews.length === 0 ? (
+                  <p className="text-xs text-slate-500">No reviews yet. Rate your tutor above.</p>
+                ) : tutorReviews.map((review: any) => (
+                  <div key={review.reviewId || review._id} className="p-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                       <div className="space-y-0.5">
-                        <span className="text-sm font-black text-slate-800 dark:text-white block">{review.tutor}</span>
-                        <span className="text-xs text-slate-500">{review.subject} • {review.date}</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-white block">{review.tutorName}</span>
+                        <span className="text-xs text-slate-500">{review.subject} • {new Date(review.createdAt).toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
-                        {[1, 2, 3, 4, 5].map(s => (
-                          <Star key={s} className={`h-4 w-4 ${s <= review.rating ? "fill-amber-500 text-amber-500" : "text-slate-300 dark:text-slate-600"}`} />
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} className={`h-4 w-4 ${s <= review.rating ? "fill-amber-500 text-amber-500" : "text-slate-300"}`} />
                         ))}
                       </div>
                     </div>

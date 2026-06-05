@@ -12,6 +12,7 @@ import {
 import { apiClient } from "../services/apiClient";
 import { Student, Tutor, Assignment, Review, Message, TestScore } from "../types";
 import { Footer } from "./Footer";
+import { LogoutButton } from "./LogoutButton";
 
 interface TutorDashboardProps {
   currentTutor: Tutor;
@@ -128,7 +129,7 @@ export function TutorDashboard({
 
   const handleViewChange = (view: ViewKey) => {
     setActiveView(view);
-    mainPanelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    if (mainPanelRef.current) mainPanelRef.current.scrollTop = 0;
   };
 
   const [selectedStudentId, setSelectedStudentId] = useState(myStudents[0]?.id || "");
@@ -308,20 +309,15 @@ export function TutorDashboard({
               <p className="text-[10px] text-emerald-200/50">Tutor Staff</p>
             </div>
           </div>
-          <button 
-            onClick={onLogout}
-            className="text-[10px] uppercase font-black tracking-wider text-emerald-350 hover:text-white transition-colors"
-          >
-            Logout
-          </button>
         </div>
       </aside>
 
-      {/* Main Panel Content Area — scrollable */}
-      <main ref={mainPanelRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6">
-        
-        {/* Portal Greeting Board */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
+      <main ref={mainPanelRef} data-scroll-container className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6 relative">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
+          <LogoutButton onLogout={onLogout} />
+        </div>
+
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left mt-8">
           <div className="space-y-1">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
               Welcome back, {firstName} 👋

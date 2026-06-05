@@ -81,8 +81,8 @@ export const apiClient = {
   },
 
   auth: {
-    registerParent: (email: string, password: string, name?: string, phone?: string, childName?: string, childGrade?: string) =>
-      request("POST", "/auth/register-parent", { email, password, name, phone, childName, childGrade }),
+    registerParent: (email: string, password: string, name?: string, phone?: string, childName?: string, childGrade?: string, classMode?: string) =>
+      request("POST", "/auth/register-parent", { email, password, name, phone, childName, childGrade, classMode }),
 
     loginStudent: (studentId: string) =>
       request("POST", "/auth/login-student", { studentId }),
@@ -167,6 +167,12 @@ export const apiClient = {
     getPending: () =>
       request("GET", "/fees/pending/all"),
 
+    getPendingApprovals: () =>
+      request("GET", "/fees/pending/approvals"),
+
+    updateApproval: (feeId: string, status: "Approved" | "Rejected") =>
+      request("PUT", `/fees/${feeId}/approval`, { status }),
+
     getReport: (month?: number, year?: number) => {
       const params = new URLSearchParams();
       if (month) params.append("month", month.toString());
@@ -208,6 +214,28 @@ export const apiClient = {
       request("PUT", `/parents/by-email/${encodeURIComponent(email)}`, data),
     delete: (email: string) =>
       request("DELETE", `/parents/by-email/${encodeURIComponent(email)}`),
+  },
+
+  reviews: {
+    create: (data: {
+      type: "student_tutor" | "parent_tuition";
+      studentId?: string;
+      parentEmail?: string;
+      tutorId?: string;
+      tutorName?: string;
+      rating: number;
+      comment: string;
+      subject?: string;
+    }) => request("POST", "/reviews", data),
+
+    getByStudent: (studentId: string) =>
+      request("GET", `/reviews/student/${studentId}`),
+
+    getByParent: (parentEmail: string) =>
+      request("GET", `/reviews/parent/${encodeURIComponent(parentEmail)}`),
+
+    getByTutor: (tutorId: string) =>
+      request("GET", `/reviews/tutor/${tutorId}`),
   },
 
   timetable: {

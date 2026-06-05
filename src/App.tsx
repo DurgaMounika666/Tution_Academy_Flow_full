@@ -265,8 +265,6 @@ export default function App() {
               <LoginGateway
                 onLoginSuccess={handleLoginSuccess}
                 onOpenRegister={() => setRegisterOpen(true)}
-                registeredParents={registeredParents}
-                tutors={tutorsState}
               />
             } />
 
@@ -275,7 +273,9 @@ export default function App() {
             <Route path="/student" element={
               currentStudent ? (
                 <StudentDashboard
+                  key={`student-${activeStudentId}`}
                   currentStudent={currentStudent}
+                  tutors={tutorsState}
                   onLogout={handleLogout}
                 />
               ) : (
@@ -288,6 +288,7 @@ export default function App() {
             <Route path="/parent" element={
               studentsState.length > 0 ? (
                 <ParentDashboard
+                  key={`parent-${activeParentEmail}`}
                   students={studentsState}
                   tutors={tutorsState}
                   fees={feesState}
@@ -306,6 +307,7 @@ export default function App() {
             <Route path="/tutor" element={
               currentTutor ? (
                 <TutorDashboard
+                  key={`tutor-${activeTutorId}`}
                   currentTutor={currentTutor}
                   students={studentsState}
                   assignments={assignmentsState}
@@ -327,6 +329,7 @@ export default function App() {
 
             <Route path="/admin" element={
               <AdminDashboard
+                key="admin-dashboard"
                 students={studentsState}
                 tutors={tutorsState}
                 fees={feesState}
