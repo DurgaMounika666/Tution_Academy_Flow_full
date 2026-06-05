@@ -12,8 +12,12 @@ export interface IStudent extends Document {
   grade: string;
   section: string;
   parentEmail: string;
+  parentId?: mongoose.Types.ObjectId;
   assignedTutorIds: string[];
   learningSubjects: string[];
+  phone?: string;
+  dateOfBirth?: string;
+  address?: string;
   attendanceRate: number;
   presentCount: number;
   absentCount: number;
@@ -48,6 +52,10 @@ const StudentSchema = new Schema<IStudent>(
       type: String,
       required: true,
     },
+    parentId: {
+      type: Schema.Types.ObjectId,
+      ref: "Parent",
+    },
     assignedTutorIds: [
       {
         type: String,
@@ -58,6 +66,15 @@ const StudentSchema = new Schema<IStudent>(
         type: String,
       },
     ],
+    phone: {
+      type: String,
+    },
+    dateOfBirth: {
+      type: String,
+    },
+    address: {
+      type: String,
+    },
     attendanceRate: {
       type: Number,
       default: 0,

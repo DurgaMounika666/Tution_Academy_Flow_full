@@ -11,6 +11,7 @@ export interface IParent extends Document {
   name: string;
   phone?: string;
   address?: string;
+  occupation?: string;
   childrenIds: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -36,6 +37,9 @@ const ParentSchema = new Schema<IParent>(
       type: String,
     },
     address: {
+      type: String,
+    },
+    occupation: {
       type: String,
     },
     childrenIds: [

@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 import { apiClient } from "./services/apiClient";
 import { Navbar } from "./components/Navbar";
@@ -32,6 +32,7 @@ import { Student, Tutor, FeePayment, Assignment, Review, Message, TestScore } fr
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setLanguage } = useLanguage();
 
   // Global Memory state allowing bidirectional edits in-sandbox
@@ -45,7 +46,7 @@ export default function App() {
 
   // Authentication Context trackers
   const [activeStudentId, setActiveStudentId] = useState("ST-101");
-  const [activeParentEmail, setActiveParentEmail] = useState("parent@example.com");
+  const [activeParentEmail, setActiveParentEmail] = useState("priya.sharma@gmail.com");
   const [activeTutorId, setActiveTutorId] = useState("T-201");
   const [loggedInRole, setLoggedInRole] = useState<"student" | "parent" | "tutor" | "admin" | null>(null);
 
@@ -152,7 +153,7 @@ export default function App() {
     }
   };
 
-  const handleRegisterSuccess = (email: string, pass: string, childName: string, childGrade: string) => {
+  const handleRegisterSuccess = (email: string, pass: string, parentName: string, parentPhone: string, childName: string, childGrade: string) => {
     setRegisteredParents([...registeredParents, { email, pass }]);
 
     const nextId = `ST-${100 + studentsState.length + 1}`;
@@ -191,7 +192,7 @@ export default function App() {
       title: "Enrollment & Registration Fee",
       amount: 150,
       status: "Pending",
-      dueDate: "2026-06-30"
+      dueDate: new Date().toISOString().split("T")[0]
     };
 
     setFeesState([newFee, ...feesState]);
@@ -232,8 +233,8 @@ export default function App() {
     if (role === "student") {
       setActiveStudentId("ST-101");
     } else if (role === "parent") {
-      setActiveParentEmail("parent@example.com");
-      setActiveStudentId("ST-102"); // Mrs. Henderson child (Leo)
+      setActiveParentEmail("priya.sharma@gmail.com");
+      setActiveStudentId("ST-101");
     }
     navigate(`/${role}`);
   };
@@ -248,11 +249,12 @@ export default function App() {
   // Get matching current logged in Student
   const currentStudent = studentsState.find((s) => s.id === activeStudentId) || studentsState[0];
   const currentTutor = tutorsState.find((t) => t.id === activeTutorId) || tutorsState[0];
+  const isDashboardRoute = ["/student", "/parent", "/tutor", "/admin"].includes(location.pathname);
 
   return (
     <ThemeProvider>
       <ScrollToTop />
-      <div className="site-interactive min-h-screen flex flex-col bg-slate-50 text-slate-800 dark:bg-[#0b1329] dark:text-slate-100 transition-colors duration-300">
+      <div className={`site-interactive flex flex-col bg-slate-50 text-slate-800 dark:bg-[#0b1329] dark:text-slate-100 transition-colors duration-300 ${isDashboardRoute ? "h-screen overflow-hidden" : "min-h-screen"}`}>
 
         {/* Sticky Global Top Header */}
         <Navbar
@@ -262,7 +264,7 @@ export default function App() {
         />
 
         {/* Dynamic Route Rendering Grid with Fade transitions */}
-        <main className="flex-grow">
+        <main className={isDashboardRoute ? "flex-1 min-h-0 overflow-hidden" : "flex-grow"}>
           <Routes>
             {/* Landing Page */}
             <Route path="/" element={
@@ -344,7 +346,7 @@ export default function App() {
         </main>
 
         {/* Global Footer info bar layout */}
-        <Footer />
+        {!isDashboardRoute && <Footer />}
 
         {/* Chat support widget */}
         <ChatSupportWidget />

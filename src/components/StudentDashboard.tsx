@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.5
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   GraduationCap, Calendar, Clock, BookOpen, Film, HelpCircle,
   CheckCircle, ArrowUpRight, TrendingUp, Sparkles, User, Video,
@@ -11,6 +11,7 @@ import {
   DollarSign, MessageSquare, Bell, Settings, Star
 } from "lucide-react";
 import { Student } from "../types";
+import { Footer } from "./Footer";
 
 interface StudentDashboardProps {
   currentStudent: Student;
@@ -20,6 +21,7 @@ interface StudentDashboardProps {
 export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardProps) {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [syllabusNoticeOpen, setSyllabusNoticeOpen] = useState(false);
+  const mainPanelRef = useRef<HTMLElement | null>(null);
 
   const handleSupportClick = () => {
     const textMsg = encodeURIComponent(
@@ -34,6 +36,11 @@ export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardP
     setTimeout(() => {
       setSyllabusNoticeOpen(false);
     }, 4000);
+  };
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    mainPanelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Mocked details matching the mockup layout
@@ -54,11 +61,11 @@ export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardP
   ];
 
   return (
-    <div className="h-[calc(100dvh-4rem)] overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
+    <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
 
       {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
       <aside className="w-full md:w-64 bg-[#1d0b3a] dark:bg-[#0e051c] text-indigo-50 flex flex-col p-5 border-r border-[#2d1257] shrink-0 md:h-full overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
+        <div className="flex-1 min-h-0 overflow-hidden space-y-6">
           {/* Logo Header */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
             <span className="p-2 bg-[#7c3aed] rounded-xl text-white shadow-lg">
@@ -77,7 +84,7 @@ export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardP
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleTabChange(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${isActive
                     ? "bg-[#7c3aed] text-white shadow-md transform scale-[1.02]"
                     : "text-indigo-200/70 hover:text-white hover:bg-white/5"
@@ -112,7 +119,7 @@ export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardP
       </aside>
 
       {/* Main Content Area — scrollable */}
-      <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main ref={mainPanelRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6">
 
         {/* Welcome Greeting Board — Always visible */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
@@ -742,6 +749,10 @@ export function StudentDashboard({ currentStudent, onLogout }: StudentDashboardP
             </div>
           </div>
         )}
+
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
+          <Footer />
+        </div>
 
       </main>
 

@@ -88,8 +88,8 @@ export const apiClient = {
   },
 
   auth: {
-    registerParent: (email: string, password: string, childName?: string, childGrade?: string) =>
-      request("POST", "/auth/register-parent", { email, password, childName, childGrade }),
+    registerParent: (email: string, password: string, name?: string, phone?: string, childName?: string, childGrade?: string) =>
+      request("POST", "/auth/register-parent", { email, password, name, phone, childName, childGrade }),
 
     loginStudent: (studentId: string) =>
       request("POST", "/auth/login-student", { studentId }),
@@ -174,5 +174,24 @@ export const apiClient = {
 
     getAssignmentsByTutor: (tutorId: string) =>
       request("GET", `/attendance/tutor/${tutorId}/assignments`),
+  },
+
+  tutors: {
+    getAll: () => request("GET", "/tutors"),
+    getById: (tutorId: string) => request("GET", `/tutors/${tutorId}`),
+    getByEmail: (email: string) => request("GET", `/tutors/by-email/${encodeURIComponent(email)}`),
+  },
+
+  parents: {
+    getByEmail: (email: string) => request("GET", `/parents/by-email/${encodeURIComponent(email)}`),
+  },
+
+  timetable: {
+    getAll: () => request("GET", "/timetable"),
+    getSummary: () => request("GET", "/timetable/summary"),
+    getByTutor: (tutorId: string) => request("GET", `/timetable/tutor/${tutorId}`),
+    create: (data: any) => request("POST", "/timetable", data),
+    update: (scheduleId: string, data: any) => request("PUT", `/timetable/${scheduleId}`, data),
+    delete: (scheduleId: string) => request("DELETE", `/timetable/${scheduleId}`),
   },
 };

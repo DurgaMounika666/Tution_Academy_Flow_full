@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   ShieldCheck, Search, Users, ShieldAlert, DollarSign, MapPin,
   BookOpen, Mail, Terminal, Lock, CheckCircle2, ChevronRight, BarChart3, TrendingUp,
@@ -17,6 +17,7 @@ import { STANDARDS } from "../data";
 import { buildAllCoursesFromCatalog, CatalogCourse } from "../utils/courseCatalog";
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
 import { FeeReceiptModal } from "./FeeReceiptModal";
+import { Footer } from "./Footer";
 
 interface AdminDashboardProps {
   students: Student[];
@@ -55,6 +56,7 @@ export function AdminDashboard({
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+  const mainPanelRef = useRef<HTMLElement | null>(null);
 
   // Core Data States
   const [localStudents, setLocalStudents] = useState<Student[]>(students);
@@ -119,6 +121,98 @@ export function AdminDashboard({
     theme: "light"
   });
 
+  // Timetable State
+  const [timetableSummary, setTimetableSummary] = useState<any[]>([]);
+  const [loadingTimetable, setLoadingTimetable] = useState(false);
+  const [showAddSchedule, setShowAddSchedule] = useState(false);
+  const [showEditSchedule, setShowEditSchedule] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
+
+  // New Schedule fields
+  const [newSchedule, setNewSchedule] = useState({
+    tutorId: "",
+    subject: "",
+    grade: "9th Class",
+    day: "Monday",
+    startTime: "09:00 AM",
+    endTime: "10:30 AM",
+    mode: "Offline" as "Online" | "Offline",
+    room: "Room 101",
+    assignedStudentIds: [] as string[]
+  });
+
+  useEffect(() => {
+    if (activeTab === "timetable") {
+      fetchTimetableData();
+    }
+  }, [activeTab]);
+
+  const fetchTimetableData = async () => {
+    setLoadingTimetable(true);
+    try {
+      const data = await apiClient.timetable.getSummary();
+      setTimetableSummary(data);
+    } catch (err) {
+      console.error("Failed to load timetable summary", err);
+      triggerToast("Failed to retrieve timetable data.");
+    } finally {
+      setLoadingTimetable(false);
+    }
+  };
+
+  const handleCreateSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSchedule.tutorId || !newSchedule.subject || !newSchedule.day || !newSchedule.startTime || !newSchedule.endTime) {
+      triggerToast("Please fill all required fields");
+      return;
+    }
+    try {
+      await apiClient.timetable.create(newSchedule);
+      setShowAddSchedule(false);
+      setNewSchedule({
+        tutorId: "",
+        subject: "",
+        grade: "9th Class",
+        day: "Monday",
+        startTime: "09:00 AM",
+        endTime: "10:30 AM",
+        mode: "Offline",
+        room: "Room 101",
+        assignedStudentIds: []
+      });
+      triggerToast("Schedule created successfully!");
+      await fetchTimetableData();
+    } catch (err: any) {
+      triggerToast(err.message || "Failed to create schedule.");
+    }
+  };
+
+  const handleUpdateSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSchedule) return;
+    try {
+      await apiClient.timetable.update(editingSchedule.scheduleId, editingSchedule);
+      setShowEditSchedule(false);
+      setEditingSchedule(null);
+      triggerToast("Schedule updated successfully!");
+      await fetchTimetableData();
+    } catch (err: any) {
+      triggerToast(err.message || "Failed to update schedule.");
+    }
+  };
+
+  const handleDeleteSchedule = async (scheduleId: string) => {
+    if (window.confirm("Are you sure you want to deactivate/delete this class schedule?")) {
+      try {
+        await apiClient.timetable.delete(scheduleId);
+        triggerToast("Schedule deleted successfully!");
+        await fetchTimetableData();
+      } catch (err: any) {
+        triggerToast(err.message || "Failed to delete schedule.");
+      }
+    }
+  };
+
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "students", label: "Students", icon: Users },
@@ -126,6 +220,7 @@ export function AdminDashboard({
     { id: "parents", label: "Parents", icon: Users },
     { id: "courses", label: "Courses", icon: FileText },
     { id: "batches", label: "Batches", icon: PlusCircle },
+    { id: "timetable", label: "Timetable", icon: Calendar },
     { id: "attendance", label: "Attendance", icon: ClockIcon },
     { id: "results", label: "Results", icon: Award },
     { id: "fees", label: "Fees", icon: DollarSign },
@@ -133,6 +228,12 @@ export function AdminDashboard({
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "settings", label: "Settings", icon: Settings },
   ];
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    setSearchTerm("");
+    mainPanelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Trigger Toast Notification Helper
   const triggerToast = (msg: string) => {
@@ -444,11 +545,11 @@ export function AdminDashboard({
   const averageAttendanceRate = Math.round(localStudents.reduce((sum, curr) => sum + curr.attendanceRate, 0) / localStudents.length);
 
   return (
-    <div className="h-[calc(100dvh-4rem)] overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
+    <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
 
       {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
       <aside className="w-full md:w-64 bg-[#0b1329] dark:bg-[#070d1d] text-slate-100 flex flex-col p-5 border-r border-[#15254f] shrink-0 md:h-full overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-6 text-left">
+        <div className="flex-1 min-h-0 overflow-hidden space-y-6 text-left">
           {/* Logo Header */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
             <span className="p-2 bg-[#2563eb] rounded-xl text-white shadow-lg">
@@ -468,8 +569,7 @@ export function AdminDashboard({
                 <button
                   key={item.id}
                   onClick={() => {
-                    setActiveTab(item.id);
-                    setSearchTerm(""); // reset search on tab change
+                    handleTabChange(item.id);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${isActive
                       ? "bg-[#2563eb] text-white shadow-md transform scale-[1.02]"
@@ -507,7 +607,7 @@ export function AdminDashboard({
       </aside>
 
       {/* Main Content Area — scrollable */}
-      <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 relative text-left">
+      <main ref={mainPanelRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6 relative text-left">
 
         {/* Interactive Floating Toast */}
         {toast && (
@@ -683,7 +783,7 @@ export function AdminDashboard({
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800">
                     <table className="w-full text-left text-xs text-slate-500">
                       <thead className="bg-slate-50 dark:bg-slate-950 font-bold uppercase text-[9px] text-slate-400">
                         <tr>
@@ -874,7 +974,7 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800">
               <table className="w-full text-left text-xs text-slate-500">
                 <thead className="bg-slate-50 dark:bg-slate-950 font-bold uppercase text-[9px] text-slate-400">
                   <tr>
@@ -1047,7 +1147,7 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800">
               <table className="w-full text-left text-xs text-slate-500">
                 <thead className="bg-slate-50 dark:bg-slate-950 font-bold uppercase text-[9px] text-slate-400">
                   <tr>
@@ -1141,7 +1241,7 @@ export function AdminDashboard({
               Showing {filteredCourses.length} of {courses.length} institutional course modules
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-h-[70vh] overflow-hidden pr-1">
               {filteredCourses.map((course) => (
                 <div
                   key={course.id}
@@ -1233,6 +1333,136 @@ export function AdminDashboard({
         )}
 
         {/* ========================================================================= */}
+        {/* VIEW: TIMETABLE */}
+        {/* ========================================================================= */}
+        {activeTab === "timetable" && (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-850">
+              <div>
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Class Timetable & Faculty Schedules</h3>
+                <p className="text-xs text-slate-500">Manage time slots, assign rooms, and link students to class sessions.</p>
+              </div>
+              <button
+                onClick={() => {
+                  const firstTutorId = localTutors[0]?.id || "";
+                  setNewSchedule(prev => ({ ...prev, tutorId: firstTutorId }));
+                  setShowAddSchedule(true);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center gap-1.5"
+              >
+                <Plus className="h-4 w-4" /> Create Timetable Slot
+              </button>
+            </div>
+
+            {loadingTimetable ? (
+              <div className="text-center py-12 text-slate-400 font-bold">
+                Loading timetable summary data...
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {timetableSummary.map((summary) => (
+                  <div key={summary.tutorId} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-sm">
+                          {summary.tutorName[0]}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-900 dark:text-white">{summary.tutorName}</h4>
+                          <p className="text-[10px] text-slate-450 font-mono">{summary.tutorId} • {summary.specialty}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 px-2.5 py-1 rounded-lg font-bold">
+                          {summary.totalSchedules} active classes
+                        </span>
+                      </div>
+                    </div>
+
+                    {summary.schedules.length === 0 ? (
+                      <p className="text-slate-400 text-xs italic">No class schedules assigned to this tutor yet.</p>
+                    ) : (
+                      <div className="overflow-hidden font-sans">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="text-slate-450 border-b border-slate-100 dark:border-slate-800 font-bold uppercase text-[9px]">
+                              <th className="py-2 px-2">Subject</th>
+                              <th className="py-2 px-2">Grade</th>
+                              <th className="py-2 px-2">Day & Time</th>
+                              <th className="py-2 px-2">Mode & Room</th>
+                              <th className="py-2 px-2">Enrolled Wards</th>
+                              <th className="py-2 px-2 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40 font-semibold text-slate-700 dark:text-slate-350">
+                            {summary.schedules.map((sch: any) => (
+                              <tr key={sch.scheduleId} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20">
+                                <td className="py-3 px-2 font-bold text-slate-900 dark:text-white">{sch.subject}</td>
+                                <td className="py-3 px-2">{sch.grade}</td>
+                                <td className="py-3 px-2 font-bold text-indigo-650 dark:text-indigo-400">
+                                  {sch.day} <span className="text-[10px] text-slate-450 block font-normal">{sch.startTime} - {sch.endTime}</span>
+                                </td>
+                                <td className="py-3 px-2">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${sch.mode === 'Online' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20'}`}>
+                                    {sch.mode}
+                                  </span>
+                                  <span className="text-[10px] text-slate-450 block font-mono mt-0.5">{sch.room || "N/A"}</span>
+                                </td>
+                                <td className="py-3 px-2">
+                                  <div className="flex flex-wrap gap-1">
+                                    {(sch.assignedStudentIds || []).map((sid: string) => {
+                                      const st = localStudents.find(s => s.id === sid);
+                                      return (
+                                        <span key={sid} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono text-[9px]" title={st?.name || sid}>
+                                          {st?.name || sid}
+                                        </span>
+                                      );
+                                    })}
+                                    {(!sch.assignedStudentIds || sch.assignedStudentIds.length === 0) && (
+                                      <span className="text-slate-400 italic">None</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2 text-right">
+                                  <div className="flex justify-end gap-1.5">
+                                    <button
+                                      onClick={() => {
+                                        setEditingSchedule({ ...sch });
+                                        setShowEditSchedule(true);
+                                      }}
+                                      className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg"
+                                      title="Edit Slot"
+                                    >
+                                      <Edit3 className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteSchedule(sch.scheduleId)}
+                                      className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg"
+                                      title="Delete Slot"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {timetableSummary.length === 0 && (
+                  <div className="text-center py-8 text-slate-400 font-bold">
+                    No faculty timetable records found.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
         {/* VIEW: ATTENDANCE */}
         {/* ========================================================================= */}
         {activeTab === "attendance" && (
@@ -1279,7 +1509,7 @@ export function AdminDashboard({
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800">
               <table className="w-full text-left text-xs text-slate-500">
                 <thead className="bg-slate-50 dark:bg-slate-950 font-bold uppercase text-[9px] text-slate-400">
                   <tr>
@@ -1356,7 +1586,7 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800">
               <table className="w-full text-left text-xs text-slate-500">
                 <thead className="bg-slate-50 dark:bg-slate-950 font-bold uppercase text-[9px] text-slate-400">
                   <tr>
@@ -1434,7 +1664,7 @@ export function AdminDashboard({
             </div>
 
             {/* Invoices Table */}
-            <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800">
               <table className="w-full text-left text-xs text-slate-500">
                 <thead className="bg-slate-50 dark:bg-slate-950 font-bold uppercase text-[9px] text-slate-400">
                   <tr>
@@ -1499,7 +1729,7 @@ export function AdminDashboard({
             {/* Payment history — same receipt layout as parent portal */}
             <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 space-y-4">
               <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Payment History & Receipts</h4>
-              <div className="overflow-x-auto">
+              <div className="overflow-hidden">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
@@ -1770,6 +2000,10 @@ export function AdminDashboard({
           </div>
         )}
 
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
+          <Footer />
+        </div>
+
       </main>
 
       {/* ========================================================================= */}
@@ -1792,7 +2026,7 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-6 flex-grow text-xs">
+            <div className="p-6 overflow-hidden space-y-6 flex-grow text-xs">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl">
                   <span className="text-[9px] uppercase font-black text-slate-400 block">Attendance rate</span>
@@ -2579,6 +2813,338 @@ export function AdminDashboard({
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md"
               >
                 Publish Result Score
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD TIMETABLE SLOT */}
+      {/* ========================================================================= */}
+      {showAddSchedule && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <form onSubmit={handleCreateSchedule} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
+              <h3 className="text-md font-black">Create Timetable Slot</h3>
+              <button type="button" onClick={() => setShowAddSchedule(false)} className="text-white hover:opacity-80"><X className="h-5 w-5" /></button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-400">Faculty Instructor</label>
+                <select
+                  required
+                  value={newSchedule.tutorId}
+                  onChange={(e) => setNewSchedule({ ...newSchedule, tutorId: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                >
+                  <option value="" disabled>Select Faculty...</option>
+                  {localTutors.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.id})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Subject Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newSchedule.subject}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, subject: e.target.value })}
+                    placeholder="e.g. Mathematics"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Grade Level</label>
+                  <select
+                    value={newSchedule.grade}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, grade: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  >
+                    {STANDARDS.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Day</label>
+                  <select
+                    value={newSchedule.day}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, day: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  >
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Start Time</label>
+                  <input
+                    type="text"
+                    required
+                    value={newSchedule.startTime}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, startTime: e.target.value })}
+                    placeholder="09:00 AM"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">End Time</label>
+                  <input
+                    type="text"
+                    required
+                    value={newSchedule.endTime}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, endTime: e.target.value })}
+                    placeholder="10:30 AM"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Class Mode</label>
+                  <select
+                    value={newSchedule.mode}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, mode: e.target.value as any })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  >
+                    <option value="Online">Online</option>
+                    <option value="Offline">Offline</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Room / link</label>
+                  <input
+                    type="text"
+                    required
+                    value={newSchedule.room}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, room: e.target.value })}
+                    placeholder="e.g. Room 101"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-400">Assign Student Wards (Check to assign)</label>
+                <div className="max-h-32 overflow-hidden border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 dark:bg-slate-950">
+                  {localStudents.map(s => {
+                    const isChecked = newSchedule.assignedStudentIds.includes(s.id);
+                    return (
+                      <label key={s.id} className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-350 font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const updated = isChecked
+                              ? newSchedule.assignedStudentIds.filter(id => id !== s.id)
+                              : [...newSchedule.assignedStudentIds, s.id];
+                            setNewSchedule({ ...newSchedule, assignedStudentIds: updated });
+                          }}
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span>{s.name} ({s.id})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAddSchedule(false)}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-800 font-bold text-xs rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md"
+              >
+                Save Schedule Slot
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: EDIT TIMETABLE SLOT */}
+      {/* ========================================================================= */}
+      {showEditSchedule && editingSchedule && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <form onSubmit={handleUpdateSchedule} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
+              <h3 className="text-md font-black">Edit Timetable Slot</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditSchedule(false);
+                  setEditingSchedule(null);
+                }}
+                className="text-white hover:opacity-80"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-400">Faculty Instructor</label>
+                <select
+                  required
+                  value={editingSchedule.tutorId}
+                  onChange={(e) => setEditingSchedule({ ...editingSchedule, tutorId: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                >
+                  {localTutors.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.id})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Subject Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSchedule.subject}
+                    onChange={(e) => setEditingSchedule({ ...editingSchedule, subject: e.target.value })}
+                    placeholder="e.g. Mathematics"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Grade Level</label>
+                  <select
+                    value={editingSchedule.grade}
+                    onChange={(e) => setEditingSchedule({ ...editingSchedule, grade: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  >
+                    {STANDARDS.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Day</label>
+                  <select
+                    value={editingSchedule.day}
+                    onChange={(e) => setEditingSchedule({ ...editingSchedule, day: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  >
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Start Time</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSchedule.startTime}
+                    onChange={(e) => setEditingSchedule({ ...editingSchedule, startTime: e.target.value })}
+                    placeholder="09:00 AM"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">End Time</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSchedule.endTime}
+                    onChange={(e) => setEditingSchedule({ ...editingSchedule, endTime: e.target.value })}
+                    placeholder="10:30 AM"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Class Mode</label>
+                  <select
+                    value={editingSchedule.mode}
+                    onChange={(e) => setEditingSchedule({ ...editingSchedule, mode: e.target.value as any })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  >
+                    <option value="Online">Online</option>
+                    <option value="Offline">Offline</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-400">Room / link</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSchedule.room}
+                    onChange={(e) => setEditingSchedule({ ...editingSchedule, room: e.target.value })}
+                    placeholder="e.g. Room 101"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-400">Assign Student Wards (Check to assign)</label>
+                <div className="max-h-32 overflow-hidden border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 dark:bg-slate-950">
+                  {localStudents.map(s => {
+                    const isChecked = (editingSchedule.assignedStudentIds || []).includes(s.id);
+                    return (
+                      <label key={s.id} className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-355 font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const currentList = editingSchedule.assignedStudentIds || [];
+                            const updated = isChecked
+                              ? currentList.filter((id: string) => id !== s.id)
+                              : [...currentList, s.id];
+                            setEditingSchedule({ ...editingSchedule, assignedStudentIds: updated });
+                          }}
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span>{s.name} ({s.id})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditSchedule(false);
+                  setEditingSchedule(null);
+                }}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-800 font-bold text-xs rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md"
+              >
+                Save Changes
               </button>
             </div>
           </form>

@@ -11,8 +11,12 @@ export interface ITutor extends Document {
   name: string;
   specialty: string;
   email: string;
+  phone?: string;
+  qualification?: string;
+  experience?: string;
   image?: string;
   assignedStudentIds: string[];
+  subjects: string[];
   pendingTasksCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -44,10 +48,24 @@ const TutorSchema = new Schema<ITutor>(
       unique: true,
       lowercase: true,
     },
+    phone: {
+      type: String,
+    },
+    qualification: {
+      type: String,
+    },
+    experience: {
+      type: String,
+    },
     image: {
       type: String,
     },
     assignedStudentIds: [
+      {
+        type: String,
+      },
+    ],
+    subjects: [
       {
         type: String,
       },

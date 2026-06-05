@@ -4,8 +4,11 @@
  */
 
 import bcrypt from "bcryptjs";
-import jwt, { SignOptions } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { User } from "../models/User";
+import { Parent } from "../models/Parent";
+import { Tutor } from "../models/Tutor";
+import { Student } from "../models/Student";
 import { config } from "../config/env";
 
 export class AuthService {
@@ -54,13 +57,15 @@ export class AuthService {
   static async registerParent(
     email: string,
     password: string,
+    name?: string,
+    phone?: string,
     childName?: string,
     childGrade?: string
   ) {
     try {
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        throw new Error("User already exists");
+        throw new Error("An account with this email already exists. Please login.");
       }
 
       const hashedPassword = await this.hashPassword(password);
@@ -69,13 +74,65 @@ export class AuthService {
         password: hashedPassword,
         role: "parent",
       });
-
       await user.save();
+
+      // Determine child details if provided
+      let studentId = "";
+      if (childName) {
+        try {
+          const studentCount = await Student.countDocuments();
+          studentId = `ST-${100 + studentCount + 1}`;
+        } catch (err) {
+          studentId = `ST-${Date.now()}`;
+        }
+
+        let studentEmail = `${childName.toLowerCase().replace(/[^a-z0-9]/g, "")}@student.academyflow.com`;
+        const existingStudentUser = await User.findOne({ email: studentEmail });
+        if (existingStudentUser) {
+          studentEmail = `${childName.toLowerCase().replace(/[^a-z0-9]/g, "")}.${Date.now().toString().slice(-4)}@student.academyflow.com`;
+        }
+
+        const studentHashedPassword = await this.hashPassword("password");
+        const studentUser = new User({
+          email: studentEmail,
+          password: studentHashedPassword,
+          role: "student",
+        });
+        await studentUser.save();
+
+        await Student.create({
+          studentId,
+          userId: studentUser._id,
+          name: childName,
+          grade: childGrade || "9th Class",
+          section: "Section A",
+          parentEmail: email,
+          parentId: user._id,
+          assignedTutorIds: ["T-201"],
+          learningSubjects: ["Basic Mathematics"],
+          phone: phone || "",
+          attendanceRate: 100,
+          presentCount: 12,
+          absentCount: 0,
+        });
+      }
+
+      // Also create Parent profile record
+      const existingParent = await Parent.findOne({ email });
+      if (!existingParent) {
+        await Parent.create({
+          userId: user._id,
+          email,
+          name: name || email.split("@")[0],
+          phone: phone || "",
+          childrenIds: studentId ? [studentId] : [],
+        });
+      }
 
       const token = this.generateToken(user._id.toString(), "parent");
       const refreshToken = this.generateRefreshToken(user._id.toString(), "parent");
 
-      return { token, refreshToken, userId: user._id.toString() };
+      return { token, refreshToken, userId: user._id.toString(), email };
     } catch (error) {
       throw error;
     }
@@ -83,9 +140,9 @@ export class AuthService {
 
   static async loginParent(email: string, password: string) {
     try {
-      const user = await User.findOne({ email }).select("+password");
+      const user = await User.findOne({ email, role: "parent" }).select("+password");
       if (!user) {
-        throw new Error("Invalid credentials");
+        throw new Error("Invalid credentials. Please check your email and password.");
       }
 
       const isPasswordValid = await this.comparePassword(
@@ -93,13 +150,23 @@ export class AuthService {
         user.password
       );
       if (!isPasswordValid) {
-        throw new Error("Invalid credentials");
+        throw new Error("Invalid credentials. Please check your email and password.");
       }
+
+      // Fetch parent profile for additional info
+      const parentProfile = await Parent.findOne({ email });
 
       const token = this.generateToken(user._id.toString(), "parent");
       const refreshToken = this.generateRefreshToken(user._id.toString(), "parent");
 
-      return { token, refreshToken, userId: user._id.toString() };
+      return {
+        token,
+        refreshToken,
+        userId: user._id.toString(),
+        email,
+        parentName: parentProfile?.name || "",
+        childrenIds: parentProfile?.childrenIds || [],
+      };
     } catch (error) {
       throw error;
     }
@@ -109,7 +176,7 @@ export class AuthService {
     try {
       const token = this.generateToken(studentId, "student");
       const refreshToken = this.generateRefreshToken(studentId, "student");
-      return { token, refreshToken };
+      return { token, refreshToken, userId: studentId };
     } catch (error) {
       throw error;
     }
@@ -119,7 +186,7 @@ export class AuthService {
     try {
       const user = await User.findOne({ email, role: "tutor" }).select("+password");
       if (!user) {
-        throw new Error("Invalid tutor credentials");
+        throw new Error("Invalid tutor credentials. Please check your email.");
       }
 
       const isPasswordValid = await this.comparePassword(
@@ -127,13 +194,23 @@ export class AuthService {
         user.password
       );
       if (!isPasswordValid) {
-        throw new Error("Invalid credentials");
+        throw new Error("Invalid credentials.");
       }
+
+      // Fetch tutor profile
+      const tutorProfile = await Tutor.findOne({ email });
 
       const token = this.generateToken(user._id.toString(), "tutor");
       const refreshToken = this.generateRefreshToken(user._id.toString(), "tutor");
 
-      return { token, refreshToken, userId: user._id.toString() };
+      return {
+        token,
+        refreshToken,
+        userId: user._id.toString(),
+        tutorId: tutorProfile?.tutorId || "",
+        tutorName: tutorProfile?.name || "",
+        email,
+      };
     } catch (error) {
       throw error;
     }
@@ -148,9 +225,9 @@ export class AuthService {
         const adminId = "admin-001";
         const token = this.generateToken(adminId, "admin");
         const refreshToken = this.generateRefreshToken(adminId, "admin");
-        return { token, refreshToken };
+        return { token, refreshToken, userId: adminId };
       }
-      throw new Error("Invalid admin credentials");
+      throw new Error("Invalid admin credentials.");
     } catch (error) {
       throw error;
     }

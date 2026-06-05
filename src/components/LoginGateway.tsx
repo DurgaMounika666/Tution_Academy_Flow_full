@@ -21,9 +21,9 @@ interface LoginGatewayProps {
 
 export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents, tutors }: LoginGatewayProps) {
   const [studentId, setStudentId] = useState("ST-101");
-  const [parentEmail, setParentEmail] = useState("parent@example.com");
-  const [parentPassword, setParentPassword] = useState("password");
-  const [tutorEmail, setTutorEmail] = useState("anitha@academyflow.com");
+  const [parentEmail, setParentEmail] = useState("priya.sharma@gmail.com");
+  const [parentPassword, setParentPassword] = useState("Password@123");
+  const [tutorEmail, setTutorEmail] = useState("anitha.sharma@academyflow.com");
   const [tutorPassword, setTutorPassword] = useState("password");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -75,12 +75,9 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
     try {
       const response = await apiClient.auth.loginTutor(tutorEmail.trim().toLowerCase(), tutorPassword);
       apiClient.setAuthToken(response.token);
-      const matchedTutor = tutors.find(
-        (t) => t.email.toLowerCase() === tutorEmail.trim().toLowerCase()
-      );
-      if (matchedTutor) {
+      if (response.tutorId) {
         setErrorMessage("");
-        onLoginSuccess("tutor", matchedTutor.id);
+        onLoginSuccess("tutor", response.tutorId);
       } else {
         setErrorMessage("Access Denied: Tutor not found in the roster.");
       }
@@ -271,10 +268,10 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => { setParentEmail("parent@example.com"); setParentPassword("password"); }}
+                    onClick={() => { setParentEmail("priya.sharma@gmail.com"); setParentPassword("Password@123"); }}
                     className="px-2.5 py-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-750 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200"
                   >
-                    Mrs. Henderson Account
+                    Priya Sharma Account
                   </button>
                 </div>
               </div>
@@ -334,17 +331,52 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister, registeredParents
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => { setTutorEmail("anitha@academyflow.com"); setTutorPassword("password"); }}
+                    onClick={() => { setTutorEmail("anitha.sharma@academyflow.com"); setTutorPassword("password"); }}
                     className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
                   >
                     Dr. Anitha (Maths)
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setTutorEmail("narayana@academyflow.com"); setTutorPassword("password"); }}
+                    onClick={() => { setTutorEmail("narayana.rao@academyflow.com"); setTutorPassword("password"); }}
                     className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
                   >
                     Prof. Narayana (Physics)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTutorEmail("anand.krishna@academyflow.com"); setTutorPassword("password"); }}
+                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
+                  >
+                    Mr. Anand (CS)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTutorEmail("lakshmi.devi@academyflow.com"); setTutorPassword("password"); }}
+                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
+                  >
+                    Mrs. Lakshmi (English)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTutorEmail("venkat.reddy@academyflow.com"); setTutorPassword("password"); }}
+                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
+                  >
+                    Mr. Venkat (Social/Telugu)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTutorEmail("sunita.pandey@academyflow.com"); setTutorPassword("password"); }}
+                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
+                  >
+                    Ms. Sunita (Biology)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTutorEmail("ramesh.gupta@academyflow.com"); setTutorPassword("password"); }}
+                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-750 dark:text-slate-200 rounded-lg text-[10px] font-bold"
+                  >
+                    Mr. Ramesh (Competitive)
                   </button>
                 </div>
               </div>

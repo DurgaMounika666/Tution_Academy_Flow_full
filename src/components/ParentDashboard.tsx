@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Users, MapPin, PhoneCall, DollarSign, CheckCircle2, AlertCircle,
   HelpCircle, ChevronRight, BookOpen, GraduationCap, Clock, PlusCircle,
@@ -16,6 +16,7 @@ import { SUBJECTS_BY_CLASS, STANDARDS, LOCATIONS } from "../data";
 import { useTheme } from "../context/ThemeContext";
 import { FeeReceiptModal } from "./FeeReceiptModal";
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
+import { Footer } from "./Footer";
 
 interface ParentDashboardProps {
   students: Student[];
@@ -36,6 +37,7 @@ export function ParentDashboard({
 
   // Active Tab/Menu state for the Sidebar
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const mainPanelRef = useRef<HTMLElement | null>(null);
 
   // Roll out subjects Wizard State
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -593,6 +595,11 @@ export function ParentDashboard({
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    mainPanelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   // --- DYNAMIC TABS RENDER SYSTEM ---
   const renderTabContent = () => {
     switch (activeTab) {
@@ -1103,7 +1110,7 @@ export function ParentDashboard({
             {/* Attendance History log */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
               <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Attendance Logs</h3>
-              <div className="overflow-x-auto">
+              <div className="overflow-hidden">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
@@ -1286,7 +1293,7 @@ export function ParentDashboard({
                 </div>
               )}
 
-              <div className="overflow-x-auto">
+              <div className="overflow-hidden">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
@@ -1374,7 +1381,7 @@ export function ParentDashboard({
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
               <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Institutional Ledger Billing Statements</h3>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-hidden">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
@@ -1437,7 +1444,7 @@ export function ParentDashboard({
             {/* Payment History section */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
               <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Payment History</h3>
-              <div className="overflow-x-auto">
+              <div className="overflow-hidden">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400">
@@ -1681,7 +1688,7 @@ export function ParentDashboard({
                 />
               </div>
 
-              <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/40">
+              <div className="flex-1 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/40">
                 {filteredTutors.map((t) => {
                   const tutorMsgs = chatHistory[t.id] || [];
                   const lastMsg = tutorMsgs[tutorMsgs.length - 1];
@@ -1731,7 +1738,7 @@ export function ParentDashboard({
               })()}
 
               {/* Chat bubbles list */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col justify-end">
+              <div className="flex-1 p-4 overflow-hidden space-y-4 flex flex-col justify-end">
                 <div className="space-y-4">
                   {activeTutorChatList.map((msg) => {
                     const isParent = msg.sender === "parent";
@@ -2331,11 +2338,11 @@ export function ParentDashboard({
   };
 
   return (
-    <div className="h-[calc(100dvh-4rem)] overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
+    <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
 
       {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
       <aside className="w-full md:w-64 bg-[#3f2115] dark:bg-[#20100a] text-amber-50 flex flex-col p-5 border-r border-[#4e2c1e] shrink-0 md:h-full overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
+        <div className="flex-1 min-h-0 overflow-hidden space-y-6">
           {/* Logo Brand Header */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
             <span className="p-2 bg-[#f27a3d] rounded-xl text-white shadow-lg">
@@ -2355,7 +2362,7 @@ export function ParentDashboard({
                 <button
                   key={item.id}
                   onClick={() => {
-                    setActiveTab(item.id);
+                    handleTabChange(item.id);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${isActive
                     ? "bg-[#f27a3d] text-white shadow-md transform scale-[1.02]"
@@ -2391,7 +2398,7 @@ export function ParentDashboard({
       </aside>
 
       {/* Main Panel Content Area — scrollable */}
-      <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main ref={mainPanelRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6">
 
         {/* Portal Greeting Board */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
@@ -2445,6 +2452,10 @@ export function ParentDashboard({
           {renderTabContent()}
         </div>
 
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
+          <Footer />
+        </div>
+
       </main>
 
       {/* Subject Rollout Wizard Modal */}
@@ -2483,7 +2494,7 @@ export function ParentDashboard({
             </div>
 
             {/* Modal Content body (State Driven) */}
-            <div className="p-6 overflow-y-auto max-h-[70vh] flex-1 space-y-4">
+            <div className="p-6 overflow-hidden max-h-[70vh] flex-1 space-y-4">
 
               {/* STEP 1: Class & Subject Select */}
               {wizardStep === 1 && (
@@ -2774,7 +2785,7 @@ export function ParentDashboard({
               </button>
             </div>
 
-            <form onSubmit={handleProcessPayment} className="p-6 overflow-y-auto max-h-[80vh] flex-1 space-y-4 text-xs font-bold">
+            <form onSubmit={handleProcessPayment} className="p-6 overflow-hidden max-h-[80vh] flex-1 space-y-4 text-xs font-bold">
 
               {/* Autofilled Fields */}
               <div className="grid grid-cols-2 gap-4">

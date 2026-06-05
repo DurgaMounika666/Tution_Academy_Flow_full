@@ -9,7 +9,7 @@ import { AuthService } from "../services/AuthService";
 export class AuthController {
   static async registerParent(req: Request, res: Response) {
     try {
-      const { email, password, childName, childGrade } = req.body;
+      const { email, password, name, phone, childName, childGrade } = req.body;
 
       if (!email || !password) {
         return res
@@ -20,6 +20,8 @@ export class AuthController {
       const result = await AuthService.registerParent(
         email,
         password,
+        name,
+        phone,
         childName,
         childGrade
       );

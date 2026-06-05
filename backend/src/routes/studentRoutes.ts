@@ -9,12 +9,14 @@ import { authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
-router.get("/:studentId", authMiddleware, StudentController.getStudentById);
+// IMPORTANT: /parent/:parentEmail MUST come before /:studentId
+// otherwise Express matches "parent" as a studentId value
 router.get(
   "/parent/:parentEmail",
   authMiddleware,
   StudentController.getStudentsByParent
 );
+router.get("/:studentId", authMiddleware, StudentController.getStudentById);
 router.post("/", authMiddleware, StudentController.createStudent);
 router.put("/:studentId", authMiddleware, StudentController.updateStudent);
 router.post("/:studentId/assign-tutor", authMiddleware, StudentController.assignTutor);

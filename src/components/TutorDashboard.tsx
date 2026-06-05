@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import {
   Home, Users, FileText, BookOpen, Award, Calendar,
   MessageSquare, Star, User, Settings, Bell, ChevronRight, UserCheck,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
 import { Student, Tutor, Assignment, Review, Message, TestScore } from "../types";
+import { Footer } from "./Footer";
 
 interface TutorDashboardProps {
   currentTutor: Tutor;
@@ -77,6 +78,7 @@ export function TutorDashboard({
   const [notif, setNotif] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const [attendanceMarkedToday, setAttendanceMarkedToday] = useState<Record<string, boolean>>({});
+  const mainPanelRef = useRef<HTMLElement | null>(null);
 
   const myStudents = useMemo(
     () => students.filter((s) => currentTutor.assignedStudentIds.includes(s.id)),
@@ -122,6 +124,11 @@ export function TutorDashboard({
   const showNotif = (msg: string) => {
     setNotif(msg);
     setTimeout(() => setNotif(""), 3000);
+  };
+
+  const handleViewChange = (view: ViewKey) => {
+    setActiveView(view);
+    mainPanelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const [selectedStudentId, setSelectedStudentId] = useState(myStudents[0]?.id || "");
@@ -244,11 +251,11 @@ export function TutorDashboard({
   const firstName = currentTutor.name.split(" ").slice(-1)[0] || currentTutor.name;
 
   return (
-    <div className="h-[calc(100dvh-4rem)] overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
+    <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
       
       {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
       <aside className="w-full md:w-64 bg-[#133d27] dark:bg-[#071b11] text-emerald-50 flex flex-col p-5 border-r border-[#194b30] shrink-0 md:h-full overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
+        <div className="flex-1 min-h-0 overflow-hidden space-y-6">
           {/* Logo brand */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
             <span className="p-2 bg-[#10b981] rounded-xl text-white shadow-lg animate-pulse">
@@ -268,7 +275,7 @@ export function TutorDashboard({
               return (
                 <button
                   key={item.key}
-                  onClick={() => setActiveView(item.key)}
+                  onClick={() => handleViewChange(item.key)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                     isActive 
                       ? "bg-[#10b981] text-white shadow-md transform scale-[1.02]" 
@@ -311,7 +318,7 @@ export function TutorDashboard({
       </aside>
 
       {/* Main Panel Content Area — scrollable */}
-      <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main ref={mainPanelRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6">
         
         {/* Portal Greeting Board */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
@@ -340,7 +347,7 @@ export function TutorDashboard({
               )}
             </button>
             {showNotifications && (
-              <div className="absolute top-12 right-0 w-80 max-h-80 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl p-3 z-20">
+              <div className="absolute top-12 right-0 w-80 max-h-80 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl p-3 z-20">
                 <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 pb-2">
                   Notifications
                 </p>
@@ -428,6 +435,10 @@ export function TutorDashboard({
         )}
 
         {activeView === "settings" && <SettingsView />}
+
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
+          <Footer />
+        </div>
 
       </main>
 
@@ -602,7 +613,7 @@ function DashboardView({
               </button>
             </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-105">
+          <div className="overflow-hidden rounded-2xl border border-slate-105">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-[9px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold">
@@ -741,7 +752,7 @@ function StudentsView({ students }: { students: Student[] }) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
       <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">My Students ({students.length})</h3>
-      <div className="overflow-x-auto rounded-2xl border border-slate-105">
+      <div className="overflow-hidden rounded-2xl border border-slate-105">
         <table className="w-full text-xs">
           <thead>
             <tr className="text-[9px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold">
@@ -1013,7 +1024,7 @@ function ScheduleView({ students }: { students: Student[] }) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
       <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Class Schedule</h3>
-      <div className="overflow-x-auto rounded-2xl border border-slate-105">
+      <div className="overflow-hidden rounded-2xl border border-slate-105">
         <table className="w-full text-xs">
           <thead>
             <tr className="text-[9px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold">
