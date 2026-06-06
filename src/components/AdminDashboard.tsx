@@ -13,18 +13,21 @@ import {
 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
 import { normalizeStudent, normalizeTutor, normalizeFee } from "../utils/normalizers";
-import { Student, Tutor, FeePayment } from "../types";
+import { Student, Tutor, FeePayment, RegistrationNotification } from "../types";
 import { STANDARDS } from "../data";
 import { buildAllCoursesFromCatalog, CatalogCourse } from "../utils/courseCatalog";
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
 import { FeeReceiptModal } from "./FeeReceiptModal";
 import { Footer } from "./Footer";
 import { LogoutButton } from "./LogoutButton";
+import { FooterNavigation } from "./FooterNavigation";
 
 interface AdminDashboardProps {
   students: Student[];
   tutors: Tutor[];
   fees: FeePayment[];
+  registrationNotifications: RegistrationNotification[];
+  onRegistrationDecision: (id: string, status: "Accepted" | "Rejected") => void;
   onRefreshStudents: () => Promise<void>;
   onRefreshTutors: () => Promise<void>;
   onRefreshFees: () => Promise<void>;
@@ -54,7 +57,7 @@ interface SystemNotification {
 }
 
 export function AdminDashboard({
-  students, tutors, fees, onRefreshStudents, onRefreshTutors, onRefreshFees, onBypassLogin, onLogout
+  students, tutors, fees, registrationNotifications, onRegistrationDecision, onRefreshStudents, onRefreshTutors, onRefreshFees, onBypassLogin, onLogout
 }: AdminDashboardProps) {
 
   // Main Tabs Configuration
@@ -187,6 +190,11 @@ export function AdminDashboard({
     } catch (error: any) {
       triggerToast(error.message || "Failed to update approval");
     }
+  };
+
+  const handleRegistrationDecision = (id: string, status: "Accepted" | "Rejected") => {
+    onRegistrationDecision(id, status);
+    triggerToast(`Registration request ${status.toLowerCase()}`);
   };
 
   const handleSaveTutorEdit = async (e: React.FormEvent) => {
@@ -777,6 +785,51 @@ export function AdminDashboard({
                 </div>
               </div>
             </div>
+
+            {registrationNotifications.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-amber-200 dark:border-amber-900 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-xs uppercase font-extrabold tracking-wider text-amber-600 dark:text-amber-300">Registration Notifications</h3>
+                    <p className="text-xs text-slate-500">New parent/student registration requests awaiting admin review.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("notifications")}
+                    className="px-3 py-2 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200 text-[10px] font-black"
+                  >
+                    View All Requests
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {registrationNotifications.slice(0, 4).map((request) => (
+                    <div key={request.id} className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black text-slate-900 dark:text-white">{request.name}</p>
+                          <p className="text-[10px] text-slate-500">{request.role} - {request.studentClass}</p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase ${request.status === "Pending" ? "bg-amber-100 text-amber-700" : request.status === "Accepted" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                          {request.status}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-bold text-slate-500">
+                        <span>Email: {request.email}</span>
+                        <span>Mobile: {request.mobileNumber}</span>
+                        <span>Class: {request.studentClass}</span>
+                        <span>{request.registrationDateTime}</span>
+                      </div>
+                      {request.status === "Pending" && (
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => handleRegistrationDecision(request.id, "Accepted")} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg">Accept</button>
+                          <button type="button" onClick={() => handleRegistrationDecision(request.id, "Rejected")} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg">Reject</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Dynamic Panels layout */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
@@ -1977,6 +2030,43 @@ export function AdminDashboard({
             </div>
 
             <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="space-y-3">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-amber-600 dark:text-amber-300">Registration Request Inbox</h3>
+                {registrationNotifications.length === 0 ? (
+                  <p className="rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 p-4 text-xs text-slate-500">
+                    No registration requests have arrived yet.
+                  </p>
+                ) : (
+                  registrationNotifications.map((request) => (
+                    <div key={request.id} className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-black text-slate-900 dark:text-white">{request.name}</p>
+                          <p className="text-[10px] text-slate-500">{request.role} - {request.studentClass}</p>
+                        </div>
+                        <span className={`w-max px-2 py-0.5 rounded text-[9px] font-black uppercase ${request.status === "Pending" ? "bg-amber-200 text-amber-800" : request.status === "Accepted" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                          {request.status}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                        <span>Name: {request.name}</span>
+                        <span>Role: {request.role}</span>
+                        <span>Email: {request.email}</span>
+                        <span>Mobile Number: {request.mobileNumber}</span>
+                        <span>Class: {request.studentClass}</span>
+                        <span>Registration: {request.registrationDateTime}</span>
+                      </div>
+                      {request.status === "Pending" && (
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => handleRegistrationDecision(request.id, "Accepted")} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg">Accept</button>
+                          <button type="button" onClick={() => handleRegistrationDecision(request.id, "Rejected")} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg">Reject</button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
               <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Archived Broadcast Ledger</h3>
 
               <div className="space-y-3">
@@ -2071,6 +2161,8 @@ export function AdminDashboard({
             </div>
           </div>
         )}
+
+        <FooterNavigation />
 
         <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
           <Footer />

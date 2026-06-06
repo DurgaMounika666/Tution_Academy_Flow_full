@@ -29,7 +29,15 @@ import {
 import {
   normalizeStudent, normalizeTutor, normalizeFee, normalizeAssignment,
 } from "./utils/normalizers";
-import { Student, Tutor, FeePayment, Assignment, Review, Message, TestScore } from "./types";
+import { Student, Tutor, FeePayment, Assignment, Review, Message, TestScore, RegistrationNotification } from "./types";
+
+type UserRole = "student" | "parent" | "tutor" | "admin";
+
+const SESSION_ROLE_KEY = "academyflow_session_role";
+const SESSION_USER_KEY = "academyflow_session_user";
+const REGISTRATION_NOTIFICATIONS_KEY = "academyflow_registration_notifications";
+
+const roleDashboardPath = (role: UserRole | null) => (role ? `/${role}` : "/login");
 
 export default function App() {
   const navigate = useNavigate();
@@ -44,15 +52,39 @@ export default function App() {
   const [messagesState, setMessagesState] = useState<Message[]>(INITIAL_MESSAGES);
   const [testsState, setTestsState] = useState<TestScore[]>(INITIAL_TESTS);
 
-  const [activeStudentId, setActiveStudentId] = useState("");
-  const [activeParentEmail, setActiveParentEmail] = useState("");
-  const [activeTutorId, setActiveTutorId] = useState("");
-  const [loggedInRole, setLoggedInRole] = useState<"student" | "parent" | "tutor" | "admin" | null>(null);
+  const [activeStudentId, setActiveStudentId] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem(SESSION_ROLE_KEY) === "student"
+      ? localStorage.getItem(SESSION_USER_KEY) || ""
+      : ""
+  );
+  const [activeParentEmail, setActiveParentEmail] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem(SESSION_ROLE_KEY) === "parent"
+      ? localStorage.getItem(SESSION_USER_KEY) || ""
+      : ""
+  );
+  const [activeTutorId, setActiveTutorId] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem(SESSION_ROLE_KEY) === "tutor"
+      ? localStorage.getItem(SESSION_USER_KEY) || ""
+      : ""
+  );
+  const [loggedInRole, setLoggedInRole] = useState<UserRole | null>(() => {
+    if (typeof window === "undefined") return null;
+    const stored = localStorage.getItem(SESSION_ROLE_KEY);
+    return ["student", "parent", "tutor", "admin"].includes(stored || "") ? stored as UserRole : null;
+  });
 
   const [activeStandard, setActiveStandard] = useState("9th Class");
   const [registerOpen, setRegisterOpen] = useState(false);
   const [demoBookingOpen, setDemoBookingOpen] = useState(false);
-  const [registeredParents, setRegisteredParents] = useState<Array<{ email: string; pass: string }>>([]);
+  const [registrationNotifications, setRegistrationNotifications] = useState<RegistrationNotification[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem(REGISTRATION_NOTIFICATIONS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const loadTutors = useCallback(async () => {
     try {
@@ -150,16 +182,31 @@ export default function App() {
     }
   };
 
-  const handleRegisterSuccess = async (email: string, pass: string) => {
-    setRegisteredParents((prev) => [...prev, { email, pass }]);
-    await fetchParentData(email);
+  useEffect(() => {
+    localStorage.setItem(REGISTRATION_NOTIFICATIONS_KEY, JSON.stringify(registrationNotifications));
+  }, [registrationNotifications]);
+
+  const persistSession = (role: UserRole, userId?: string) => {
+    localStorage.setItem(SESSION_ROLE_KEY, role);
+    localStorage.setItem(SESSION_USER_KEY, userId || role);
+    setLoggedInRole(role);
+  };
+
+  const handleRegisterSuccess = async (notification: Omit<RegistrationNotification, "id" | "status">) => {
+    const createdNotification: RegistrationNotification = {
+      ...notification,
+      id: `REG-${Date.now()}`,
+      status: "Pending",
+    };
+    setRegistrationNotifications((prev) => [createdNotification, ...prev]);
+    await fetchParentData(notification.email);
   };
 
   const handleLoginSuccess = async (
-    role: "student" | "parent" | "tutor" | "admin",
+    role: UserRole,
     userId?: string
   ) => {
-    setLoggedInRole(role);
+    persistSession(role, userId);
 
     if (role === "student" && userId) {
       setActiveStudentId(userId);
@@ -188,15 +235,22 @@ export default function App() {
   const handleBypassLogin = async (role: "student" | "parent" | "tutor") => {
     if (role === "student" && studentsState[0]) {
       setActiveStudentId(studentsState[0].id);
+      persistSession("student", studentsState[0].id);
     } else if (role === "parent" && studentsState[0]) {
       setActiveParentEmail(studentsState[0].parentEmail);
       setActiveStudentId(studentsState[0].id);
+      persistSession("parent", studentsState[0].parentEmail);
+    } else if (role === "tutor" && tutorsState[0]) {
+      setActiveTutorId(tutorsState[0].id);
+      persistSession("tutor", tutorsState[0].id);
     }
     navigate(`/${role}`);
   };
 
   const handleLogout = () => {
     apiClient.clearAuthToken();
+    localStorage.removeItem(SESSION_ROLE_KEY);
+    localStorage.removeItem(SESSION_USER_KEY);
     setLoggedInRole(null);
     setStudentsState([]);
     setTutorsState([]);
@@ -207,6 +261,14 @@ export default function App() {
     setActiveTutorId("");
     setLanguage("English");
     navigate("/login");
+  };
+
+  const handleRegistrationDecision = (id: string, status: "Accepted" | "Rejected") => {
+    setRegistrationNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === id ? { ...notification, status } : notification
+      )
+    );
   };
 
   const refreshStudents = async () => {
@@ -235,6 +297,61 @@ export default function App() {
   const currentTutor = tutorsState.find((t) => t.id === activeTutorId) || tutorsState[0];
   const isDashboardRoute = ["/student", "/parent", "/tutor", "/admin"].includes(location.pathname);
 
+  useEffect(() => {
+    const restoreSessionData = async () => {
+      if (loggedInRole === "student" && activeStudentId && studentsState.length === 0) {
+        const student = await fetchStudentById(activeStudentId);
+        if (student) {
+          setStudentsState([student]);
+          await Promise.all([fetchFeesForStudent(student.id), loadTutors()]);
+        }
+      } else if (loggedInRole === "parent" && activeParentEmail && studentsState.length === 0) {
+        await fetchParentData(activeParentEmail);
+      } else if (loggedInRole === "tutor" && activeTutorId && tutorsState.length === 0) {
+        await fetchTutorData(activeTutorId);
+      } else if (loggedInRole === "admin" && studentsState.length === 0 && tutorsState.length === 0) {
+        await loadAdminData();
+      }
+    };
+
+    restoreSessionData();
+  }, [loggedInRole]);
+
+  useEffect(() => {
+    if (loggedInRole !== "student") return;
+
+    let inactivityTimer: ReturnType<typeof setTimeout>;
+    const expireStudentSession = () => {
+      window.alert("Your student session expired after 5 minutes of inactivity.");
+      handleLogout();
+    };
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(expireStudentSession, 5 * 60 * 1000);
+    };
+    const activityEvents = ["click", "keydown", "scroll", "pointerdown", "mousemove", "touchstart"];
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetTimer, { passive: true });
+    });
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetTimer);
+      });
+    };
+  }, [loggedInRole]);
+
+  const renderProtectedDashboard = (role: UserRole, element: React.ReactElement) => {
+    if (loggedInRole !== role) {
+      return <Navigate to={roleDashboardPath(loggedInRole)} replace />;
+    }
+
+    return element;
+  };
+
   return (
     <ThemeProvider>
       <ScrollToTop />
@@ -244,6 +361,7 @@ export default function App() {
           onOpenRegister={() => setRegisterOpen(true)}
           activeStandard={activeStandard}
           onSelectStandard={setActiveStandard}
+          loggedInRole={loggedInRole}
         />
 
         <main className={isDashboardRoute ? "flex-1 min-h-0 overflow-hidden" : "flex-grow"}>
@@ -262,16 +380,20 @@ export default function App() {
             } />
 
             <Route path="/login" element={
-              <LoginGateway
-                onLoginSuccess={handleLoginSuccess}
-                onOpenRegister={() => setRegisterOpen(true)}
-              />
+              loggedInRole ? (
+                <Navigate to={roleDashboardPath(loggedInRole)} replace />
+              ) : (
+                <LoginGateway
+                  onLoginSuccess={handleLoginSuccess}
+                  onOpenRegister={() => setRegisterOpen(true)}
+                />
+              )
             } />
 
             <Route path="/classes/:type" element={<ClassInfo />} />
 
             <Route path="/student" element={
-              currentStudent ? (
+              renderProtectedDashboard("student", currentStudent ? (
                 <StudentDashboard
                   key={`student-${activeStudentId}`}
                   currentStudent={currentStudent}
@@ -282,11 +404,11 @@ export default function App() {
                 <div className="flex items-center justify-center h-full text-slate-500">
                   Please log in as a student to view your dashboard.
                 </div>
-              )
+              ))
             } />
 
             <Route path="/parent" element={
-              studentsState.length > 0 ? (
+              renderProtectedDashboard("parent", studentsState.length > 0 ? (
                 <ParentDashboard
                   key={`parent-${activeParentEmail}`}
                   students={studentsState}
@@ -301,11 +423,11 @@ export default function App() {
                 <div className="flex items-center justify-center h-full text-slate-500">
                   Please log in as a parent to view your dashboard.
                 </div>
-              )
+              ))
             } />
 
             <Route path="/tutor" element={
-              currentTutor ? (
+              renderProtectedDashboard("tutor", currentTutor ? (
                 <TutorDashboard
                   key={`tutor-${activeTutorId}`}
                   currentTutor={currentTutor}
@@ -324,21 +446,25 @@ export default function App() {
                 <div className="flex items-center justify-center h-full text-slate-500">
                   Please log in as a tutor to view your dashboard.
                 </div>
-              )
+              ))
             } />
 
             <Route path="/admin" element={
-              <AdminDashboard
-                key="admin-dashboard"
-                students={studentsState}
-                tutors={tutorsState}
-                fees={feesState}
-                onRefreshStudents={refreshStudents}
-                onRefreshTutors={refreshTutors}
-                onRefreshFees={refreshFees}
-                onBypassLogin={handleBypassLogin}
-                onLogout={handleLogout}
-              />
+              renderProtectedDashboard("admin", (
+                <AdminDashboard
+                  key="admin-dashboard"
+                  students={studentsState}
+                  tutors={tutorsState}
+                  fees={feesState}
+                  registrationNotifications={registrationNotifications}
+                  onRegistrationDecision={handleRegistrationDecision}
+                  onRefreshStudents={refreshStudents}
+                  onRefreshTutors={refreshTutors}
+                  onRefreshFees={refreshFees}
+                  onBypassLogin={handleBypassLogin}
+                  onLogout={handleLogout}
+                />
+              ))
             } />
 
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -356,6 +482,7 @@ export default function App() {
         <DemoBookingModal
           isOpen={demoBookingOpen}
           onClose={() => setDemoBookingOpen(false)}
+          initialClass={activeStandard}
         />
 
       </div>

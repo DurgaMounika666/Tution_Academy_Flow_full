@@ -5,6 +5,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Bot, ChevronDown, MessageCircle, Send, X } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 type SupportTopic = "Admissions" | "Fees" | "Classes" | "Login" | "General";
 
@@ -48,6 +49,42 @@ const TOPIC_REPLY_BANK: Record<SupportTopic, string[]> = {
     "Tell me what you need help with and I’ll point you to the right step.",
     "I can assist with common academy questions. Please send a bit more detail.",
   ],
+};
+
+const PRECISE_REPLY_BANK: Record<SupportTopic, string[]> = {
+  Admissions: [
+    "For admission, use Register on the website, fill parent details, select the student's class from 1st to 10th Class, then submit. The admin receives the request with Accept/Reject options.",
+  ],
+  Fees: [
+    "Fee status, payments, and receipts are available in the Parent Dashboard under Fees. Admins can review pending registration advance approvals in the Admin Dashboard.",
+  ],
+  Classes: [
+    "Academy Flow supports 1st Class through 10th Class. You can choose online, offline, or online & offline mode, then book a demo from the home page.",
+  ],
+  Login: [
+    "Student login uses Student ID and Password. Parent, Tutor, and Admin logins use Email and Password. If access fails, use Forgot Password to verify email, enter OTP, and set a new password.",
+  ],
+  General: [
+    "I can help with admissions, fees, class selection, demo booking, login, password reset, and dashboard navigation. Please ask one of those topics for the clearest answer.",
+  ],
+};
+
+const LOCALIZED_REPLY_BANK: Record<string, Record<SupportTopic, string[]>> = {
+  English: PRECISE_REPLY_BANK,
+  Telugu: {
+    Admissions: ["ప్రవేశం కోసం వెబ్‌సైట్‌లో Register ఎంచుకుని, తల్లిదండ్రుల వివరాలు నింపి, 1st Class నుంచి 10th Class వరకు విద్యార్థి తరగతిని ఎంచుకుని Submit చేయండి. ఆ అభ్యర్థన Admin Dashboard లో Accept/Reject కోసం కనిపిస్తుంది."],
+    Fees: ["ఫీజులు, చెల్లింపులు, రసీదులు Parent Dashboard లోని Fees విభాగంలో కనిపిస్తాయి. రిజిస్ట్రేషన్ అడ్వాన్స్ ఆమోదాలను Admin Dashboard లో అడ్మిన్ పరిశీలించవచ్చు."],
+    Classes: ["Academy Flow లో 1st Class నుంచి 10th Class వరకు తరగతులు ఉన్నాయి. ఆన్‌లైన్, ఆఫ్‌లైన్ లేదా ఆన్‌లైన్ & ఆఫ్‌లైన్ మోడ్ ఎంచుకుని హోమ్ పేజీ నుంచి డెమో బుక్ చేయవచ్చు."],
+    Login: ["Student login కి Student ID మరియు Password అవసరం. Parent, Tutor, Admin లాగిన్‌లకు Email మరియు Password అవసరం. సమస్య ఉంటే Forgot Password ద్వారా Email, OTP verify చేసి కొత్త Password సెట్ చేయండి."],
+    General: ["నేను admissions, fees, class selection, demo booking, login, password reset, dashboard navigation గురించి సహాయం చేయగలను. స్పష్టమైన సమాధానం కోసం వాటిలో ఒకటి అడగండి."],
+  },
+  Hindi: {
+    Admissions: ["प्रवेश के लिए वेबसाइट पर Register चुनें, अभिभावक विवरण भरें, 1st Class से 10th Class तक छात्र की कक्षा चुनें और Submit करें. यह अनुरोध Admin Dashboard में Accept/Reject के लिए दिखेगा."],
+    Fees: ["फीस, भुगतान और रसीदें Parent Dashboard के Fees सेक्शन में मिलती हैं. रजिस्ट्रेशन एडवांस अनुमोदन Admin Dashboard में एडमिन देख सकता है."],
+    Classes: ["Academy Flow में 1st Class से 10th Class तक कक्षाएं हैं. ऑनलाइन, ऑफलाइन या ऑनलाइन & ऑफलाइन मोड चुनकर होम पेज से डेमो बुक करें."],
+    Login: ["Student login के लिए Student ID और Password चाहिए. Parent, Tutor और Admin login के लिए Email और Password चाहिए. समस्या हो तो Forgot Password से Email, OTP verify करके नया Password सेट करें."],
+    General: ["मैं admissions, fees, class selection, demo booking, login, password reset और dashboard navigation में मदद कर सकता हूं. साफ जवाब के लिए इनमें से एक विषय पूछें."],
+  },
 };
 
 const GENERIC_FOLLOW_UPS = [
@@ -119,7 +156,7 @@ function pickVariant(seed: string, variants: string[]): string {
   return variants[total % variants.length];
 }
 
-function createAssistantReply(userText: string, previousMessages: ChatMessage[]): ChatMessage {
+function createAssistantReply(userText: string, previousMessages: ChatMessage[], language: string): ChatMessage {
   const topic = getTopicFromText(userText);
   const lower = userText.toLowerCase();
   const lastAssistant = [...previousMessages].reverse().find((item) => item.role === "assistant");
@@ -151,7 +188,20 @@ function createAssistantReply(userText: string, previousMessages: ChatMessage[])
     };
   }
 
-  if (lastAssistant && repeatedTopicCount > 1) {
+  if (lower.includes("otp") || lower.includes("forgot") || lower.includes("reset") || lower.includes("password")) {
+    return {
+      id: `support-${Date.now()}`,
+      role: "assistant",
+      text: language === "Telugu"
+        ? "లాగిన్ పోర్టల్‌లో Forgot Password ఉపయోగించండి. Step 1 email verify చేస్తుంది, Step 2 OTP verify చేస్తుంది, Step 3 కొత్త Password set చేసి confirm చేయడానికి సహాయపడుతుంది."
+        : language === "Hindi"
+          ? "लॉगिन पोर्टल में Forgot Password इस्तेमाल करें. Step 1 email verify करता है, Step 2 OTP verify करता है, और Step 3 नया Password set और confirm करने देता है."
+          : "Use Forgot Password in the login portal. Step 1 verifies your email, Step 2 verifies the OTP, and Step 3 lets you set and confirm a new password.",
+      time: "Just now",
+    };
+  }
+
+  if (lastAssistant && repeatedTopicCount > 2 && topic === "General") {
     return {
       id: `support-${Date.now()}`,
       role: "assistant",
@@ -163,7 +213,7 @@ function createAssistantReply(userText: string, previousMessages: ChatMessage[])
   return {
     id: `support-${Date.now()}`,
     role: "assistant",
-    text: pickVariant(userText, TOPIC_REPLY_BANK[topic]),
+    text: pickVariant(userText, (LOCALIZED_REPLY_BANK[language] || PRECISE_REPLY_BANK)[topic]),
     time: "Just now",
   };
 }
@@ -176,6 +226,7 @@ function formatTime(date: Date): string {
 }
 
 export function ChatSupportWidget() {
+  const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [message, setMessage] = useState("");
@@ -221,7 +272,7 @@ export function ChatSupportWidget() {
       time: now,
     };
 
-    setMessages((current) => [...current, userMsg, { ...createAssistantReply(trimmed, current), time: now }]);
+    setMessages((current) => [...current, userMsg, { ...createAssistantReply(trimmed, current, language), time: now }]);
     setMessage("");
     setIsOpen(true);
     setIsMinimized(false);
@@ -229,7 +280,7 @@ export function ChatSupportWidget() {
 
   const handleQuickTopic = (topic: SupportTopic) => {
     const now = formatTime(new Date());
-    const reply = pickVariant(`${topic}-${messages.length}`, TOPIC_REPLY_BANK[topic]);
+    const reply = pickVariant(`${topic}-${messages.length}`, (LOCALIZED_REPLY_BANK[language] || PRECISE_REPLY_BANK)[topic]);
     setIsOpen(true);
     setIsMinimized(false);
     setMessages((current) => [

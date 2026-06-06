@@ -46,17 +46,17 @@ export function LogoutButton({ onLogout, className = "", variant = "header" }: L
             <div className="flex gap-3 justify-center">
               <button
                 type="button"
-                onClick={handleConfirm}
-                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl cursor-pointer"
-              >
-                OK
-              </button>
-              <button
-                type="button"
                 onClick={() => setShowConfirm(false)}
                 className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl cursor-pointer"
               >
                 Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Logout
               </button>
             </div>
           </div>

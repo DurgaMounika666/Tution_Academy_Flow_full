@@ -4,6 +4,7 @@
  */
 
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User";
 import { Parent } from "../models/Parent";
@@ -12,7 +13,22 @@ import { Student } from "../models/Student";
 import { FeeService } from "./FeeService";
 import { config } from "../config/env";
 
+type ResetRole = "student" | "parent" | "tutor" | "admin";
+
+interface PasswordResetRecord {
+  role: ResetRole;
+  email: string;
+  studentId?: string;
+  userId: string;
+  otp: string;
+  expiresAt: number;
+  resetToken?: string;
+}
+
 export class AuthService {
+  private static passwordResetOtps = new Map<string, PasswordResetRecord>();
+  private static adminOverridePassword: string | null = null;
+
   static async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 10);
   }
@@ -203,11 +219,142 @@ export class AuthService {
     }
   }
 
-  static async loginStudent(studentId: string) {
+  private static buildResetKey(role: ResetRole, email: string, studentId?: string) {
+    return `${role}:${studentId || ""}:${email.toLowerCase().trim()}`;
+  }
+
+  private static async resolvePasswordResetTarget(role: ResetRole, email: string, studentId?: string) {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (role === "student") {
+      if (!studentId) {
+        throw new Error("Student ID is required for student password reset.");
+      }
+
+      const student = await Student.findOne({ studentId: studentId.trim().toUpperCase() });
+      if (!student || student.parentEmail.toLowerCase() !== normalizedEmail) {
+        throw new Error("Student ID and verification email do not match our records.");
+      }
+
+      return {
+        role,
+        email: normalizedEmail,
+        studentId: student.studentId,
+        userId: student.userId.toString(),
+      };
+    }
+
+    if (role === "admin") {
+      if (normalizedEmail !== config.adminEmail.toLowerCase()) {
+        throw new Error("Admin verification email is invalid.");
+      }
+
+      return {
+        role,
+        email: normalizedEmail,
+        userId: "admin-001",
+      };
+    }
+
+    const user = await User.findOne({ email: normalizedEmail, role });
+    if (!user) {
+      throw new Error("No active account was found for this email and role.");
+    }
+
+    return {
+      role,
+      email: normalizedEmail,
+      userId: user._id.toString(),
+    };
+  }
+
+  static async requestPasswordResetOtp(role: ResetRole, email: string, studentId?: string) {
+    const target = await this.resolvePasswordResetTarget(role, email, studentId);
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const key = this.buildResetKey(role, target.email, target.studentId);
+
+    this.passwordResetOtps.set(key, {
+      ...target,
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    console.log(`[Academy Flow] Password reset OTP for ${role} ${target.email}: ${otp}`);
+
+    return {
+      role,
+      email: target.email,
+      expiresInMinutes: 10,
+      ...(config.nodeEnv !== "production" ? { otp } : {}),
+    };
+  }
+
+  static async verifyPasswordResetOtp(role: ResetRole, email: string, otp: string, studentId?: string) {
+    const target = await this.resolvePasswordResetTarget(role, email, studentId);
+    const key = this.buildResetKey(role, target.email, target.studentId);
+    const record = this.passwordResetOtps.get(key);
+
+    if (!record || record.otp !== otp.trim() || record.expiresAt < Date.now()) {
+      throw new Error("Invalid or expired OTP. Please request a new code.");
+    }
+
+    const resetToken = crypto.randomBytes(24).toString("hex");
+    this.passwordResetOtps.set(key, { ...record, resetToken });
+
+    return { resetToken };
+  }
+
+  static async resetPassword(resetToken: string, newPassword: string, confirmPassword: string) {
+    if (!newPassword || newPassword !== confirmPassword) {
+      throw new Error("New password and confirm password must match.");
+    }
+
+    if (newPassword.length < 8) {
+      throw new Error("Password must be at least 8 characters long.");
+    }
+
+    const entry = Array.from(this.passwordResetOtps.entries()).find(
+      ([, record]) => record.resetToken === resetToken && record.expiresAt >= Date.now()
+    );
+
+    if (!entry) {
+      throw new Error("Reset session expired. Please verify your email again.");
+    }
+
+    const [key, record] = entry;
+
+    if (record.role === "admin") {
+      this.adminOverridePassword = newPassword;
+      this.passwordResetOtps.delete(key);
+      return { role: record.role };
+    }
+
+    const hashedPassword = await this.hashPassword(newPassword);
+    await User.findByIdAndUpdate(record.userId, { password: hashedPassword });
+    this.passwordResetOtps.delete(key);
+
+    return { role: record.role };
+  }
+
+  static async loginStudent(studentId: string, password: string) {
     try {
       const student = await Student.findOne({ studentId: studentId.trim() });
       if (!student) {
         throw new Error("Invalid student ID. Please check and try again.");
+      }
+
+      if (!password) {
+        throw new Error("Student ID and password are required.");
+      }
+
+      const user = await User.findOne({ _id: student.userId, role: "student" }).select("+password");
+      if (!user) {
+        throw new Error("Student account credentials were not found.");
+      }
+
+      const isPasswordValid = await this.comparePassword(password, user.password);
+      if (!isPasswordValid) {
+        throw new Error("Invalid student ID or password.");
       }
 
       const token = this.generateToken(studentId, "student");
@@ -262,7 +409,7 @@ export class AuthService {
     try {
       if (
         email === config.adminEmail &&
-        password === config.adminPassword
+        (password === config.adminPassword || password === this.adminOverridePassword)
       ) {
         const adminId = "admin-001";
         const token = this.generateToken(adminId, "admin");

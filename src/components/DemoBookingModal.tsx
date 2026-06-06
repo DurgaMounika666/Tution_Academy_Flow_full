@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, CheckCircle2 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
+import { STANDARDS } from "../data";
 
 const COURSE_OPTIONS = [
   "Mathematics Foundation",
@@ -19,12 +20,14 @@ const COURSE_OPTIONS = [
 interface DemoBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialClass?: string;
 }
 
-export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
+export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }: DemoBookingModalProps) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [studentClass, setStudentClass] = useState(initialClass);
   const [course, setCourse] = useState(COURSE_OPTIONS[0]);
   const [preferredDate, setPreferredDate] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -32,6 +35,12 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  useEffect(() => {
+    if (isOpen && STANDARDS.includes(initialClass)) {
+      setStudentClass(initialClass);
+    }
+  }, [isOpen, initialClass]);
 
   const isValidName = (value: string) => /^[a-zA-Z\s]+$/.test(value);
   const isValidGmail = (value: string) => /^[^\s@]+@gmail\.com$/i.test(value);
@@ -44,6 +53,7 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
     setFullName("");
     setEmail("");
     setWhatsappNumber("");
+    setStudentClass(initialClass);
     setCourse(COURSE_OPTIONS[0]);
     setPreferredDate("");
     setErrorMessage("");
@@ -110,6 +120,11 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
       return;
     }
 
+    if (!studentClass.trim() || !STANDARDS.includes(studentClass)) {
+      setErrorMessage("Please select a valid class from 1st Class to 10th Class.");
+      return;
+    }
+
     if (!preferredDate.trim()) {
       setErrorMessage("Please select a preferred demo date.");
       return;
@@ -129,6 +144,7 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
         fullName: fullName.trim(),
         email: normalizedEmail,
         whatsappNumber: normalizedWhatsapp,
+        studentClass,
         course: course.trim(),
         preferredDate: preferredDate,
       });
@@ -218,6 +234,20 @@ export function DemoBookingModal({ isOpen, onClose }: DemoBookingModalProps) {
                     className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
                     required
                   />
+                </label>
+
+                <label className="space-y-2 text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
+                  Class / Grade *
+                  <select
+                    value={studentClass}
+                    onChange={(e) => setStudentClass(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
+                    required
+                  >
+                    {STANDARDS.map((standard) => (
+                      <option key={standard} value={standard}>{standard}</option>
+                    ))}
+                  </select>
                 </label>
 
                 <label className="space-y-2 text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">

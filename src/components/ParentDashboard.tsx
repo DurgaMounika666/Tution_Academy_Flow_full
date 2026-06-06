@@ -9,7 +9,7 @@ import {
   HelpCircle, ChevronRight, BookOpen, GraduationCap, Clock, PlusCircle,
   TrendingUp, CreditCard, Sparkles, X, ArrowRight,
   MessageSquare, Bell, Settings, Award, Calendar, FileText, User, LayoutDashboard, Send, Star,
-  Download, Save, Edit2, Shield, Lock, Globe, Inbox, Filter, Check, Eye
+  Download, Save, Edit2, Shield, Lock, Globe, Inbox, Filter, Check, Eye, EyeOff
 } from "lucide-react";
 import { Student, Tutor, FeePayment } from "../types";
 import { SUBJECTS_BY_CLASS, STANDARDS, LOCATIONS } from "../data";
@@ -20,6 +20,7 @@ import { FeeReceiptModal } from "./FeeReceiptModal";
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
 import { Footer } from "./Footer";
 import { LogoutButton } from "./LogoutButton";
+import { FooterNavigation } from "./FooterNavigation";
 
 interface ParentDashboardProps {
   students: Student[];
@@ -410,6 +411,12 @@ export function ParentDashboard({
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+    cvv: false,
+  });
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState("");
 
   const handleUpdatePassword = (e: React.FormEvent) => {
@@ -2406,34 +2413,58 @@ export function ParentDashboard({
                   <div className="space-y-1">
                     <label className="text-slate-655 block">Current Password</label>
                     <input
-                      type="password"
+                      type={passwordVisibility.current ? "text" : "password"}
                       placeholder="••••••••"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setPasswordVisibility((prev) => ({ ...prev, current: !prev.current }))}
+                      className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-slate-500 hover:text-sky-600"
+                    >
+                      {passwordVisibility.current ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      <span>{passwordVisibility.current ? "Hide" : "Show"}</span>
+                    </button>
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-slate-655 block">New Password</label>
                     <input
-                      type="password"
+                      type={passwordVisibility.next ? "text" : "password"}
                       placeholder="••••••••"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setPasswordVisibility((prev) => ({ ...prev, next: !prev.next }))}
+                      className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-slate-500 hover:text-sky-600"
+                    >
+                      {passwordVisibility.next ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      <span>{passwordVisibility.next ? "Hide" : "Show"}</span>
+                    </button>
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-slate-655 block">Confirm New Password</label>
                     <input
-                      type="password"
+                      type={passwordVisibility.confirm ? "text" : "password"}
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-xl font-bold"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setPasswordVisibility((prev) => ({ ...prev, confirm: !prev.confirm }))}
+                      className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-slate-500 hover:text-sky-600"
+                    >
+                      {passwordVisibility.confirm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      <span>{passwordVisibility.confirm ? "Hide" : "Show"}</span>
+                    </button>
                   </div>
 
                   <button
@@ -2563,6 +2594,8 @@ export function ParentDashboard({
         <div className="tab-fade-in">
           {renderTabContent()}
         </div>
+
+        <FooterNavigation />
 
         <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
           <Footer />
@@ -3123,13 +3156,21 @@ export function ParentDashboard({
                       <div className="space-y-1">
                         <label className="text-slate-655 block">CVV</label>
                         <input
-                          type="password"
+                          type={passwordVisibility.cvv ? "text" : "password"}
                           placeholder="•••"
                           maxLength={3}
                           value={cardCvv}
                           onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, ""))}
                           className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setPasswordVisibility((prev) => ({ ...prev, cvv: !prev.cvv }))}
+                          className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-slate-500 hover:text-sky-600"
+                        >
+                          {passwordVisibility.cvv ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          <span>{passwordVisibility.cvv ? "Hide" : "Show"}</span>
+                        </button>
                         {paymentErrors.cardCvv && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.cardCvv}</p>}
                       </div>
                     </div>

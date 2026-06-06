@@ -13,6 +13,7 @@ import { apiClient } from "../services/apiClient";
 import { Student, Tutor, Assignment, Review, Message, TestScore } from "../types";
 import { Footer } from "./Footer";
 import { LogoutButton } from "./LogoutButton";
+import { FooterNavigation } from "./FooterNavigation";
 
 interface TutorDashboardProps {
   currentTutor: Tutor;
@@ -431,6 +432,8 @@ export function TutorDashboard({
         )}
 
         {activeView === "settings" && <SettingsView />}
+
+        <FooterNavigation />
 
         <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
           <Footer />

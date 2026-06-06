@@ -7,11 +7,12 @@ import React, { useState, useRef } from "react";
 import { X, Sparkles, UserPlus, CheckCircle2, ChevronRight, UserCheck, Eye, EyeOff } from "lucide-react";
 import { STANDARDS } from "../data";
 import { apiClient } from "../services/apiClient";
+import { RegistrationNotification } from "../types";
 
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onRegisterSuccess: (email: string, pass: string) => void;
+  onRegisterSuccess: (notification: Omit<RegistrationNotification, "id" | "status">) => void;
 }
 
 export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterModalProps) {
@@ -203,7 +204,14 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
         classMode
       );
       apiClient.clearAuthToken();
-      onRegisterSuccess(normalizedEmail, newPassword);
+      onRegisterSuccess({
+        name: parentName.trim(),
+        role: "Parent",
+        email: normalizedEmail,
+        mobileNumber: parentPhone.trim(),
+        studentClass: childGrade,
+        registrationDateTime: new Date().toLocaleString(),
+      });
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);

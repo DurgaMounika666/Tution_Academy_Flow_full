@@ -13,9 +13,10 @@ interface NavbarProps {
   onOpenRegister: () => void;
   activeStandard: string;
   onSelectStandard: (std: string) => void;
+  loggedInRole?: "student" | "parent" | "tutor" | "admin" | null;
 }
 
-export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: NavbarProps) {
+export function Navbar({ onOpenRegister, activeStandard, onSelectStandard, loggedInRole = null }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
@@ -187,22 +188,69 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
                   )}
                 </div>
 
-                <button
-                  onClick={onOpenRegister}
-                  className="hidden md:flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 px-4 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 transition-all active:scale-95 shadow-sm"
-                >
-                  <UserPlus className="h-4 w-4 opacity-70" />
-                  <span>{t("register")}</span>
-                </button>
-                <button
-                  onClick={() => navigate("/login")}
-                  className="flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-white dark:bg-sky-500 dark:hover:bg-sky-400 dark:text-slate-950 px-4.5 py-2.5 text-sm font-bold transition-all active:scale-95 shadow-md"
-                >
-                  <LogIn className="h-4 w-4" />
-                  <span>{t("portalLogin")}</span>
-                </button>
+                {loggedInRole ? (
+                  <button
+                    onClick={() => navigate(`/${loggedInRole}`)}
+                    className="flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-white dark:bg-sky-500 dark:hover:bg-sky-400 dark:text-slate-950 px-4.5 py-2.5 text-sm font-bold transition-all active:scale-95 shadow-md"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    <span>{t("goToDashboard")}</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={onOpenRegister}
+                      className="hidden md:flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 px-4 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 transition-all active:scale-95 shadow-sm"
+                    >
+                      <UserPlus className="h-4 w-4 opacity-70" />
+                      <span>{t("register")}</span>
+                    </button>
+                    <button
+                      onClick={() => navigate("/login")}
+                      className="flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-white dark:bg-sky-500 dark:hover:bg-sky-400 dark:text-slate-950 px-4.5 py-2.5 text-sm font-bold transition-all active:scale-95 shadow-md"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      <span>{t("portalLogin")}</span>
+                    </button>
+                  </>
+                )}
               </div>
             ) : null}
+
+            {!isLanding && (
+              <div className="relative">
+                <button
+                  onClick={() => { setLangDropdownOpen(!langDropdownOpen); setClassDropdownOpen(false); }}
+                  className="flex items-center justify-center p-2 rounded-xl border border-slate-250 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-705 transition-all active:scale-95 shadow-sm gap-1.5"
+                  title={t("pickLanguage")}
+                >
+                  <img src="/translate.png" alt="Translate" className="h-5 w-5 object-contain" />
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 hidden sm:inline">{language}</span>
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </button>
+                {langDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-40 rounded-2xl border border-slate-150 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900 z-50">
+                    {(["English", "Telugu", "Hindi"] as const).map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => {
+                          setLanguage(lang);
+                          setLangDropdownOpen(false);
+                        }}
+                        className={`w-full rounded-xl px-3 py-2 text-left text-sm font-semibold transition-all duration-150 flex items-center justify-between ${
+                          language === lang
+                            ? "bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400"
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <span>{lang}</span>
+                        {language === lang && <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Mobile Hamburger toggle */}
             <button
@@ -290,22 +338,34 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard }: Nav
               {t("contactUs")} (954239546)
             </button>
 
-            {/* Quick Register option inside drawer */}
-            <button
-              onClick={() => { onOpenRegister(); setMobileMenuOpen(false); }}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-sky-500 text-slate-950 font-bold py-3 text-sm shadow-md"
-            >
-              <UserPlus className="h-4.5 w-4.5" />
-              <span>{t("register")}</span>
-            </button>
+            {loggedInRole ? (
+              <button
+                onClick={() => { navigate(`/${loggedInRole}`); setMobileMenuOpen(false); }}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-900 text-white dark:bg-slate-800 dark:text-white font-bold py-3 text-sm shadow"
+              >
+                <LogIn className="h-4.5 w-4.5" />
+                <span>{t("goToDashboard")}</span>
+              </button>
+            ) : (
+              <>
+                {/* Quick Register option inside drawer */}
+                <button
+                  onClick={() => { onOpenRegister(); setMobileMenuOpen(false); }}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-sky-500 text-slate-950 font-bold py-3 text-sm shadow-md"
+                >
+                  <UserPlus className="h-4.5 w-4.5" />
+                  <span>{t("register")}</span>
+                </button>
 
-            <button
-              onClick={() => { navigate("/login"); setMobileMenuOpen(false); }}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-900 text-white dark:bg-slate-800 dark:text-white font-bold py-3 text-sm shadow"
-            >
-              <LogIn className="h-4.5 w-4.5" />
-              <span>{t("portalLogin")}</span>
-            </button>
+                <button
+                  onClick={() => { navigate("/login"); setMobileMenuOpen(false); }}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-900 text-white dark:bg-slate-800 dark:text-white font-bold py-3 text-sm shadow"
+                >
+                  <LogIn className="h-4.5 w-4.5" />
+                  <span>{t("portalLogin")}</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

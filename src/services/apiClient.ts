@@ -84,8 +84,8 @@ export const apiClient = {
     registerParent: (email: string, password: string, name?: string, phone?: string, childName?: string, childGrade?: string, classMode?: string) =>
       request("POST", "/auth/register-parent", { email, password, name, phone, childName, childGrade, classMode }),
 
-    loginStudent: (studentId: string) =>
-      request("POST", "/auth/login-student", { studentId }),
+    loginStudent: (studentId: string, password: string) =>
+      request("POST", "/auth/login-student", { studentId, password }),
 
     loginParent: (email: string, password: string) =>
       request("POST", "/auth/login-parent", { email, password }),
@@ -95,6 +95,25 @@ export const apiClient = {
 
     loginAdmin: (email: string, password: string) =>
       request("POST", "/auth/login-admin", { email, password }),
+
+    requestPasswordResetOtp: (payload: {
+      role: "student" | "parent" | "tutor" | "admin";
+      email: string;
+      studentId?: string;
+    }) => request("POST", "/auth/forgot-password/request-otp", payload),
+
+    verifyPasswordResetOtp: (payload: {
+      role: "student" | "parent" | "tutor" | "admin";
+      email: string;
+      otp: string;
+      studentId?: string;
+    }) => request("POST", "/auth/forgot-password/verify-otp", payload),
+
+    resetPassword: (payload: {
+      resetToken: string;
+      newPassword: string;
+      confirmPassword: string;
+    }) => request("POST", "/auth/forgot-password/reset", payload),
 
     logout: () => request("POST", "/auth/logout"),
   },

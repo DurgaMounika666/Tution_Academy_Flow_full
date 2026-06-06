@@ -85,6 +85,17 @@ export interface DemoBooking {
   whatsappMessage: string;
 }
 
+export interface RegistrationNotification {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  mobileNumber: string;
+  studentClass: string;
+  registrationDateTime: string;
+  status: "Pending" | "Accepted" | "Rejected";
+}
+
 export interface Assignment {
   id: string;
   title: string;
