@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useRef } from "react";
-import { X, Sparkles, UserPlus, CheckCircle2, ChevronRight, UserCheck, Eye, EyeOff } from "lucide-react";
-import { STANDARDS } from "../data";
+import { X, Sparkles, UserPlus, CheckCircle2, ChevronRight, UserCheck, Eye, EyeOff, CreditCard } from "lucide-react";
+import { STANDARDS, LOCATIONS } from "../data";
 import { apiClient } from "../services/apiClient";
 import { RegistrationNotification } from "../types";
 
@@ -24,6 +24,12 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
   const [childName, setChildName] = useState("");
   const [childGrade, setChildGrade] = useState("");
   const [classMode, setClassMode] = useState<"" | "Online" | "Offline" | "Online & Offline">("");
+  const [location, setLocation] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<"Pending" | "Paid" | "Failed">("Pending");
+  const [transactionId, setTransactionId] = useState("");
+  const [paymentDateTime, setPaymentDateTime] = useState("");
+  const [isPaying, setIsPaying] = useState(false);
+  const [simulatedCard, setSimulatedCard] = useState({ number: "", holder: "", expiry: "", cvv: "" });
   const [formStep, setFormStep] = useState(1);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -65,6 +71,12 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
     setChildName("");
     setChildGrade("");
     setClassMode("");
+    setLocation("");
+    setPaymentStatus("Pending");
+    setTransactionId("");
+    setPaymentDateTime("");
+    setIsPaying(false);
+    setSimulatedCard({ number: "", holder: "", expiry: "", cvv: "" });
     setFormStep(1);
     setErrorMessage("");
     setPasswordVisible(false);
@@ -102,6 +114,9 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
         return "";
       case "classMode":
         if (!value.trim()) return "Please select a class mode.";
+        return "";
+      case "location":
+        if (!value.trim()) return "Please select a location.";
         return "";
       default:
         return "";
@@ -178,6 +193,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
       ["childName", childName],
       ["childGrade", childGrade],
       ["classMode", classMode],
+      ["location", location],
     ] as const;
 
     let hasErrors = false;
@@ -193,6 +209,11 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
       return;
     }
 
+    if (paymentStatus !== "Paid") {
+      setErrorMessage("Please complete the advance fee payment before submitting your registration.");
+      return;
+    }
+
     try {
       const result = await apiClient.auth.registerParent(
         normalizedEmail,
@@ -201,7 +222,11 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
         parentPhone,
         childName,
         childGrade,
-        classMode
+        classMode,
+        location,
+        150,
+        transactionId,
+        paymentStatus
       );
       apiClient.clearAuthToken();
       onRegisterSuccess({
@@ -499,6 +524,132 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                     <p className="text-rose-600 text-[10px]">{fieldErrors.classMode}</p>
                   )}
                 </div>
+
+                <div className="space-y-1 pt-2">
+                  <label className="text-slate-600">Select Location</label>
+                  <select
+                    value={location}
+                    onChange={(e) => {
+                      setLocation(e.target.value);
+                      if (fieldErrors.location) validateAndSetFieldError("location", e.target.value);
+                    }}
+                    onBlur={() => validateAndSetFieldError("location", location)}
+                    className={`w-full p-2.5 rounded-xl border ${fieldErrors.location ? "border-rose-500" : "border-slate-200"} dark:bg-slate-900 text-xs`}
+                    required
+                  >
+                    <option value="" disabled>Select your location</option>
+                    {LOCATIONS.map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                  {fieldErrors.location && (
+                    <p className="text-rose-600 text-[10px]">{fieldErrors.location}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Advance Fee Payment Panel */}
+              <div className={`rounded-2xl border-2 p-4 space-y-3 transition-all ${paymentStatus === "Paid" ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20" : "border-amber-300 bg-amber-50 dark:bg-amber-950/10"}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className={`h-4 w-4 ${paymentStatus === "Paid" ? "text-emerald-600" : "text-amber-600"}`} />
+                    <span className={`text-xs font-black uppercase tracking-wide ${paymentStatus === "Paid" ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}`}>
+                      {paymentStatus === "Paid" ? "✅ Advance Fee Paid" : "⚠️ Pay Advance Fee (Mandatory)"}
+                    </span>
+                  </div>
+                  <span className={`text-sm font-black ${paymentStatus === "Paid" ? "text-emerald-600" : "text-amber-600"}`}>₹150</span>
+                </div>
+
+                {paymentStatus === "Paid" ? (
+                  <div className="space-y-1.5 text-[10px] font-mono bg-white dark:bg-slate-900 rounded-xl p-3 border border-emerald-200">
+                    <p className="font-bold text-emerald-700 dark:text-emerald-300">Payment Successful 🎉</p>
+                    <p className="text-slate-500">Transaction ID: <span className="text-slate-800 dark:text-white font-bold">{transactionId}</span></p>
+                    <p className="text-slate-500">Date & Time: <span className="text-slate-800 dark:text-white">{paymentDateTime}</span></p>
+                    <p className="text-slate-500">Amount: <span className="text-emerald-700 font-bold">₹150.00</span></p>
+                  </div>
+                ) : (
+                  <>
+                    {!isPaying ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsPaying(true)}
+                        className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-white font-black rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <CreditCard className="h-3.5 w-3.5" />
+                        Pay Advance Fee — ₹150
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Card Payment Details</p>
+                        <input
+                          type="text"
+                          placeholder="Card Holder Name"
+                          value={simulatedCard.holder}
+                          onChange={(e) => setSimulatedCard(prev => ({ ...prev, holder: e.target.value }))}
+                          className="w-full p-2 rounded-xl border border-slate-200 dark:bg-slate-900 text-xs font-semibold"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Card Number (16 digits)"
+                          maxLength={19}
+                          value={simulatedCard.number}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/\D/g, "").slice(0, 16);
+                            const formatted = v.replace(/(.{4})/g, "$1 ").trim();
+                            setSimulatedCard(prev => ({ ...prev, number: formatted }));
+                          }}
+                          className="w-full p-2 rounded-xl border border-slate-200 dark:bg-slate-900 text-xs font-semibold font-mono"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            placeholder="MM/YY"
+                            maxLength={5}
+                            value={simulatedCard.expiry}
+                            onChange={(e) => {
+                              let v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                              if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
+                              setSimulatedCard(prev => ({ ...prev, expiry: v }));
+                            }}
+                            className="w-full p-2 rounded-xl border border-slate-200 dark:bg-slate-900 text-xs font-semibold"
+                          />
+                          <input
+                            type="text"
+                            placeholder="CVV"
+                            maxLength={3}
+                            value={simulatedCard.cvv}
+                            onChange={(e) => setSimulatedCard(prev => ({ ...prev, cvv: e.target.value.replace(/\D/g, "").slice(0, 3) }))}
+                            className="w-full p-2 rounded-xl border border-slate-200 dark:bg-slate-900 text-xs font-semibold"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!simulatedCard.holder.trim() || simulatedCard.number.replace(/\s/g, "").length < 16 || !simulatedCard.expiry || simulatedCard.cvv.length < 3) {
+                              alert("Please fill in all card details to proceed.");
+                              return;
+                            }
+                            const txnId = `AF-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
+                            setTransactionId(txnId);
+                            setPaymentDateTime(new Date().toLocaleString());
+                            setPaymentStatus("Paid");
+                            setIsPaying(false);
+                          }}
+                          className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs transition-all active:scale-95"
+                        >
+                          Confirm Payment ₹150
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsPaying(false)}
+                          className="w-full py-1.5 text-slate-500 text-[10px] font-bold hover:underline"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="flex gap-2">
@@ -511,10 +662,11 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                 </button>
                 <button
                   type="submit"
-                  className="flex-[2] bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 text-white font-black py-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                  disabled={paymentStatus !== "Paid"}
+                  className={`flex-[2] font-black py-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 ${paymentStatus === "Paid" ? "bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"}`}
                 >
                   <UserCheck className="h-4 w-4" />
-                  <span>Confirm Enrollment</span>
+                  <span>{paymentStatus === "Paid" ? "Submit Registration" : "Pay Fee to Continue"}</span>
                 </button>
               </div>
               </>)}

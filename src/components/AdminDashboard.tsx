@@ -131,6 +131,11 @@ export function AdminDashboard({
     theme: "light"
   });
 
+  // Registrations State
+  const [backendRegistrations, setBackendRegistrations] = useState<any[]>([]);
+  const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  const [regStatusFilter, setRegStatusFilter] = useState<"Pending Approval" | "Approved" | "Rejected" | "All">("Pending Approval");
+
   // Timetable State
   const [timetableSummary, setTimetableSummary] = useState<any[]>([]);
   const [loadingTimetable, setLoadingTimetable] = useState(false);
@@ -170,7 +175,32 @@ export function AdminDashboard({
     if (activeTab === "fees") {
       fetchPendingApprovals();
     }
+    if (activeTab === "registrations") {
+      fetchBackendRegistrations();
+    }
   }, [activeTab]);
+
+  const fetchBackendRegistrations = async () => {
+    setLoadingRegistrations(true);
+    try {
+      const data = await apiClient.registrations.getAll();
+      setBackendRegistrations(Array.isArray(data) ? data : []);
+    } catch {
+      setBackendRegistrations([]);
+    } finally {
+      setLoadingRegistrations(false);
+    }
+  };
+
+  const handleBackendRegistrationDecision = async (id: string, status: "Approved" | "Rejected") => {
+    try {
+      await apiClient.registrations.updateStatus(id, status);
+      triggerToast(`Registration ${status.toLowerCase()} successfully`);
+      await fetchBackendRegistrations();
+    } catch (error: any) {
+      triggerToast(error.message || `Failed to ${status.toLowerCase()} registration`);
+    }
+  };
 
   const fetchPendingApprovals = async () => {
     try {
@@ -284,6 +314,7 @@ export function AdminDashboard({
 
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "registrations", label: "Registrations", icon: UserCheck },
     { id: "students", label: "Students", icon: Users },
     { id: "tutors", label: "Tutors", icon: BookOpen },
     { id: "parents", label: "Parents", icon: Users },
@@ -638,6 +669,10 @@ export function AdminDashboard({
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
+              const pendingCount = item.id === "registrations"
+                ? (backendRegistrations.filter(r => r.registrationStatus === "Pending Approval").length ||
+                   registrationNotifications.filter(n => n.status === "Pending").length)
+                : 0;
               return (
                 <button
                   key={item.id}
@@ -650,7 +685,12 @@ export function AdminDashboard({
                     }`}
                 >
                   <Icon className="h-4.5 w-4.5 shrink-0" />
-                  <span>{item.label}</span>
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {pendingCount > 0 && (
+                    <span className="ml-auto bg-rose-500 text-white text-[9px] font-black rounded-full w-5 h-5 flex items-center justify-center shrink-0">
+                      {pendingCount > 9 ? "9+" : pendingCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -2162,7 +2202,238 @@ export function AdminDashboard({
           </div>
         )}
 
-        <FooterNavigation />
+        {/* ========================================================================= */}
+        {/* VIEW: REGISTRATIONS */}
+        {/* ========================================================================= */}
+        {activeTab === "registrations" && (
+          <div className="space-y-5">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: "Pending", value: backendRegistrations.filter(r => r.registrationStatus === "Pending Approval").length || registrationNotifications.filter(n => n.status === "Pending").length, color: "amber" },
+                { label: "Approved", value: backendRegistrations.filter(r => r.registrationStatus === "Approved").length || registrationNotifications.filter(n => n.status === "Accepted").length, color: "emerald" },
+                { label: "Rejected", value: backendRegistrations.filter(r => r.registrationStatus === "Rejected").length || registrationNotifications.filter(n => n.status === "Rejected").length, color: "rose" },
+              ].map(card => (
+                <div key={card.label} className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm text-left">
+                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider">{card.label}</p>
+                  <p className={`text-3xl font-black mt-1 ${card.color === "amber" ? "text-amber-500" : card.color === "emerald" ? "text-emerald-500" : "text-rose-500"}`}>{card.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex gap-2 flex-wrap">
+              {(["Pending Approval", "Approved", "Rejected", "All"] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setRegStatusFilter(f)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                    regStatusFilter === f
+                      ? "bg-[#2563eb] text-white border-[#2563eb]"
+                      : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+              <button
+                onClick={fetchBackendRegistrations}
+                className="ml-auto px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400 transition-all flex items-center gap-1.5"
+              >
+                <ArrowUpRight className="h-3 w-3" /> Refresh
+              </button>
+            </div>
+
+            {/* Registrations List from Backend */}
+            {loadingRegistrations ? (
+              <div className="text-center py-12 text-slate-400 text-sm font-bold">Loading registration requests...</div>
+            ) : (() => {
+              const regs = backendRegistrations.length > 0 ? backendRegistrations : [];
+              const filtered = regStatusFilter === "All" ? regs : regs.filter(r => r.registrationStatus === regStatusFilter);
+
+              // Fallback to localStorage-based notifications if backend returns nothing
+              const notifFiltered = backendRegistrations.length === 0
+                ? registrationNotifications.filter(n => {
+                    if (regStatusFilter === "All") return true;
+                    if (regStatusFilter === "Pending Approval") return n.status === "Pending";
+                    if (regStatusFilter === "Approved") return n.status === "Accepted";
+                    if (regStatusFilter === "Rejected") return n.status === "Rejected";
+                    return true;
+                  })
+                : [];
+
+              const showNotifFallback = backendRegistrations.length === 0;
+
+              if (!showNotifFallback && filtered.length === 0) {
+                return (
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center border border-slate-100 dark:border-slate-800">
+                    <UserCheck className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                    <p className="text-sm font-bold text-slate-500">No {regStatusFilter} registrations found</p>
+                  </div>
+                );
+              }
+
+              if (showNotifFallback && notifFiltered.length === 0) {
+                return (
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center border border-slate-100 dark:border-slate-800">
+                    <UserCheck className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                    <p className="text-sm font-bold text-slate-500">No {regStatusFilter} registration requests</p>
+                    <p className="text-xs text-slate-400 mt-1">New parent registrations will appear here for review</p>
+                  </div>
+                );
+              }
+
+              const items = showNotifFallback ? notifFiltered : filtered;
+
+              return (
+                <div className="space-y-3">
+                  {items.map((reg: any) => {
+                    const isBackend = !showNotifFallback;
+                    const isPending = isBackend
+                      ? reg.registrationStatus === "Pending Approval"
+                      : reg.status === "Pending";
+                    const isApproved = isBackend
+                      ? reg.registrationStatus === "Approved"
+                      : reg.status === "Accepted";
+
+                    return (
+                      <div
+                        key={reg._id || reg.id}
+                        className={`bg-white dark:bg-slate-900 rounded-2xl p-5 border shadow-sm transition-all text-left ${
+                          isPending
+                            ? "border-amber-200 dark:border-amber-800/40"
+                            : isApproved
+                            ? "border-emerald-200 dark:border-emerald-800/40"
+                            : "border-rose-200 dark:border-rose-800/40"
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                                isPending
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                  : isApproved
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                  : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+                              }`}>
+                                {isBackend ? reg.registrationStatus : reg.status}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {reg._id ? reg._id.slice(-8).toUpperCase() : reg.id}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1.5 text-xs">
+                              <div>
+                                <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Parent Name</p>
+                                <p className="font-bold text-slate-800 dark:text-white">{isBackend ? reg.parentName : reg.name}</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Email</p>
+                                <p className="font-bold text-slate-700 dark:text-slate-200">{reg.email}</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Mobile</p>
+                                <p className="font-bold text-slate-700 dark:text-slate-200">{isBackend ? reg.phone : reg.mobileNumber}</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Student Name</p>
+                                <p className="font-bold text-slate-700 dark:text-slate-200">{isBackend ? reg.studentName : "—"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Class / Grade</p>
+                                <p className="font-bold text-slate-700 dark:text-slate-200">{isBackend ? reg.classGrade : reg.studentClass}</p>
+                              </div>
+                              {isBackend && (
+                                <div>
+                                  <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Location</p>
+                                  <p className="font-bold text-slate-700 dark:text-slate-200">{reg.location}</p>
+                                </div>
+                              )}
+                              {isBackend && (
+                                <div>
+                                  <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Mode</p>
+                                  <p className="font-bold text-slate-700 dark:text-slate-200">{reg.classMode}</p>
+                                </div>
+                              )}
+                              {isBackend && (
+                                <div>
+                                  <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Advance Fee Paid</p>
+                                  <p className="font-bold text-emerald-600">₹{reg.advanceFeeAmount} ({reg.paymentStatus})</p>
+                                </div>
+                              )}
+                              {isBackend && reg.transactionId && (
+                                <div className="col-span-2">
+                                  <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Transaction ID</p>
+                                  <p className="font-mono font-bold text-slate-700 dark:text-slate-200">{reg.transactionId}</p>
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Submitted On</p>
+                                <p className="font-bold text-slate-700 dark:text-slate-200">
+                                  {new Date(reg.createdAt || reg.registrationDateTime).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {isPending && (
+                            <div className="flex sm:flex-col gap-2 shrink-0">
+                              <button
+                                onClick={() => {
+                                  if (isBackend) {
+                                    handleBackendRegistrationDecision(reg._id, "Approved");
+                                  } else {
+                                    handleRegistrationDecision(reg.id, "Accepted");
+                                  }
+                                }}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] rounded-xl transition-all active:scale-95"
+                              >
+                                <Check className="h-3.5 w-3.5" /> Approve
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (isBackend) {
+                                    handleBackendRegistrationDecision(reg._id, "Rejected");
+                                  } else {
+                                    handleRegistrationDecision(reg.id, "Rejected");
+                                  }
+                                }}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] rounded-xl transition-all active:scale-95"
+                              >
+                                <X className="h-3.5 w-3.5" /> Reject
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        <FooterNavigation
+          onBack={() => {
+            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
+            if (currentIdx > 0) {
+              handleTabChange(sidebarItems[currentIdx - 1].id);
+            } else {
+              window.history.back();
+            }
+          }}
+          onContinue={() => {
+            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
+            if (currentIdx < sidebarItems.length - 1) {
+              handleTabChange(sidebarItems[currentIdx + 1].id);
+            }
+          }}
+          backDisabled={activeTab === sidebarItems[0].id && window.history.length <= 1}
+          continueDisabled={activeTab === sidebarItems[sidebarItems.length - 1].id}
+        />
 
         <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
           <Footer />

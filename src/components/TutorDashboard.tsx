@@ -433,7 +433,24 @@ export function TutorDashboard({
 
         {activeView === "settings" && <SettingsView />}
 
-        <FooterNavigation />
+        <FooterNavigation
+          onBack={() => {
+            const currentIdx = NAV_ITEMS.findIndex((item) => item.key === activeView);
+            if (currentIdx > 0) {
+              handleViewChange(NAV_ITEMS[currentIdx - 1].key);
+            } else {
+              window.history.back();
+            }
+          }}
+          onContinue={() => {
+            const currentIdx = NAV_ITEMS.findIndex((item) => item.key === activeView);
+            if (currentIdx < NAV_ITEMS.length - 1) {
+              handleViewChange(NAV_ITEMS[currentIdx + 1].key);
+            }
+          }}
+          backDisabled={activeView === NAV_ITEMS[0].key && window.history.length <= 1}
+          continueDisabled={activeView === NAV_ITEMS[NAV_ITEMS.length - 1].key}
+        />
 
         <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
           <Footer />

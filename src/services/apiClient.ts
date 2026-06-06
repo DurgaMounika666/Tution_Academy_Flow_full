@@ -81,8 +81,32 @@ export const apiClient = {
   },
 
   auth: {
-    registerParent: (email: string, password: string, name?: string, phone?: string, childName?: string, childGrade?: string, classMode?: string) =>
-      request("POST", "/auth/register-parent", { email, password, name, phone, childName, childGrade, classMode }),
+    registerParent: (
+      email: string,
+      password: string,
+      name?: string,
+      phone?: string,
+      childName?: string,
+      childGrade?: string,
+      classMode?: string,
+      location?: string,
+      advanceFeeAmount?: number,
+      transactionId?: string,
+      paymentStatus?: string
+    ) =>
+      request("POST", "/auth/register-parent", {
+        email,
+        password,
+        name,
+        phone,
+        childName,
+        childGrade,
+        classMode,
+        location,
+        advanceFeeAmount,
+        transactionId,
+        paymentStatus,
+      }),
 
     loginStudent: (studentId: string, password: string) =>
       request("POST", "/auth/login-student", { studentId, password }),
@@ -264,5 +288,11 @@ export const apiClient = {
     create: (data: any) => request("POST", "/timetable", data),
     update: (scheduleId: string, data: any) => request("PUT", `/timetable/${scheduleId}`, data),
     delete: (scheduleId: string) => request("DELETE", `/timetable/${scheduleId}`),
+  },
+
+  registrations: {
+    getAll: () => request("GET", "/registrations"),
+    updateStatus: (id: string, status: "Approved" | "Rejected") =>
+      request("PUT", `/registrations/${id}/status`, { status }),
   },
 };

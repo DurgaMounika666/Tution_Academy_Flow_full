@@ -263,12 +263,26 @@ export default function App() {
     navigate("/login");
   };
 
-  const handleRegistrationDecision = (id: string, status: "Accepted" | "Rejected") => {
-    setRegistrationNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id ? { ...notification, status } : notification
-      )
-    );
+  const handleRegistrationDecision = async (id: string, status: "Accepted" | "Rejected") => {
+    try {
+      // Map frontend status terms to backend API terms
+      const apiStatus = status === "Accepted" ? "Approved" : "Rejected";
+      await apiClient.registrations.updateStatus(id, apiStatus);
+
+      setRegistrationNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === id ? { ...notification, status } : notification
+        )
+      );
+
+      // Refresh students and fees data after approval creates new records
+      if (status === "Accepted") {
+        await loadAllStudents();
+        await loadAllFees();
+      }
+    } catch (error: any) {
+      console.error("Registration decision failed:", error.message);
+    }
   };
 
   const refreshStudents = async () => {

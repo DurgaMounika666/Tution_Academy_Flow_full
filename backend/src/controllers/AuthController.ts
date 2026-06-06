@@ -9,7 +9,19 @@ import { AuthService } from "../services/AuthService";
 export class AuthController {
   static async registerParent(req: Request, res: Response) {
     try {
-      const { email, password, name, phone, childName, childGrade, classMode } = req.body;
+      const {
+        email,
+        password,
+        name,
+        phone,
+        childName,
+        childGrade,
+        classMode,
+        location,
+        advanceFeeAmount,
+        transactionId,
+        paymentStatus,
+      } = req.body;
 
       if (!email || !password) {
         return res
@@ -24,12 +36,17 @@ export class AuthController {
         phone,
         childName,
         childGrade,
-        classMode
+        classMode,
+        location,
+        advanceFeeAmount,
+        transactionId,
+        paymentStatus
       );
 
       res.status(201).json({
-        message: "Parent registered successfully",
+        success: true,
         ...result,
+        message: "Parent registration request submitted successfully",
       });
     } catch (error: any) {
       res.status(400).json({ error: error.message });

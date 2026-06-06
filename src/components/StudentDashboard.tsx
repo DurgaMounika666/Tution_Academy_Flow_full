@@ -824,7 +824,24 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
           </div>
         )}
 
-        <FooterNavigation />
+        <FooterNavigation
+          onBack={() => {
+            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
+            if (currentIdx > 0) {
+              handleTabChange(sidebarItems[currentIdx - 1].id);
+            } else {
+              window.history.back();
+            }
+          }}
+          onContinue={() => {
+            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
+            if (currentIdx < sidebarItems.length - 1) {
+              handleTabChange(sidebarItems[currentIdx + 1].id);
+            }
+          }}
+          backDisabled={activeTab === sidebarItems[0].id && window.history.length <= 1}
+          continueDisabled={activeTab === sidebarItems[sidebarItems.length - 1].id}
+        />
 
         <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
           <Footer />

@@ -10,8 +10,10 @@ import { User } from "../models/User";
 import { Parent } from "../models/Parent";
 import { Tutor } from "../models/Tutor";
 import { Student } from "../models/Student";
+import { ParentRegistration } from "../models/ParentRegistration";
 import { FeeService } from "./FeeService";
 import { config } from "../config/env";
+
 
 type ResetRole = "student" | "parent" | "tutor" | "admin";
 
@@ -78,7 +80,11 @@ export class AuthService {
     phone?: string,
     childName?: string,
     childGrade?: string,
-    classMode?: string
+    classMode?: string,
+    location?: string,
+    advanceFeeAmount?: number,
+    transactionId?: string,
+    paymentStatus?: string
   ) {
     try {
       const normalizedEmail = email.toLowerCase().trim();
@@ -87,98 +93,38 @@ export class AuthService {
         throw new Error("An account with this email already exists. Please login.");
       }
 
+      // Check if a pending or approved registration already exists
+      const existingReg = await ParentRegistration.findOne({
+        email: normalizedEmail,
+        registrationStatus: { $in: ["Pending Approval", "Approved"] },
+      });
+      if (existingReg) {
+        throw new Error("A registration request with this email already exists.");
+      }
+
       const hashedPassword = await this.hashPassword(password);
-      const user = new User({
+
+      const registration = new ParentRegistration({
+        parentName: name || normalizedEmail.split("@")[0],
+        studentName: childName || "Student",
+        classGrade: childGrade || "9th Class",
+        classMode: classMode || "Online",
+        location: location || "Hyderabad",
+        phone: phone || "",
         email: normalizedEmail,
         password: hashedPassword,
-        role: "parent",
+        advanceFeeAmount: advanceFeeAmount || 150,
+        transactionId: transactionId || `REG-${Date.now()}`,
+        paymentStatus: paymentStatus || "Paid",
+        registrationStatus: "Pending Approval",
       });
-      await user.save();
 
-      // Determine child details if provided
-      let studentId = "";
-      if (childName) {
-        try {
-          const studentCount = await Student.countDocuments();
-          studentId = `ST-${100 + studentCount + 1}`;
-        } catch (err) {
-          studentId = `ST-${Date.now()}`;
-        }
+      await registration.save();
 
-        let studentEmail = `${childName.toLowerCase().replace(/[^a-z0-9]/g, "")}@student.academyflow.com`;
-        const existingStudentUser = await User.findOne({ email: studentEmail });
-        if (existingStudentUser) {
-          studentEmail = `${childName.toLowerCase().replace(/[^a-z0-9]/g, "")}.${Date.now().toString().slice(-4)}@student.academyflow.com`;
-        }
-
-        const studentHashedPassword = await this.hashPassword("password");
-        const studentUser = new User({
-          email: studentEmail,
-          password: studentHashedPassword,
-          role: "student",
-        });
-        await studentUser.save();
-
-        await Student.create({
-          studentId,
-          userId: studentUser._id,
-          name: childName,
-          grade: childGrade || "9th Class",
-          section: "Section A",
-          parentEmail: normalizedEmail,
-          parentId: user._id,
-          assignedTutorIds: ["T-201"],
-          learningSubjects: ["Basic Mathematics"],
-          classMode: classMode || "Online",
-          phone: phone || "",
-          attendanceRate: 100,
-          presentCount: 0,
-          absentCount: 0,
-        });
-
-        await FeeService.createFee(
-          studentId,
-          "Enrollment & Registration Fee (Advance)",
-          150,
-          new Date(),
-          undefined,
-          childName
-        ).then(async (fee) => {
-          fee.approvalStatus = "PendingApproval";
-          fee.status = "Paid";
-          fee.transactionId = `REG-${Date.now()}`;
-          fee.paymentMethod = "Registration";
-          await fee.save();
-        });
-      }
-
-      let parentRecord = await Parent.findOne({ email: normalizedEmail });
-      if (!parentRecord) {
-        parentRecord = await Parent.create({
-          userId: user._id,
-          email: normalizedEmail,
-          name: name || normalizedEmail.split("@")[0],
-          phone: phone || "",
-          childrenIds: studentId ? [studentId] : [],
-        });
-      } else if (studentId) {
-        await Parent.findOneAndUpdate(
-          { email: normalizedEmail },
-          { $addToSet: { childrenIds: studentId } }
-        );
-      }
-
-      if (studentId) {
-        await Student.findOneAndUpdate(
-          { studentId },
-          { parentId: parentRecord._id }
-        );
-      }
-
-      const token = this.generateToken(user._id.toString(), "parent");
-      const refreshToken = this.generateRefreshToken(user._id.toString(), "parent");
-
-      return { token, refreshToken, userId: user._id.toString(), email: normalizedEmail, studentId };
+      return {
+        message: "Parent registration request submitted. Awaiting admin approval.",
+        registrationId: registration._id,
+      };
     } catch (error) {
       throw error;
     }
@@ -189,7 +135,21 @@ export class AuthService {
       const normalizedEmail = email.toLowerCase().trim();
       const user = await User.findOne({ email: normalizedEmail, role: "parent" }).select("+password");
       if (!user) {
+        // Check if there is a pending or rejected registration for this email
+        const registration = await ParentRegistration.findOne({ email: normalizedEmail });
+        if (registration) {
+          if (registration.registrationStatus === "Pending Approval") {
+            throw new Error("Your registration is awaiting admin approval.");
+          }
+          if (registration.registrationStatus === "Rejected") {
+            throw new Error("Your registration request has been rejected. Please contact the administrator.");
+          }
+        }
         throw new Error("Invalid credentials. Please check your email and password.");
+      }
+
+      if (!user.isActive) {
+        throw new Error("Your registration request has been rejected. Please contact the administrator.");
       }
 
       const isPasswordValid = await this.comparePassword(
