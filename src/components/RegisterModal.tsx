@@ -528,27 +528,6 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                   </div>
                 </div>
 
-                <div className="space-y-1 pt-2">
-                  <label className="text-slate-600">Mode of Class</label>
-                  <select
-                    value={classMode}
-                    onChange={(e) => {
-                      setClassMode(e.target.value as any);
-                      if (fieldErrors.classMode) validateAndSetFieldError("classMode", e.target.value);
-                    }}
-                    className={`w-full p-2.5 rounded-xl border ${fieldErrors.classMode ? "border-rose-500" : "border-slate-200"} dark:bg-slate-900 text-xs`}
-                    required
-                  >
-                    <option value="" disabled>Select class mode</option>
-                    <option value="Online">Online Class</option>
-                    <option value="Offline">Offline Class</option>
-                    <option value="Online & Offline">Online & Offline Class</option>
-                  </select>
-                  {fieldErrors.classMode && (
-                    <p className="text-rose-600 text-[10px]">{fieldErrors.classMode}</p>
-                  )}
-                </div>
-
                 {/* Select Courses - multi-select */}
                 {childGrade && (
                 <div className="space-y-2 pt-2">
@@ -597,6 +576,27 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                   )}
                 </div>
                 )}
+
+                <div className="space-y-1 pt-2">
+                  <label className="text-slate-600">Mode of Class</label>
+                  <select
+                    value={classMode}
+                    onChange={(e) => {
+                      setClassMode(e.target.value as any);
+                      if (fieldErrors.classMode) validateAndSetFieldError("classMode", e.target.value);
+                    }}
+                    className={`w-full p-2.5 rounded-xl border ${fieldErrors.classMode ? "border-rose-500" : "border-slate-200"} dark:bg-slate-900 text-xs`}
+                    required
+                  >
+                    <option value="" disabled>Select class mode</option>
+                    <option value="Online">Online Class</option>
+                    <option value="Offline">Offline Class</option>
+                    <option value="Online & Offline">Online & Offline Class</option>
+                  </select>
+                  {fieldErrors.classMode && (
+                    <p className="text-rose-600 text-[10px]">{fieldErrors.classMode}</p>
+                  )}
+                </div>
 
                 <div className="space-y-1 pt-2">
                   <label className="text-slate-600">Select Location</label>
