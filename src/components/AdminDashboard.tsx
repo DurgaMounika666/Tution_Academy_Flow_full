@@ -14,7 +14,7 @@ import {
 import { apiClient } from "../services/apiClient";
 import { normalizeStudent, normalizeTutor, normalizeFee } from "../utils/normalizers";
 import { Student, Tutor, FeePayment, RegistrationNotification } from "../types";
-import { STANDARDS } from "../data";
+import { STANDARDS, SUBJECTS_BY_CLASS } from "../data";
 import { buildAllCoursesFromCatalog, CatalogCourse } from "../utils/courseCatalog";
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
 import { FeeReceiptModal } from "./FeeReceiptModal";
@@ -95,6 +95,9 @@ export function AdminDashboard({
   const [editingTutor, setEditingTutor] = useState<Tutor | null>(null);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [demoBookings, setDemoBookings] = useState<any[]>([]);
+  const [feeStructures, setFeeStructures] = useState<any[]>([]);
+  const [feeStructureClass, setFeeStructureClass] = useState("");
+  const [showFeeStructure, setShowFeeStructure] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   
   // Modals Toggles
@@ -176,6 +179,7 @@ export function AdminDashboard({
     }
     if (activeTab === "fees") {
       fetchPendingApprovals();
+      fetchFeeStructures();
     }
     if (activeTab === "registrations") {
       fetchBackendRegistrations();
@@ -191,6 +195,25 @@ export function AdminDashboard({
       setDemoBookings(Array.isArray(data) ? data : []);
     } catch {
       setDemoBookings([]);
+    }
+  };
+
+  const fetchFeeStructures = async () => {
+    try {
+      const data = await apiClient.feeStructure.getAll();
+      setFeeStructures(Array.isArray(data) ? data : []);
+    } catch {
+      setFeeStructures([]);
+    }
+  };
+
+  const handleSaveFeeStructure = async (className: string, subject: string, amount: number) => {
+    try {
+      await apiClient.feeStructure.upsert({ className, subject, amount, frequency: "Monthly" });
+      await fetchFeeStructures();
+      triggerToast(`Fee set: ${subject} (${className}) → ₹${amount}/month`);
+    } catch (err: any) {
+      triggerToast(err.message || "Failed to save fee structure");
     }
   };
 
@@ -1946,6 +1969,113 @@ export function AdminDashboard({
                 ))}
               </div>
             )}
+
+            {/* Fee Structure Management */}
+            <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 p-5 space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-sm font-black text-blue-800 dark:text-blue-300">Fee Structure (Per Subject Pricing)</h3>
+                  <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70 mt-0.5">Set monthly fee for each subject per class</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFeeStructure(!showFeeStructure)}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] rounded-lg"
+                >
+                  {showFeeStructure ? "Hide" : "Manage Fee Structure"}
+                </button>
+              </div>
+
+              {showFeeStructure && (
+                <div className="space-y-4">
+                  <div className="flex gap-3 items-center">
+                    <select
+                      value={feeStructureClass}
+                      onChange={(e) => setFeeStructureClass(e.target.value)}
+                      className="px-3 py-2 text-xs rounded-xl border border-blue-200 dark:border-blue-800 dark:bg-slate-950 dark:text-white outline-none"
+                    >
+                      <option value="">Select Class</option>
+                      {STANDARDS.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {feeStructureClass && (
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-blue-100 dark:border-blue-900 overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-blue-100/50 dark:bg-blue-950/30">
+                            <th className="text-left px-4 py-2.5 font-black text-blue-800 dark:text-blue-300">Subject</th>
+                            <th className="text-left px-4 py-2.5 font-black text-blue-800 dark:text-blue-300">Monthly Fee (₹)</th>
+                            <th className="text-right px-4 py-2.5 font-black text-blue-800 dark:text-blue-300">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(SUBJECTS_BY_CLASS[feeStructureClass] || []).map((subject) => {
+                            const existing = feeStructures.find(
+                              (fs: any) => fs.className === feeStructureClass && fs.subject === subject
+                            );
+                            return (
+                              <tr key={subject} className="border-t border-blue-50 dark:border-blue-900/50">
+                                <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300">{subject}</td>
+                                <td className="px-4 py-2.5">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    defaultValue={existing?.amount || ""}
+                                    placeholder="Enter amount"
+                                    id={`fee-${feeStructureClass}-${subject}`}
+                                    className="w-28 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white text-xs outline-none"
+                                  />
+                                </td>
+                                <td className="px-4 py-2.5 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const input = document.getElementById(`fee-${feeStructureClass}-${subject}`) as HTMLInputElement;
+                                      const amount = parseFloat(input?.value);
+                                      if (!amount || amount <= 0) {
+                                        triggerToast("Please enter a valid amount");
+                                        return;
+                                      }
+                                      handleSaveFeeStructure(feeStructureClass, subject, amount);
+                                    }}
+                                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[9px] rounded-lg"
+                                  >
+                                    {existing ? "Update" : "Save"}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Summary of all set fees */}
+                  {feeStructures.length > 0 && (
+                    <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
+                      <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mb-2">Configured Fee Structures ({feeStructures.length} entries)</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {STANDARDS.filter(cls => feeStructures.some((fs: any) => fs.className === cls)).map(cls => {
+                          const classStructures = feeStructures.filter((fs: any) => fs.className === cls);
+                          const total = classStructures.reduce((sum: number, fs: any) => sum + fs.amount, 0);
+                          return (
+                            <div key={cls} className="bg-blue-50/50 dark:bg-blue-950/10 rounded-lg p-2 border border-blue-100 dark:border-blue-900/50">
+                              <p className="text-[9px] font-black text-blue-700 dark:text-blue-300">{cls}</p>
+                              <p className="text-[10px] text-slate-600 dark:text-slate-400">{classStructures.length} subjects • ₹{total}/mo total</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-3">
                 <div className="relative w-full sm:w-64">

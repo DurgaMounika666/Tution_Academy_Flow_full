@@ -231,6 +231,24 @@ export const apiClient = {
     },
   },
 
+  feeStructure: {
+    getAll: () => request("GET", "/fee-structure"),
+
+    getByClass: (className: string) =>
+      request("GET", `/fee-structure/class/${encodeURIComponent(className)}`),
+
+    upsert: (data: { className: string; subject: string; amount: number; frequency?: string }) =>
+      request("POST", "/fee-structure", data),
+
+    bulkUpsert: (className: string, subjects: Array<{ subject: string; amount: number; frequency?: string }>) =>
+      request("POST", "/fee-structure/bulk", { className, subjects }),
+
+    calculate: (className: string, subjects: string[]) =>
+      request("POST", "/fee-structure/calculate", { className, subjects }),
+
+    delete: (id: string) => request("DELETE", `/fee-structure/${id}`),
+  },
+
   attendance: {
     mark: (studentId: string, date: string, status: string, batchId?: string) =>
       request("POST", "/attendance/mark", { studentId, date, status, batchId }),
