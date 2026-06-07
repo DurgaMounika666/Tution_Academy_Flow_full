@@ -21,6 +21,7 @@ export class AuthController {
         advanceFeeAmount,
         transactionId,
         paymentStatus,
+        selectedCourses,
       } = req.body;
 
       if (!email || !password) {
@@ -40,7 +41,8 @@ export class AuthController {
         location,
         advanceFeeAmount,
         transactionId,
-        paymentStatus
+        paymentStatus,
+        selectedCourses
       );
 
       res.status(201).json({

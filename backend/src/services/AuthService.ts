@@ -84,7 +84,8 @@ export class AuthService {
     location?: string,
     advanceFeeAmount?: number,
     transactionId?: string,
-    paymentStatus?: string
+    paymentStatus?: string,
+    selectedCourses?: string[]
   ) {
     try {
       const normalizedEmail = email.toLowerCase().trim();
@@ -117,6 +118,7 @@ export class AuthService {
         transactionId: transactionId || `REG-${Date.now()}`,
         paymentStatus: paymentStatus || "Paid",
         registrationStatus: "Pending Approval",
+        selectedCourses: selectedCourses || [],
       });
 
       await registration.save();

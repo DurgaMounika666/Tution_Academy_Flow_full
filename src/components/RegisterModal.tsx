@@ -5,7 +5,7 @@
 
 import React, { useState, useRef } from "react";
 import { X, Sparkles, UserPlus, CheckCircle2, ChevronRight, UserCheck, Eye, EyeOff, CreditCard } from "lucide-react";
-import { STANDARDS, LOCATIONS } from "../data";
+import { STANDARDS, LOCATIONS, SUBJECTS_BY_CLASS } from "../data";
 import { apiClient } from "../services/apiClient";
 import { RegistrationNotification } from "../types";
 
@@ -24,6 +24,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
   const [childName, setChildName] = useState("");
   const [childGrade, setChildGrade] = useState("");
   const [classMode, setClassMode] = useState<"" | "Online" | "Offline" | "Online & Offline">("");
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"Pending" | "Paid" | "Failed">("Pending");
   const [transactionId, setTransactionId] = useState("");
@@ -71,6 +72,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
     setChildName("");
     setChildGrade("");
     setClassMode("");
+    setSelectedCourses([]);
     setLocation("");
     setPaymentStatus("Pending");
     setTransactionId("");
@@ -202,6 +204,13 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
       }
     });
 
+    if (selectedCourses.length === 0) {
+      setFieldErrors(prev => ({ ...prev, selectedCourses: "Please select at least one course." }));
+      hasErrors = true;
+    } else {
+      setFieldErrors(prev => ({ ...prev, selectedCourses: "" }));
+    }
+
     if (hasErrors) {
       setErrorMessage("Please correct the highlighted fields before continuing.");
       return;
@@ -232,7 +241,8 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
         location,
         150,
         transactionId,
-        paymentStatus
+        paymentStatus,
+        selectedCourses
       );
       apiClient.clearAuthToken();
       onRegisterSuccess({
@@ -500,6 +510,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                       value={childGrade}
                       onChange={(e) => {
                         setChildGrade(e.target.value);
+                        setSelectedCourses([]);
                         if (fieldErrors.childGrade) validateAndSetFieldError("childGrade", e.target.value);
                       }}
                       onBlur={() => validateAndSetFieldError("childGrade", childGrade)}
@@ -517,30 +528,75 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                   </div>
                 </div>
 
-                <div className="space-y-2 pt-2">
+                <div className="space-y-1 pt-2">
                   <label className="text-slate-600">Mode of Class</label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {(["Online", "Offline", "Online & Offline"] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => {
-                          setClassMode(mode);
-                          if (fieldErrors.classMode) validateAndSetFieldError("classMode", mode);
-                        }}
-                        className={`w-full p-3 rounded-xl border text-left font-bold transition-all ${classMode === mode
-                          ? "border-sky-500 bg-sky-50 dark:bg-sky-950/30 text-sky-700"
-                          : "border-slate-200 dark:border-slate-700 hover:border-sky-300"
-                          }`}
-                      >
-                        {mode === "Online" ? "Online Class" : mode === "Offline" ? "Offline Class" : "Online & Offline Class"}
-                      </button>
-                    ))}
-                  </div>
+                  <select
+                    value={classMode}
+                    onChange={(e) => {
+                      setClassMode(e.target.value as any);
+                      if (fieldErrors.classMode) validateAndSetFieldError("classMode", e.target.value);
+                    }}
+                    className={`w-full p-2.5 rounded-xl border ${fieldErrors.classMode ? "border-rose-500" : "border-slate-200"} dark:bg-slate-900 text-xs`}
+                    required
+                  >
+                    <option value="" disabled>Select class mode</option>
+                    <option value="Online">Online Class</option>
+                    <option value="Offline">Offline Class</option>
+                    <option value="Online & Offline">Online & Offline Class</option>
+                  </select>
                   {fieldErrors.classMode && (
                     <p className="text-rose-600 text-[10px]">{fieldErrors.classMode}</p>
                   )}
                 </div>
+
+                {/* Select Courses - multi-select */}
+                {childGrade && (
+                <div className="space-y-2 pt-2">
+                  <label className="text-slate-600">Select Courses</label>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 space-y-1.5 max-h-40 overflow-y-auto modal-scroll">
+                    {/* All Subjects option */}
+                    <label className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/20 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedCourses.length === (SUBJECTS_BY_CLASS[childGrade] || []).length && selectedCourses.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCourses([...(SUBJECTS_BY_CLASS[childGrade] || [])]);
+                          } else {
+                            setSelectedCourses([]);
+                          }
+                        }}
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                      />
+                      <span className="text-xs font-bold text-sky-700 dark:text-sky-300">All Subjects</span>
+                    </label>
+                    <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+                    {(SUBJECTS_BY_CLASS[childGrade] || []).map((subject) => (
+                      <label key={subject} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedCourses.includes(subject)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCourses([...selectedCourses, subject]);
+                            } else {
+                              setSelectedCourses(selectedCourses.filter(c => c !== subject));
+                            }
+                          }}
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                        />
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{subject}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {selectedCourses.length > 0 && (
+                    <p className="text-[10px] text-sky-600 font-semibold">{selectedCourses.length} course(s) selected</p>
+                  )}
+                  {fieldErrors.selectedCourses && (
+                    <p className="text-rose-600 text-[10px]">{fieldErrors.selectedCourses}</p>
+                  )}
+                </div>
+                )}
 
                 <div className="space-y-1 pt-2">
                   <label className="text-slate-600">Select Location</label>

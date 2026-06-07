@@ -97,7 +97,8 @@ export const apiClient = {
       location?: string,
       advanceFeeAmount?: number,
       transactionId?: string,
-      paymentStatus?: string
+      paymentStatus?: string,
+      selectedCourses?: string[]
     ) =>
       request("POST", "/auth/register-parent", {
         email,
@@ -111,6 +112,7 @@ export const apiClient = {
         advanceFeeAmount,
         transactionId,
         paymentStatus,
+        selectedCourses,
       }),
 
     loginStudent: (studentId: string, password: string) =>

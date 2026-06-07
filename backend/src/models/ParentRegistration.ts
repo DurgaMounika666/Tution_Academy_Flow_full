@@ -18,6 +18,7 @@ export interface IParentRegistration extends Document {
   transactionId: string;
   paymentStatus: "Pending" | "Paid" | "Failed";
   registrationStatus: "Pending Approval" | "Approved" | "Rejected";
+  selectedCourses: string[];
   approvedBy?: string;
   approvedDate?: Date;
   createdAt: Date;
@@ -84,6 +85,10 @@ const ParentRegistrationSchema = new Schema<IParentRegistration>(
     },
     approvedDate: {
       type: Date,
+    },
+    selectedCourses: {
+      type: [String],
+      default: [],
     },
   },
   { timestamps: true }
