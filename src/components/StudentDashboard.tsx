@@ -114,8 +114,8 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
     <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
 
       {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
-      <aside className="w-full md:w-64 bg-[#1d0b3a] dark:bg-[#0e051c] text-indigo-50 flex flex-col p-5 border-r border-[#2d1257] shrink-0 md:h-full overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-hidden space-y-6">
+      <aside className="w-full md:w-64 bg-[#1d0b3a] dark:bg-[#0e051c] text-indigo-50 flex flex-col p-5 border-r border-[#2d1257] shrink-0 md:h-full overflow-y-auto">
+        <div className="flex-1 min-h-0 space-y-6">
           {/* Logo Header */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
             <span className="p-2 bg-[#7c3aed] rounded-xl text-white shadow-lg">

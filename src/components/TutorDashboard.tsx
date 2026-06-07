@@ -255,8 +255,8 @@ export function TutorDashboard({
     <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
       
       {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
-      <aside className="w-full md:w-64 bg-[#133d27] dark:bg-[#071b11] text-emerald-50 flex flex-col p-5 border-r border-[#194b30] shrink-0 md:h-full overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-hidden space-y-6">
+      <aside className="w-full md:w-64 bg-[#133d27] dark:bg-[#071b11] text-emerald-50 flex flex-col p-5 border-r border-[#194b30] shrink-0 md:h-full overflow-y-auto">
+        <div className="flex-1 min-h-0 space-y-6">
           {/* Logo brand */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
             <span className="p-2 bg-[#10b981] rounded-xl text-white shadow-lg animate-pulse">
