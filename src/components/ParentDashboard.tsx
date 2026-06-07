@@ -61,10 +61,23 @@ export function ParentDashboard({
   const [supportChoice, setSupportChoice] = useState<"tutor" | "admin">("admin");
 
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState("");
+  const [feeStructures, setFeeStructures] = useState<any[]>([]);
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [tuitionFeedbacks, setTuitionFeedbacks] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadFeeStructures = async () => {
+      try {
+        const data = await apiClient.feeStructure.getAll();
+        setFeeStructures(Array.isArray(data) ? data : []);
+      } catch {
+        setFeeStructures([]);
+      }
+    };
+    loadFeeStructures();
+  }, []);
 
   useEffect(() => {
     const loadFeedbacks = async () => {
@@ -1450,6 +1463,44 @@ export function ParentDashboard({
                 </div>
               </div>
             </div>
+
+            {/* Subject-wise Fee Breakdown */}
+            {activeStudent && feeStructures.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">
+                  Monthly Fee Breakdown — {activeStudent.grade}
+                </h3>
+                <div className="space-y-2">
+                  {activeStudent.learningSubjects.map((sub) => {
+                    const structure = feeStructures.find(
+                      (fs: any) => fs.className === activeStudent.grade && fs.subject === sub.name
+                    );
+                    return (
+                      <div key={sub.name} className="flex justify-between items-center py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{sub.name}</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white">
+                          {structure ? `₹${structure.amount}/mo` : <span className="text-slate-400 italic">Not set</span>}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase">Total Monthly Fee</span>
+                  <span className="text-sm font-black text-[#f27a3d]">
+                    ₹{activeStudent.learningSubjects.reduce((total, sub) => {
+                      const structure = feeStructures.find(
+                        (fs: any) => fs.className === activeStudent.grade && fs.subject === sub.name
+                      );
+                      return total + (structure?.amount || 0);
+                    }, 0)}/month
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Advance fee paid during registration: ₹150
+                </p>
+              </div>
+            )}
 
             {/* Fee lists */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
