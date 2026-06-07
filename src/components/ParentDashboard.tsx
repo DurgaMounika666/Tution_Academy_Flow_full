@@ -2544,6 +2544,25 @@ export function ParentDashboard({
           <LogoutButton onLogout={onLogout} />
         </div>
 
+        <FooterNavigation
+          onBack={() => {
+            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
+            if (currentIdx > 0) {
+              handleTabChange(sidebarItems[currentIdx - 1].id);
+            } else {
+              window.history.back();
+            }
+          }}
+          onContinue={() => {
+            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
+            if (currentIdx < sidebarItems.length - 1) {
+              handleTabChange(sidebarItems[currentIdx + 1].id);
+            }
+          }}
+          backDisabled={activeTab === sidebarItems[0].id && window.history.length <= 1}
+          continueDisabled={activeTab === sidebarItems[sidebarItems.length - 1].id}
+        />
+
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left mt-8">
           <div className="space-y-1">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
@@ -2594,25 +2613,6 @@ export function ParentDashboard({
         <div className="tab-fade-in">
           {renderTabContent()}
         </div>
-
-        <FooterNavigation
-          onBack={() => {
-            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
-            if (currentIdx > 0) {
-              handleTabChange(sidebarItems[currentIdx - 1].id);
-            } else {
-              window.history.back();
-            }
-          }}
-          onContinue={() => {
-            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
-            if (currentIdx < sidebarItems.length - 1) {
-              handleTabChange(sidebarItems[currentIdx + 1].id);
-            }
-          }}
-          backDisabled={activeTab === sidebarItems[0].id && window.history.length <= 1}
-          continueDisabled={activeTab === sidebarItems[sidebarItems.length - 1].id}
-        />
 
         <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
           <Footer />

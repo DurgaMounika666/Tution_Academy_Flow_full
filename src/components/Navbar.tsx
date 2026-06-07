@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { BookOpen, Menu, X, ChevronDown, UserPlus, LogIn } from "lucide-react";
+import { BookOpen, Menu, X, ChevronDown, UserPlus, LogIn, ArrowLeft } from "lucide-react";
 import { STANDARDS } from "../data";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -74,21 +74,34 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard, logge
     setLangDropdownOpen(false);
   }, [location.pathname]);
 
+  const isLoginPage = location.pathname === "/login";
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/90 transition-colors duration-300">
+    <nav className="fixed top-0 left-0 right-0 z-50 w-full border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/90 transition-colors duration-300">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div ref={navbarRef} className="flex h-16 items-center justify-between">
 
           {/* Logo Brand */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 shadow-md">
-              <BookOpen className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Academy <span className="text-sky-500">Flow</span>
-              </span>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Tuitions for next generations</p>
+          <div className="flex items-center gap-3">
+            {isLoginPage && (
+              <button
+                onClick={() => navigate("/")}
+                className="flex items-center justify-center h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:border-sky-300 hover:text-sky-500 text-slate-600 dark:text-slate-300 transition-all active:scale-95 shadow-sm"
+                title="Back to Home"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 shadow-md">
+                <BookOpen className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  Academy <span className="text-sky-500">Flow</span>
+                </span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Tuitions for next generations</p>
+              </div>
             </div>
           </div>
 

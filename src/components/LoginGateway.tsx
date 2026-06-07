@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
 import { useLanguage } from "../context/LanguageContext";
-import { FooterNavigation } from "./FooterNavigation";
 
 type PortalRole = "student" | "parent" | "tutor" | "admin";
 type ResetStep = "email" | "otp" | "password" | "done";
@@ -481,7 +480,6 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister }: LoginGatewayPro
           )}
         </div>
 
-        <FooterNavigation className="mt-8" />
       </div>
 
       {resetOpen && (

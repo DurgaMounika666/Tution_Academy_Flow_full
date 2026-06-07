@@ -318,6 +318,25 @@ export function TutorDashboard({
           <LogoutButton onLogout={onLogout} />
         </div>
 
+        <FooterNavigation
+          onBack={() => {
+            const currentIdx = NAV_ITEMS.findIndex((item) => item.key === activeView);
+            if (currentIdx > 0) {
+              handleViewChange(NAV_ITEMS[currentIdx - 1].key);
+            } else {
+              window.history.back();
+            }
+          }}
+          onContinue={() => {
+            const currentIdx = NAV_ITEMS.findIndex((item) => item.key === activeView);
+            if (currentIdx < NAV_ITEMS.length - 1) {
+              handleViewChange(NAV_ITEMS[currentIdx + 1].key);
+            }
+          }}
+          backDisabled={activeView === NAV_ITEMS[0].key && window.history.length <= 1}
+          continueDisabled={activeView === NAV_ITEMS[NAV_ITEMS.length - 1].key}
+        />
+
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left mt-8">
           <div className="space-y-1">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
@@ -432,25 +451,6 @@ export function TutorDashboard({
         )}
 
         {activeView === "settings" && <SettingsView />}
-
-        <FooterNavigation
-          onBack={() => {
-            const currentIdx = NAV_ITEMS.findIndex((item) => item.key === activeView);
-            if (currentIdx > 0) {
-              handleViewChange(NAV_ITEMS[currentIdx - 1].key);
-            } else {
-              window.history.back();
-            }
-          }}
-          onContinue={() => {
-            const currentIdx = NAV_ITEMS.findIndex((item) => item.key === activeView);
-            if (currentIdx < NAV_ITEMS.length - 1) {
-              handleViewChange(NAV_ITEMS[currentIdx + 1].key);
-            }
-          }}
-          backDisabled={activeView === NAV_ITEMS[0].key && window.history.length <= 1}
-          continueDisabled={activeView === NAV_ITEMS[NAV_ITEMS.length - 1].key}
-        />
 
         <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
           <Footer />

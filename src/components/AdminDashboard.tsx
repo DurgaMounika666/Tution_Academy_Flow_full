@@ -718,6 +718,25 @@ export function AdminDashboard({
           <LogoutButton onLogout={onLogout} />
         </div>
 
+        <FooterNavigation
+          onBack={() => {
+            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
+            if (currentIdx > 0) {
+              handleTabChange(sidebarItems[currentIdx - 1].id);
+            } else {
+              window.history.back();
+            }
+          }}
+          onContinue={() => {
+            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
+            if (currentIdx < sidebarItems.length - 1) {
+              handleTabChange(sidebarItems[currentIdx + 1].id);
+            }
+          }}
+          backDisabled={activeTab === sidebarItems[0].id && window.history.length <= 1}
+          continueDisabled={activeTab === sidebarItems[sidebarItems.length - 1].id}
+        />
+
         {/* Interactive Floating Toast */}
         {toast && (
           <div className="fixed top-6 right-6 z-50 bg-[#0b1329] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-blue-500/20 flex items-center gap-3 animate-fade-in-down">
@@ -2415,25 +2434,6 @@ export function AdminDashboard({
             })()}
           </div>
         )}
-
-        <FooterNavigation
-          onBack={() => {
-            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
-            if (currentIdx > 0) {
-              handleTabChange(sidebarItems[currentIdx - 1].id);
-            } else {
-              window.history.back();
-            }
-          }}
-          onContinue={() => {
-            const currentIdx = sidebarItems.findIndex((item) => item.id === activeTab);
-            if (currentIdx < sidebarItems.length - 1) {
-              handleTabChange(sidebarItems[currentIdx + 1].id);
-            }
-          }}
-          backDisabled={activeTab === sidebarItems[0].id && window.history.length <= 1}
-          continueDisabled={activeTab === sidebarItems[sidebarItems.length - 1].id}
-        />
 
         <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mb-24 mt-8">
           <Footer />

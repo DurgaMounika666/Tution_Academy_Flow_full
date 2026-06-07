@@ -10,7 +10,7 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const english = {
+const english: Record<string, string> = {
   home: "Home",
   modeOfClass: "Mode of Class",
   language: "Language",
@@ -23,8 +23,6 @@ const english = {
   offlineOnly: "Offline Only",
   onlineOffline: "Online & Offline",
   contactUs: "Contact Us",
-  registerNewMember: "Register New Member",
-  goToCrm: "Go to CRM Portals (Login)",
   pickLanguage: "Pick Language",
   back: "Back",
   continue: "Continue",
@@ -36,7 +34,6 @@ const english = {
   tutorLogin: "Tutor Login",
   adminLogin: "Admin Login",
   forgotPassword: "Forgot Password",
-
   empowering: "Empowering over 10,000+ students",
   heroTitle: "Empower Your Future with ",
   personalizedPaths: "Personalized learning paths",
@@ -55,7 +52,6 @@ const english = {
   selectClass: "Select Learning Class",
   bookDemo: "Book a Demo",
   activeSyllabus: "Active lessons syllabus in",
-
   whyChooseTitle: "Why Choose Academy Flow?",
   whyChooseSub: "We offer state of the art tuition features designed to guide students towards complete academic confidence.",
   expertTutorsTitle: "Expert Tutors",
@@ -66,7 +62,6 @@ const english = {
   progressTrackingDesc: "Weekly reports, visual attendance meters, and automated scorecards keep parents fully informed.",
   interactiveDashboardsTitle: "Interactive Mock Dashboards",
   interactiveDashboardsDesc: "Full-fidelity simulated student, parent, tutor, and admin dashboards for immersive learning.",
-
   reviewsTitle: "Parent & Student Reviews",
   reviewsSub: "What our community says about Academy Flow and our result-oriented learning environment.",
   review1Text: "Academy Flow transformed my daughter's mathematics scores. The tutor portal updates are incredibly detailed!",
@@ -78,7 +73,6 @@ const english = {
   review3Text: "The convenience of hybrid classes along with instant performance metrics made fee tracking and learning very transparent.",
   review3Author: "Anjali Rao",
   review3Role: "Parent of 7th Grader",
-
   footerTitle: "Premium tuitions for the next generation.",
   quickLinks: "Quick Links",
   contactInfo: "Contact Info",
@@ -86,258 +80,274 @@ const english = {
   rightsReserved: "All rights reserved.",
 };
 
+const teluguOverrides: Record<string, string> = {
+  home: "\u0C39\u0C4B\u0C2E\u0C4D",
+  modeOfClass: "\u0C24\u0C30\u0C17\u0C24\u0C3F \u0C35\u0C3F\u0C27\u0C3E\u0C28\u0C02",
+  language: "\u0C2D\u0C3E\u0C37",
+  register: "\u0C28\u0C2E\u0C4B\u0C26\u0C41",
+  portalLogin: "\u0C2A\u0C4B\u0C30\u0C4D\u0C1F\u0C32\u0C4D \u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D",
+  loggedInAs: "\u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D \u0C05\u0C2F\u0C3F\u0C28 \u0C2A\u0C3E\u0C24\u0C4D\u0C30",
+  goToLanding: "\u0C39\u0C4B\u0C2E\u0C4D \u0C2A\u0C47\u0C1C\u0C40\u0C15\u0C3F \u0C35\u0C46\u0C33\u0C4D\u0C33\u0C02\u0C21\u0C3F",
+  goToDashboard: "\u0C21\u0C4D\u0C2F\u0C3E\u0C37\u0C4D\u200C\u0C2C\u0C4B\u0C30\u0C4D\u0C21\u0C4D\u200C\u0C15\u0C41 \u0C35\u0C46\u0C33\u0C4D\u0C33\u0C02\u0C21\u0C3F",
+  onlineOnly: "\u0C06\u0C28\u0C4D\u200C\u0C32\u0C48\u0C28\u0C4D \u0C2E\u0C3E\u0C24\u0C4D\u0C30\u0C2E\u0C47",
+  offlineOnly: "\u0C06\u0C2B\u0C4D\u200C\u0C32\u0C48\u0C28\u0C4D \u0C2E\u0C3E\u0C24\u0C4D\u0C30\u0C2E\u0C47",
+  onlineOffline: "\u0C06\u0C28\u0C4D\u200C\u0C32\u0C48\u0C28\u0C4D & \u0C06\u0C2B\u0C4D\u200C\u0C32\u0C48\u0C28\u0C4D",
+  contactUs: "\u0C2E\u0C2E\u0C4D\u0C2E\u0C32\u0C4D\u0C28\u0C3F \u0C38\u0C02\u0C2A\u0C4D\u0C30\u0C26\u0C3F\u0C02\u0C1A\u0C02\u0C21\u0C3F",
+  pickLanguage: "\u0C2D\u0C3E\u0C37\u0C28\u0C41 \u0C0E\u0C02\u0C1A\u0C41\u0C15\u0C4B\u0C02\u0C21\u0C3F",
+  back: "\u0C35\u0C46\u0C28\u0C41\u0C15\u0C15\u0C41",
+  continue: "\u0C15\u0C4A\u0C28\u0C38\u0C3E\u0C17\u0C3F\u0C02\u0C1A\u0C02\u0C21\u0C3F",
+  authorizedAccess: "\u0C05\u0C27\u0C3F\u0C15\u0C3E\u0C30\u0C3F\u0C15 \u0C35\u0C3F\u0C28\u0C3F\u0C2F\u0C4B\u0C17\u0C26\u0C3E\u0C30\u0C41\u0C32\u0C15\u0C47 \u0C2A\u0C4D\u0C30\u0C35\u0C47\u0C36\u0C02",
+  academicGateway: "\u0C05\u0C15\u0C3E\u0C21\u0C46\u0C2E\u0C3F\u0C15\u0C4D \u0C17\u0C47\u0C1F\u0C4D\u200C\u0C35\u0C47",
+  loginGatewaySubtitle: "\u0C15\u0C4B\u0C30\u0C4D\u0C38\u0C41\u0C32\u0C41, \u0C37\u0C46\u0C21\u0C4D\u0C2F\u0C42\u0C32\u0C4D\u200C\u0C32\u0C41, \u0C2E\u0C3E\u0C30\u0C4D\u0C15\u0C41\u0C32\u0C28\u0C41 \u0C28\u0C3F\u0C30\u0C4D\u0C35\u0C39\u0C3F\u0C02\u0C1A\u0C21\u0C3E\u0C28\u0C3F\u0C15\u0C3F \u0C2E\u0C40 \u0C2A\u0C4B\u0C30\u0C4D\u0C1F\u0C32\u0C4D \u0C2A\u0C3E\u0C24\u0C4D\u0C30\u0C28\u0C41 \u0C0E\u0C02\u0C1A\u0C41\u0C15\u0C4B\u0C02\u0C21\u0C3F.",
+  studentLogin: "\u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C3F \u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D",
+  parentLogin: "\u0C24\u0C32\u0C4D\u0C32\u0C3F\u0C26\u0C02\u0C21\u0C4D\u0C30\u0C41\u0C32 \u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D",
+  tutorLogin: "\u0C1F\u0C4D\u0C2F\u0C42\u0C1F\u0C30\u0C4D \u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D",
+  adminLogin: "\u0C05\u0C21\u0C4D\u0C2E\u0C3F\u0C28\u0C4D \u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D",
+  forgotPassword: "\u0C2A\u0C3E\u0C38\u0C4D\u200C\u0C35\u0C30\u0C4D\u0C21\u0C4D \u0C2E\u0C30\u0C4D\u0C1A\u0C3F\u0C2A\u0C4B\u0C2F\u0C3E\u0C30\u0C3E",
+  empowering: "10,000+ \u0C2E\u0C02\u0C26\u0C3F \u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C41\u0C32\u0C15\u0C41 \u0C36\u0C15\u0C4D\u0C24\u0C3F\u0C28\u0C3F \u0C05\u0C02\u0C26\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C28\u0C4D\u0C28\u0C3E\u0C02",
+  heroTitle: "\u0C2E\u0C40 \u0C2D\u0C35\u0C3F\u0C37\u0C4D\u0C2F\u0C24\u0C4D\u0C24\u0C41\u0C28\u0C41 \u0C2C\u0C32\u0C4B\u0C2A\u0C47\u0C24\u0C02 \u0C1A\u0C47\u0C38\u0C41\u0C15\u0C4B\u0C02\u0C21\u0C3F ",
+  personalizedPaths: "\u0C35\u0C4D\u0C2F\u0C15\u0C4D\u0C24\u0C3F\u0C17\u0C24 \u0C05\u0C2D\u0C4D\u0C2F\u0C3E\u0C38 \u0C2E\u0C3E\u0C30\u0C4D\u0C17\u0C3E\u0C32\u0C41",
+  liveRecorded: "\u0C32\u0C48\u0C35\u0C4D & \u0C30\u0C3F\u0C15\u0C3E\u0C30\u0C4D\u0C21\u0C4D \u0C24\u0C30\u0C17\u0C24\u0C41\u0C32\u0C41",
+  provenResults: "\u0C28\u0C3F\u0C30\u0C42\u0C2A\u0C3F\u0C24 \u0C2B\u0C32\u0C3F\u0C24\u0C3E\u0C32\u0C41",
+  getStarted: "\u0C07\u0C2A\u0C4D\u0C2A\u0C41\u0C21\u0C47 \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C3F\u0C02\u0C1A\u0C02\u0C21\u0C3F",
+  explorePortals: "\u0C2A\u0C4B\u0C30\u0C4D\u0C1F\u0C32\u0C4D\u200C\u0C32\u0C28\u0C41 \u0C1A\u0C42\u0C21\u0C02\u0C21\u0C3F",
+  conceptSyllabus: "\u0C2D\u0C3E\u0C35\u0C28-\u0C06\u0C27\u0C3E\u0C30\u0C3F\u0C24 \u0C38\u0C3F\u0C32\u0C2C\u0C38\u0C4D",
+  attendanceConsistency: "\u0C39\u0C3E\u0C1C\u0C30\u0C41 \u0C38\u0C4D\u0C25\u0C3F\u0C30\u0C24\u0C4D\u0C35\u0C02",
+  avgAchievement: "\u0C38\u0C17\u0C1F\u0C41 \u0C38\u0C3E\u0C27\u0C28",
+  findPerfectClass: "\u0C2E\u0C40\u0C15\u0C41 \u0C38\u0C30\u0C48\u0C28 \u0C24\u0C30\u0C17\u0C24\u0C3F\u0C28\u0C3F \u0C15\u0C28\u0C41\u0C17\u0C4A\u0C28\u0C02\u0C21\u0C3F",
+  selectCenter: "\u0C05\u0C2D\u0C4D\u0C2F\u0C3E\u0C38 \u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30\u0C02",
+  selectClass: "\u0C05\u0C2D\u0C4D\u0C2F\u0C3E\u0C38 \u0C24\u0C30\u0C17\u0C24\u0C3F",
+  bookDemo: "\u0C21\u0C46\u0C2E\u0C4B \u0C2C\u0C41\u0C15\u0C4D \u0C1A\u0C47\u0C2F\u0C02\u0C21\u0C3F",
+  activeSyllabus: "\u0C38\u0C15\u0C4D\u0C30\u0C3F\u0C2F \u0C2A\u0C3E\u0C20\u0C4D\u0C2F\u0C3E\u0C02\u0C36\u0C3E\u0C32\u0C41",
+  whyChooseTitle: "Academy Flow \u0C0E\u0C02\u0C26\u0C41\u0C15\u0C41?",
+  whyChooseSub: "\u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C41\u0C32 \u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E \u0C35\u0C3F\u0C36\u0C4D\u0C35\u0C3E\u0C38\u0C3E\u0C28\u0C4D\u0C28\u0C3F \u0C2A\u0C46\u0C02\u0C1A\u0C47 \u0C06\u0C27\u0C41\u0C28\u0C3F\u0C15 \u0C1F\u0C4D\u0C2F\u0C42\u0C37\u0C28\u0C4D \u0C38\u0C26\u0C41\u0C2A\u0C3E\u0C2F\u0C3E\u0C32\u0C41 \u0C05\u0C02\u0C26\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C28\u0C4D\u0C28\u0C3E\u0C02.",
+  expertTutorsTitle: "\u0C28\u0C3F\u0C2A\u0C41\u0C23\u0C41\u0C32\u0C48\u0C28 \u0C1F\u0C4D\u0C2F\u0C42\u0C1F\u0C30\u0C4D\u0C32\u0C41",
+  expertTutorsDesc: "\u0C15\u0C4D\u0C32\u0C3F\u0C37\u0C4D\u0C1F \u0C35\u0C3F\u0C37\u0C2F\u0C3E\u0C32\u0C28\u0C41 \u0C38\u0C41\u0C32\u0C2D\u0C02\u0C17\u0C3E \u0C2C\u0C4B\u0C27\u0C3F\u0C02\u0C1A\u0C47 \u0C05\u0C28\u0C41\u0C2D\u0C35\u0C1C\u0C4D\u0C1E\u0C41\u0C32\u0C48\u0C28 \u0C09\u0C2A\u0C3E\u0C27\u0C4D\u0C2F\u0C3E\u0C2F\u0C41\u0C32 \u0C28\u0C41\u0C02\u0C1A\u0C3F \u0C28\u0C47\u0C30\u0C4D\u0C1A\u0C41\u0C15\u0C4B\u0C02\u0C21\u0C3F.",
+  customCurriculumTitle: "\u0C05\u0C28\u0C41\u0C15\u0C42\u0C32 \u0C2A\u0C3E\u0C20\u0C4D\u0C2F\u0C3E\u0C02\u0C36\u0C02",
+  progressTrackingTitle: "\u0C2A\u0C4D\u0C30\u0C17\u0C24\u0C3F \u0C1F\u0C4D\u0C30\u0C3E\u0C15\u0C3F\u0C02\u0C17\u0C4D",
+  interactiveDashboardsTitle: "\u0C07\u0C02\u0C1F\u0C30\u0C3E\u0C15\u0C4D\u0C1F\u0C3F\u0C35\u0C4D \u0C21\u0C4D\u0C2F\u0C3E\u0C37\u0C4D\u200C\u0C2C\u0C4B\u0C30\u0C4D\u0C21\u0C4D\u200C\u0C32\u0C41",
+  reviewsTitle: "\u0C24\u0C32\u0C4D\u0C32\u0C3F\u0C26\u0C02\u0C21\u0C4D\u0C30\u0C41\u0C32\u0C41 & \u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C41\u0C32 \u0C38\u0C2E\u0C40\u0C15\u0C4D\u0C37\u0C32\u0C41",
+  reviewsSub: "Academy Flow \u0C17\u0C41\u0C30\u0C3F\u0C02\u0C1A\u0C3F \u0C2E\u0C3E \u0C38\u0C2E\u0C3E\u0C1C\u0C02 \u0C1A\u0C46\u0C2A\u0C4D\u0C2A\u0C47\u0C26\u0C3F.",
+  footerTitle: "\u0C24\u0C26\u0C41\u0C2A\u0C30\u0C3F \u0C24\u0C30\u0C3E\u0C28\u0C3F\u0C15\u0C3F \u0C2A\u0C4D\u0C30\u0C40\u0C2E\u0C3F\u0C2F\u0C02 \u0C1F\u0C4D\u0C2F\u0C42\u0C37\u0C28\u0C4D.",
+  quickLinks: "\u0C24\u0C4D\u0C35\u0C30\u0C3F\u0C24 \u0C32\u0C3F\u0C02\u0C15\u0C41\u0C32\u0C41",
+  contactInfo: "\u0C38\u0C02\u0C2A\u0C4D\u0C30\u0C26\u0C3F\u0C02\u0C2A\u0C41 \u0C38\u0C2E\u0C3E\u0C1A\u0C3E\u0C30\u0C02",
+  address: "\u0C2E\u0C3E\u0C27\u0C3E\u0C2A\u0C42\u0C30\u0C4D, \u0C39\u0C48\u0C26\u0C30\u0C3E\u0C2C\u0C3E\u0C26\u0C4D, \u0C24\u0C46\u0C32\u0C02\u0C17\u0C3E\u0C23 500081",
+  rightsReserved: "\u0C05\u0C28\u0C4D\u0C28\u0C3F \u0C39\u0C15\u0C4D\u0C15\u0C41\u0C32\u0C41 \u0C30\u0C3F\u0C1C\u0C30\u0C4D\u0C35\u0C41 \u0C1A\u0C47\u0C2F\u0C2C\u0C21\u0C4D\u0C21\u0C3E\u0C2F\u0C3F.",
+};
+
+const hindiOverrides: Record<string, string> = {
+  home: "\u0939\u094B\u092E",
+  modeOfClass: "\u0915\u0915\u094D\u0937\u093E \u0915\u093E \u0924\u0930\u0940\u0915\u093E",
+  language: "\u092D\u093E\u0937\u093E",
+  register: "\u092A\u0902\u091C\u0940\u0915\u0930\u0923",
+  portalLogin: "\u092A\u094B\u0930\u094D\u091F\u0932 \u0932\u0949\u0917\u093F\u0928",
+  loggedInAs: "\u0932\u0949\u0917 \u0907\u0928 \u092D\u0942\u092E\u093F\u0915\u093E",
+  goToLanding: "\u0939\u094B\u092E \u092A\u0947\u091C \u092A\u0930 \u091C\u093E\u090F\u0902",
+  goToDashboard: "\u0921\u0948\u0936\u092C\u094B\u0930\u094D\u0921 \u092A\u0930 \u091C\u093E\u090F\u0902",
+  onlineOnly: "\u0915\u0947\u0935\u0932 \u0911\u0928\u0932\u093E\u0907\u0928",
+  offlineOnly: "\u0915\u0947\u0935\u0932 \u0911\u092B\u0932\u093E\u0907\u0928",
+  onlineOffline: "\u0911\u0928\u0932\u093E\u0907\u0928 & \u0911\u092B\u0932\u093E\u0907\u0928",
+  contactUs: "\u0938\u0902\u092A\u0930\u094D\u0915 \u0915\u0930\u0947\u0902",
+  pickLanguage: "\u092D\u093E\u0937\u093E \u091A\u0941\u0928\u0947\u0902",
+  back: "\u0935\u093E\u092A\u0938",
+  continue: "\u091C\u093E\u0930\u0940 \u0930\u0916\u0947\u0902",
+  authorizedAccess: "\u0915\u0947\u0935\u0932 \u0905\u0927\u093F\u0915\u0943\u0924 \u0909\u092A\u092F\u094B\u0917\u0915\u0930\u094D\u0924\u093E\u0913\u0902 \u0915\u0947 \u0932\u093F\u090F",
+  academicGateway: "\u0905\u0915\u093E\u0926\u092E\u093F\u0915 \u0917\u0947\u091F\u0935\u0947",
+  loginGatewaySubtitle: "\u0915\u094B\u0930\u094D\u0938, \u0936\u0947\u0921\u094D\u092F\u0942\u0932 \u0914\u0930 \u0917\u094D\u0930\u0947\u0921 \u092E\u0948\u0928\u0947\u091C \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093F\u090F \u0905\u092A\u0928\u0940 \u092A\u094B\u0930\u094D\u091F\u0932 \u092D\u0942\u092E\u093F\u0915\u093E \u091A\u0941\u0928\u0947\u0902.",
+  studentLogin: "\u091B\u093E\u0924\u094D\u0930 \u0932\u0949\u0917\u093F\u0928",
+  parentLogin: "\u0905\u092D\u093F\u092D\u093E\u0935\u0915 \u0932\u0949\u0917\u093F\u0928",
+  tutorLogin: "\u091F\u094D\u092F\u0942\u091F\u0930 \u0932\u0949\u0917\u093F\u0928",
+  adminLogin: "\u090F\u0921\u092E\u093F\u0928 \u0932\u0949\u0917\u093F\u0928",
+  forgotPassword: "\u092A\u093E\u0938\u0935\u0930\u094D\u0921 \u092D\u0942\u0932 \u0917\u090F",
+  empowering: "10,000+ \u091B\u093E\u0924\u094D\u0930\u094B\u0902 \u0915\u094B \u0938\u0936\u0915\u094D\u0924 \u092C\u0928\u093E \u0930\u0939\u0947 \u0939\u0948\u0902",
+  heroTitle: "\u0905\u092A\u0928\u093E \u092D\u0935\u093F\u0937\u094D\u092F \u0938\u0936\u0915\u094D\u0924 \u092C\u0928\u093E\u090F\u0902 ",
+  personalizedPaths: "\u0935\u094D\u092F\u0915\u094D\u0924\u093F\u0917\u0924 \u0938\u0940\u0916\u0928\u0947 \u0915\u0947 \u092E\u093E\u0930\u094D\u0917",
+  liveRecorded: "\u0932\u093E\u0907\u0935 & \u0930\u093F\u0915\u0949\u0930\u094D\u0921\u0947\u0921 \u0915\u0915\u094D\u0937\u093E\u090F\u0902",
+  provenResults: "\u0938\u093F\u0926\u094D\u0927 \u092A\u0930\u093F\u0923\u093E\u092E",
+  getStarted: "\u0905\u092D\u0940 \u0936\u0941\u0930\u0942 \u0915\u0930\u0947\u0902",
+  explorePortals: "\u092A\u094B\u0930\u094D\u091F\u0932 \u0926\u0947\u0916\u0947\u0902",
+  conceptSyllabus: "\u0905\u0935\u0927\u093E\u0930\u0923\u093E-\u0906\u0927\u093E\u0930\u093F\u0924 \u0938\u093F\u0932\u0947\u092C\u0938",
+  attendanceConsistency: "\u0909\u092A\u0938\u094D\u0925\u093F\u0924\u093F \u0938\u094D\u0925\u093F\u0930\u0924\u093E",
+  avgAchievement: "\u0914\u0938\u0924 \u0909\u092A\u0932\u092C\u094D\u0927\u093F",
+  findPerfectClass: "\u0905\u092A\u0928\u0940 \u0938\u0939\u0940 \u0915\u0915\u094D\u0937\u093E \u0916\u094B\u091C\u0947\u0902",
+  selectCenter: "\u0932\u0930\u094D\u0928\u093F\u0902\u0917 \u0938\u0947\u0902\u091F\u0930",
+  selectClass: "\u0932\u0930\u094D\u0928\u093F\u0902\u0917 \u0915\u094D\u0932\u093E\u0938",
+  bookDemo: "\u0921\u0947\u092E\u094B \u092C\u0941\u0915 \u0915\u0930\u0947\u0902",
+  activeSyllabus: "\u0938\u0915\u094D\u0930\u093F\u092F \u0938\u093F\u0932\u0947\u092C\u0938",
+  whyChooseTitle: "Academy Flow \u0915\u094D\u092F\u094B\u0902 \u091A\u0941\u0928\u0947\u0902?",
+  whyChooseSub: "\u0939\u092E \u091B\u093E\u0924\u094D\u0930\u094B\u0902 \u0915\u093E \u0936\u0948\u0915\u094D\u0937\u0923\u093F\u0915 \u0906\u0924\u094D\u092E\u0935\u093F\u0936\u094D\u0935\u093E\u0938 \u092C\u0922\u093C\u093E\u0928\u0947 \u0935\u093E\u0932\u0940 \u0906\u0927\u0941\u0928\u093F\u0915 \u091F\u094D\u092F\u0942\u0936\u0928 \u0938\u0941\u0935\u093F\u0927\u093E\u090F\u0902 \u0926\u0947\u0924\u0947 \u0939\u0948\u0902.",
+  expertTutorsTitle: "\u0935\u093F\u0936\u0947\u0937\u091C\u094D\u091E \u091F\u094D\u092F\u0942\u091F\u0930",
+  expertTutorsDesc: "\u091C\u091F\u093F\u0932 \u0935\u093F\u0937\u092F\u094B\u0902 \u0915\u094B \u0906\u0938\u093E\u0928 \u092C\u0928\u093E\u0928\u0947 \u0935\u093E\u0932\u0947 \u0905\u0928\u0941\u092D\u0935\u0940 \u0936\u093F\u0915\u094D\u0937\u0915\u094B\u0902 \u0938\u0947 \u0938\u0940\u0916\u0947\u0902.",
+  customCurriculumTitle: "\u0905\u0928\u0941\u0915\u0942\u0932 \u092A\u093E\u0920\u094D\u092F\u0915\u094D\u0930\u092E",
+  progressTrackingTitle: "\u092A\u094D\u0930\u0917\u0924\u093F \u091F\u094D\u0930\u0948\u0915\u093F\u0902\u0917",
+  interactiveDashboardsTitle: "\u0907\u0902\u091F\u0930\u0948\u0915\u094D\u091F\u093F\u0935 \u0921\u0948\u0936\u092C\u094B\u0930\u094D\u0921",
+  reviewsTitle: "\u0905\u092D\u093F\u092D\u093E\u0935\u0915 & \u091B\u093E\u0924\u094D\u0930 \u0938\u092E\u0940\u0915\u094D\u0937\u093E\u090F\u0902",
+  reviewsSub: "Academy Flow \u0915\u0947 \u092C\u093E\u0930\u0947 \u092E\u0947\u0902 \u0939\u092E\u093E\u0930\u093E \u0938\u092E\u0941\u0926\u093E\u092F \u0915\u094D\u092F\u093E \u0915\u0939\u0924\u093E \u0939\u0948.",
+  footerTitle: "\u0905\u0917\u0932\u0940 \u092A\u0940\u0922\u093C\u0940 \u0915\u0947 \u0932\u093F\u090F \u092A\u094D\u0930\u0940\u092E\u093F\u092F\u092E \u091F\u094D\u092F\u0942\u0936\u0928.",
+  quickLinks: "\u0924\u094D\u0935\u0930\u093F\u0924 \u0932\u093F\u0902\u0915",
+  contactInfo: "\u0938\u0902\u092A\u0930\u094D\u0915 \u091C\u093E\u0928\u0915\u093E\u0930\u0940",
+  address: "\u092E\u093E\u0927\u093E\u092A\u0941\u0930, \u0939\u0948\u0926\u0930\u093E\u092C\u093E\u0926, \u0924\u0947\u0932\u0902\u0917\u093E\u0928\u093E 500081",
+  rightsReserved: "\u0938\u0930\u094D\u0935\u093E\u0927\u093F\u0915\u093E\u0930 \u0938\u0941\u0930\u0915\u094D\u0937\u093F\u0924.",
+};
+
 const dictionary: Record<Language, Record<string, string>> = {
   English: english,
-  Telugu: {
-    ...english,
-    home: "హోమ్",
-    modeOfClass: "తరగతి విధానం",
-    language: "భాష",
-    register: "నమోదు",
-    portalLogin: "పోర్టల్ లాగిన్",
-    loggedInAs: "లాగిన్ అయిన పాత్ర",
-    goToLanding: "హోమ్ పేజీకి వెళ్లండి",
-    goToDashboard: "డ్యాష్‌బోర్డ్‌కు వెళ్లండి",
-    onlineOnly: "ఆన్‌లైన్ మాత్రమే",
-    offlineOnly: "ఆఫ్‌లైన్ మాత్రమే",
-    onlineOffline: "ఆన్‌లైన్ & ఆఫ్‌లైన్",
-    contactUs: "మమ్మల్ని సంప్రదించండి",
-    pickLanguage: "భాషను ఎంచుకోండి",
-    back: "వెనుకకు",
-    continue: "కొనసాగించండి",
-    authorizedAccess: "అధికారిక వినియోగదారులకే ప్రవేశం",
-    academicGateway: "అకాడెమిక్ గేట్‌వే",
-    loginGatewaySubtitle: "కోర్సులు, షెడ్యూల్‌లు, మార్కులను నిర్వహించడానికి మీ పోర్టల్ పాత్రను ఎంచుకోండి.",
-    studentLogin: "విద్యార్థి లాగిన్",
-    parentLogin: "తల్లిదండ్రుల లాగిన్",
-    tutorLogin: "ట్యూటర్ లాగిన్",
-    adminLogin: "అడ్మిన్ లాగిన్",
-    forgotPassword: "పాస్‌వర్డ్ మర్చిపోయారా",
-    empowering: "10,000+ మంది విద్యార్థులకు శక్తిని అందిస్తున్నాం",
-    heroTitle: "మీ భవిష్యత్తును బలోపేతం చేసుకోండి ",
-    personalizedPaths: "వ్యక్తిగత అభ్యాస మార్గాలు",
-    liveRecorded: "లైవ్ & రికార్డ్ తరగతులు",
-    provenResults: "నిరూపిత ఫలితాలు",
-    unlockCuriosity: "ఆసక్తిని పెంచండి - ప్రతి పాఠం మంచి రేపటిని నిర్మిస్తుంది.",
-    heroDescription: "1వ తరగతి నుంచి 10వ తరగతి వరకు ఆన్‌లైన్ & ఆఫ్‌లైన్ ప్రీమియం ట్యూషన్. వ్యక్తిగత అభ్యాస మార్గాలు, అనుభవజ్ఞులైన బోధకులు, మెరుగైన ఫలితాలు.",
-    getStarted: "ఇప్పుడే ప్రారంభించండి",
-    explorePortals: "పోర్టల్‌లను చూడండి",
-    conceptSyllabus: "భావన-ఆధారిత సిలబస్",
-    attendanceConsistency: "హాజరు స్థిరత్వం",
-    avgAchievement: "సగటు సాధన",
-    findPerfectClass: "మీకు సరైన తరగతిని కనుగొనండి",
-    selectCenterAndClass: "కోర్సు ఎంపికలు మరియు ఉచిత సెషన్ కోసం ప్రదేశం, తరగతిని ఎంచుకోండి",
-    selectCenter: "అభ్యాస కేంద్రం",
-    selectClass: "అభ్యాస తరగతి",
-    bookDemo: "డెమో బుక్ చేయండి",
-    activeSyllabus: "సక్రియ పాఠ్యాంశాలు",
-    whyChooseTitle: "Academy Flow ఎందుకు?",
-    whyChooseSub: "విద్యార్థుల విద్యా విశ్వాసాన్ని పెంచే ఆధునిక ట్యూషన్ సదుపాయాలు అందిస్తున్నాం.",
-    expertTutorsTitle: "నిపుణులైన ట్యూటర్లు",
-    expertTutorsDesc: "క్లిష్ట విషయాలను సులభంగా బోధించే అనుభవజ్ఞులైన ఉపాధ్యాయుల నుంచి నేర్చుకోండి.",
-    customCurriculumTitle: "అనుకూల పాఠ్యాంశం",
-    customCurriculumDesc: "ప్రతి విద్యార్థికి వ్యక్తిగత హోంవర్క్, లక్ష్యాలు, సాధన మాడ్యూల్స్ అందుతాయి.",
-    progressTrackingTitle: "ప్రగతి ట్రాకింగ్",
-    progressTrackingDesc: "వారపు నివేదికలు, హాజరు మీటర్లు, స్కోర్‌కార్డులు తల్లిదండ్రులకు స్పష్టత ఇస్తాయి.",
-    interactiveDashboardsTitle: "ఇంటరాక్టివ్ డ్యాష్‌బోర్డ్‌లు",
-    interactiveDashboardsDesc: "విద్యార్థి, తల్లిదండ్రులు, ట్యూటర్, అడ్మిన్ డ్యాష్‌బోర్డ్‌లతో పూర్తి అభ్యాస అనుభవం.",
-    reviewsTitle: "తల్లిదండ్రులు & విద్యార్థుల సమీక్షలు",
-    reviewsSub: "Academy Flow గురించి మా సమాజం చెప్పేది.",
-    footerTitle: "తదుపరి తరానికి ప్రీమియం ట్యూషన్.",
-    quickLinks: "త్వరిత లింకులు",
-    contactInfo: "సంప్రదింపు సమాచారం",
-    address: "మాధాపూర్, హైదరాబాద్, తెలంగాణ 500081",
-    rightsReserved: "అన్ని హక్కులు రిజర్వు చేయబడ్డాయి.",
-  },
-  Hindi: {
-    ...english,
-    home: "होम",
-    modeOfClass: "कक्षा का तरीका",
-    language: "भाषा",
-    register: "पंजीकरण",
-    portalLogin: "पोर्टल लॉगिन",
-    loggedInAs: "लॉग इन भूमिका",
-    goToLanding: "होम पेज पर जाएं",
-    goToDashboard: "डैशबोर्ड पर जाएं",
-    onlineOnly: "केवल ऑनलाइन",
-    offlineOnly: "केवल ऑफलाइन",
-    onlineOffline: "ऑनलाइन & ऑफलाइन",
-    contactUs: "संपर्क करें",
-    pickLanguage: "भाषा चुनें",
-    back: "वापस",
-    continue: "जारी रखें",
-    authorizedAccess: "केवल अधिकृत उपयोगकर्ताओं के लिए",
-    academicGateway: "अकादमिक गेटवे",
-    loginGatewaySubtitle: "कोर्स, शेड्यूल और ग्रेड मैनेज करने के लिए अपनी पोर्टल भूमिका चुनें.",
-    studentLogin: "छात्र लॉगिन",
-    parentLogin: "अभिभावक लॉगिन",
-    tutorLogin: "ट्यूटर लॉगिन",
-    adminLogin: "एडमिन लॉगिन",
-    forgotPassword: "पासवर्ड भूल गए",
-    empowering: "10,000+ छात्रों को सशक्त बना रहे हैं",
-    heroTitle: "अपना भविष्य सशक्त बनाएं ",
-    personalizedPaths: "व्यक्तिगत सीखने के मार्ग",
-    liveRecorded: "लाइव & रिकॉर्डेड कक्षाएं",
-    provenResults: "सिद्ध परिणाम",
-    unlockCuriosity: "जिज्ञासा जगाएं - हर पाठ बेहतर कल बनाता है.",
-    heroDescription: "कक्षा 1 से 10 तक ऑनलाइन & ऑफलाइन प्रीमियम ट्यूशन. व्यक्तिगत सीखने के मार्ग, अनुभवी शिक्षक और बेहतर परिणाम.",
-    getStarted: "अभी शुरू करें",
-    explorePortals: "पोर्टल देखें",
-    conceptSyllabus: "अवधारणा-आधारित सिलेबस",
-    attendanceConsistency: "उपस्थिति स्थिरता",
-    avgAchievement: "औसत उपलब्धि",
-    findPerfectClass: "अपनी सही कक्षा खोजें",
-    selectCenterAndClass: "कोर्स विकल्प और मुफ्त सत्र के लिए स्थान और कक्षा चुनें",
-    selectCenter: "लर्निंग सेंटर",
-    selectClass: "लर्निंग क्लास",
-    bookDemo: "डेमो बुक करें",
-    activeSyllabus: "सक्रिय सिलेबस",
-    whyChooseTitle: "Academy Flow क्यों चुनें?",
-    whyChooseSub: "हम छात्रों का शैक्षणिक आत्मविश्वास बढ़ाने वाली आधुनिक ट्यूशन सुविधाएं देते हैं.",
-    expertTutorsTitle: "विशेषज्ञ ट्यूटर",
-    expertTutorsDesc: "जटिल विषयों को आसान बनाने वाले अनुभवी शिक्षकों से सीखें.",
-    customCurriculumTitle: "अनुकूल पाठ्यक्रम",
-    customCurriculumDesc: "हर छात्र को व्यक्तिगत होमवर्क योजना, लक्ष्य और अभ्यास मॉड्यूल मिलते हैं.",
-    progressTrackingTitle: "प्रगति ट्रैकिंग",
-    progressTrackingDesc: "साप्ताहिक रिपोर्ट, उपस्थिति मीटर और स्कोरकार्ड अभिभावकों को अपडेट रखते हैं.",
-    interactiveDashboardsTitle: "इंटरैक्टिव डैशबोर्ड",
-    interactiveDashboardsDesc: "छात्र, अभिभावक, ट्यूटर और एडमिन डैशबोर्ड के साथ पूर्ण सीखने का अनुभव.",
-    reviewsTitle: "अभिभावक & छात्र समीक्षाएं",
-    reviewsSub: "Academy Flow के बारे में हमारा समुदाय क्या कहता है.",
-    footerTitle: "अगली पीढ़ी के लिए प्रीमियम ट्यूशन.",
-    quickLinks: "त्वरित लिंक",
-    contactInfo: "संपर्क जानकारी",
-    address: "माधापुर, हैदराबाद, तेलंगाना 500081",
-    rightsReserved: "सर्वाधिकार सुरक्षित.",
-  },
+  Telugu: { ...english, ...teluguOverrides },
+  Hindi: { ...english, ...hindiOverrides },
 };
+
+const phrasePairs: Array<[string, string, string]> = [
+  ["Home", "\u0C39\u0C4B\u0C2E\u0C4D", "\u0939\u094B\u092E"],
+  ["Dashboard", "\u0C21\u0C4D\u0C2F\u0C3E\u0C37\u0C4D\u200C\u0C2C\u0C4B\u0C30\u0C4D\u0C21\u0C4D", "\u0921\u0948\u0936\u092C\u094B\u0930\u094D\u0921"],
+  ["Students", "\u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C41\u0C32\u0C41", "\u091B\u093E\u0924\u094D\u0930"],
+  ["Tutors", "\u0C1F\u0C4D\u0C2F\u0C42\u0C1F\u0C30\u0C4D\u0C32\u0C41", "\u091F\u094D\u092F\u0942\u091F\u0930"],
+  ["Parents", "\u0C24\u0C32\u0C4D\u0C32\u0C3F\u0C26\u0C02\u0C21\u0C4D\u0C30\u0C41\u0C32\u0C41", "\u0905\u092D\u093F\u092D\u093E\u0935\u0915"],
+  ["Courses", "\u0C15\u0C4B\u0C30\u0C4D\u0C38\u0C41\u0C32\u0C41", "\u0915\u094B\u0930\u094D\u0938"],
+  ["Batches", "\u0C2C\u0C4D\u0C2F\u0C3E\u0C1A\u0C4D\u200C\u0C32\u0C41", "\u092C\u0948\u091A"],
+  ["Timetable", "\u0C1F\u0C48\u0C2E\u0C4D\u200C\u0C1F\u0C47\u0C2C\u0C41\u0C32\u0C4D", "\u091F\u093E\u0907\u092E\u091F\u0947\u092C\u0932"],
+  ["Attendance", "\u0C39\u0C3E\u0C1C\u0C30\u0C41", "\u0909\u092A\u0938\u094D\u0925\u093F\u0924\u093F"],
+  ["Results", "\u0C2B\u0C32\u0C3F\u0C24\u0C3E\u0C32\u0C41", "\u092A\u0930\u093F\u0923\u093E\u092E"],
+  ["Fees", "\u0C2B\u0C40\u0C1C\u0C41\u0C32\u0C41", "\u092B\u0940\u0938"],
+  ["Reports", "\u0C28\u0C3F\u0C35\u0C47\u0C26\u0C3F\u0C15\u0C32\u0C41", "\u0930\u093F\u092A\u094B\u0930\u094D\u091F"],
+  ["Notifications", "\u0C28\u0C4B\u0C1F\u0C3F\u0C2B\u0C3F\u0C15\u0C47\u0C37\u0C28\u0C4D\u0C32\u0C41", "\u0938\u0942\u091A\u0928\u093E\u090F\u0902"],
+  ["Settings", "\u0C38\u0C46\u0C1F\u0C4D\u0C1F\u0C3F\u0C02\u0C17\u0C4D\u0C38\u0C4D", "\u0938\u0947\u091F\u093F\u0902\u0917\u094D\u0938"],
+  ["Profile", "\u0C2A\u0C4D\u0C30\u0C4A\u0C2B\u0C48\u0C32\u0C4D", "\u092A\u094D\u0930\u094B\u092B\u093E\u0907\u0932"],
+  ["Messages", "\u0C38\u0C02\u0C26\u0C47\u0C36\u0C3E\u0C32\u0C41", "\u0938\u0902\u0926\u0947\u0936"],
+  ["Reviews", "\u0C38\u0C2E\u0C40\u0C15\u0C4D\u0C37\u0C32\u0C41", "\u0938\u092E\u0940\u0915\u094D\u0937\u093E\u090F\u0902"],
+  ["Assignments", "\u0C05\u0C38\u0C48\u0C28\u0C4D\u200C\u0C2E\u0C46\u0C02\u0C1F\u0C4D\u0C32\u0C41", "\u0905\u0938\u093E\u0907\u0928\u092E\u0947\u0902\u091F"],
+  ["Tests", "\u0C2A\u0C30\u0C40\u0C15\u0C4D\u0C37\u0C32\u0C41", "\u092A\u0930\u0940\u0915\u094D\u0937\u093E\u090F\u0902"],
+  ["Schedule", "\u0C37\u0C46\u0C21\u0C4D\u0C2F\u0C42\u0C32\u0C4D", "\u0936\u0947\u0921\u094D\u092F\u0942\u0932"],
+  ["My Tutor", "\u0C28\u0C3E \u0C1F\u0C4D\u0C2F\u0C42\u0C1F\u0C30\u0C4D", "\u092E\u0947\u0930\u093E \u091F\u094D\u092F\u0942\u091F\u0930"],
+  ["My Students", "\u0C28\u0C3E \u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C41\u0C32\u0C41", "\u092E\u0947\u0930\u0947 \u091B\u093E\u0924\u094D\u0930"],
+  ["My Child", "\u0C28\u0C3E \u0C2A\u0C3F\u0C32\u0C4D\u0C32\u0C35\u0C3E\u0C21\u0C41", "\u092E\u0947\u0930\u093E \u092C\u091A\u094D\u091A\u093E"],
+  ["Fee Payments", "\u0C2B\u0C40\u0C1C\u0C41 \u0C1A\u0C46\u0C32\u0C4D\u0C32\u0C3F\u0C02\u0C2A\u0C41\u0C32\u0C41", "\u092B\u0940\u0938 \u092D\u0941\u0917\u0924\u093E\u0928"],
+  ["Tutor Details", "\u0C1F\u0C4D\u0C2F\u0C42\u0C1F\u0C30\u0C4D \u0C35\u0C3F\u0C35\u0C30\u0C3E\u0C32\u0C41", "\u091F\u094D\u092F\u0942\u091F\u0930 \u0935\u093F\u0935\u0930\u0923"],
+  ["Tuition Feedback", "\u0C1F\u0C4D\u0C2F\u0C42\u0C37\u0C28\u0C4D \u0C2B\u0C40\u0C21\u0C4D\u200C\u0C2C\u0C4D\u0C2F\u0C3E\u0C15\u0C4D", "\u091F\u094D\u092F\u0942\u0936\u0928 \u092B\u0940\u0921\u092C\u0948\u0915"],
+  ["Support", "\u0C38\u0C39\u0C3E\u0C2F\u0C02", "\u0938\u0939\u093E\u092F\u0924\u093E"],
+  ["Logout", "\u0C32\u0C3E\u0C17\u0C4C\u0C1F\u0C4D", "\u0932\u0949\u0917\u0906\u0909\u091F"],
+  ["Registrations", "\u0C28\u0C2E\u0C4B\u0C26\u0C41\u0C32\u0C41", "\u092A\u0902\u091C\u0940\u0915\u0930\u0923"],
+  ["Accept", "\u0C05\u0C02\u0C17\u0C40\u0C15\u0C30\u0C3F\u0C02\u0C1A\u0C41", "\u0938\u094D\u0935\u0940\u0915\u093E\u0930 \u0915\u0930\u0947\u0902"],
+  ["Reject", "\u0C24\u0C3F\u0C30\u0C38\u0C4D\u0C15\u0C30\u0C3F\u0C02\u0C1A\u0C41", "\u0905\u0938\u094D\u0935\u0940\u0915\u093E\u0930 \u0915\u0930\u0947\u0902"],
+  ["Pending", "\u0C2A\u0C46\u0C02\u0C21\u0C3F\u0C02\u0C17\u0C4D", "\u0932\u0902\u092C\u093F\u0924"],
+  ["Approved", "\u0C06\u0C2E\u0C4B\u0C26\u0C3F\u0C02\u0C1A\u0C2C\u0C21\u0C3F\u0C02\u0C26\u0C3F", "\u0938\u094D\u0935\u0940\u0915\u0943\u0924"],
+  ["Rejected", "\u0C24\u0C3F\u0C30\u0C38\u0C4D\u0C15\u0C30\u0C3F\u0C02\u0C1A\u0C2C\u0C21\u0C3F\u0C02\u0C26\u0C3F", "\u0905\u0938\u094D\u0935\u0940\u0915\u0943\u0924"],
+  ["1st Class", "1\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 1"],
+  ["2nd Class", "2\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 2"],
+  ["3rd Class", "3\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 3"],
+  ["4th Class", "4\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 4"],
+  ["5th Class", "5\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 5"],
+  ["6th Class", "6\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 6"],
+  ["7th Class", "7\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 7"],
+  ["8th Class", "8\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 8"],
+  ["9th Class", "9\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 9"],
+  ["10th Class", "10\u0C35 \u0C24\u0C30\u0C17\u0C24\u0C3F", "\u0915\u0915\u094D\u0937\u093E 10"],
+  ["Hyderabad", "\u0C39\u0C48\u0C26\u0C30\u0C3E\u0C2C\u0C3E\u0C26\u0C4D", "\u0939\u0948\u0926\u0930\u093E\u092C\u093E\u0926"],
+  ["Warangal", "\u0C35\u0C30\u0C02\u0C17\u0C32\u0C4D", "\u0935\u093E\u0930\u0902\u0917\u0932"],
+  ["Karimnagar", "\u0C15\u0C30\u0C40\u0C02\u0C28\u0C17\u0C30\u0C4D", "\u0915\u0930\u0940\u092E\u0928\u0917\u0930"],
+  ["Mathematics", "\u0C17\u0C23\u0C3F\u0C24\u0C02", "\u0917\u0923\u093F\u0924"],
+  ["Environmental Studies", "\u0C2A\u0C30\u0C4D\u0C2F\u0C3E\u0C35\u0C30\u0C23 \u0C05\u0C27\u0C4D\u0C2F\u0C2F\u0C28\u0C3E\u0C32\u0C41", "\u092A\u0930\u094D\u092F\u093E\u0935\u0930\u0923 \u0905\u0927\u094D\u092F\u092F\u0928"],
+  ["General Science", "\u0C38\u0C3E\u0C27\u0C3E\u0C30\u0C23 \u0C35\u0C3F\u0C1C\u0C4D\u0C1E\u0C3E\u0C28\u0C36\u0C3E\u0C38\u0C4D\u0C24\u0C4D\u0C30\u0C02", "\u0938\u093E\u092E\u093E\u0928\u094D\u092F \u0935\u093F\u091C\u094D\u091E\u093E\u0928"],
+  ["Social Studies", "\u0C38\u0C3E\u0C02\u0C18\u0C3F\u0C15 \u0C05\u0C27\u0C4D\u0C2F\u0C2F\u0C28\u0C3E\u0C32\u0C41", "\u0938\u093E\u092E\u093E\u091C\u093F\u0915 \u0905\u0927\u094D\u092F\u092F\u0928"],
+  ["Physics", "\u0C2D\u0C4C\u0C24\u0C3F\u0C15 \u0C36\u0C3E\u0C38\u0C4D\u0C24\u0C4D\u0C30\u0C02", "\u092D\u094C\u0924\u093F\u0915\u0940"],
+  ["Chemistry", "\u0C30\u0C38\u0C3E\u0C2F\u0C28 \u0C36\u0C3E\u0C38\u0C4D\u0C24\u0C4D\u0C30\u0C02", "\u0930\u0938\u093E\u092F\u0928 \u0935\u093F\u091C\u094D\u091E\u093E\u0928"],
+  ["Biology", "\u0C1C\u0C40\u0C35 \u0C36\u0C3E\u0C38\u0C4D\u0C24\u0C4D\u0C30\u0C02", "\u091C\u0940\u0935\u0935\u093F\u091C\u094D\u091E\u093E\u0928"],
+  ["Computer Science", "\u0C15\u0C02\u0C2A\u0C4D\u0C2F\u0C42\u0C1F\u0C30\u0C4D \u0C38\u0C48\u0C28\u0C4D\u0C38\u0C4D", "\u0915\u0902\u092A\u094D\u092F\u0942\u091F\u0930 \u0935\u093F\u091C\u094D\u091E\u093E\u0928"],
+  ["Telugu", "\u0C24\u0C46\u0C32\u0C41\u0C17\u0C41", "\u0924\u0947\u0932\u0941\u0917\u0941"],
+  ["Hindi", "\u0C39\u0C3F\u0C02\u0C26\u0C40", "\u0939\u093F\u0902\u0926\u0940"],
+  ["Student Login", "\u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C3F \u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D", "\u091B\u093E\u0924\u094D\u0930 \u0932\u0949\u0917\u093F\u0928"],
+  ["Parent Login", "\u0C24\u0C32\u0C4D\u0C32\u0C3F\u0C26\u0C02\u0C21\u0C4D\u0C30\u0C41\u0C32 \u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D", "\u0905\u092D\u093F\u092D\u093E\u0935\u0915 \u0932\u0949\u0917\u093F\u0928"],
+  ["Tutor Login", "\u0C1F\u0C4D\u0C2F\u0C42\u0C1F\u0C30\u0C4D \u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D", "\u091F\u094D\u092F\u0942\u091F\u0930 \u0932\u0949\u0917\u093F\u0928"],
+  ["Admin Login", "\u0C05\u0C21\u0C4D\u0C2E\u0C3F\u0C28\u0C4D \u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D", "\u090F\u0921\u092E\u093F\u0928 \u0932\u0949\u0917\u093F\u0928"],
+  ["Forgot Password?", "\u0C2A\u0C3E\u0C38\u0C4D\u200C\u0C35\u0C30\u0C4D\u0C21\u0C4D \u0C2E\u0C30\u0C4D\u0C1A\u0C3F\u0C2A\u0C4B\u0C2F\u0C3E\u0C30\u0C3E?", "\u092A\u093E\u0938\u0935\u0930\u094D\u0921 \u092D\u0942\u0932 \u0917\u090F?"],
+  ["Send OTP", "OTP \u0C2A\u0C02\u0C2A\u0C02\u0C21\u0C3F", "OTP \u092D\u0947\u091C\u0947\u0902"],
+  ["Verify OTP", "OTP \u0C27\u0C43\u0C35\u0C40\u0C15\u0C30\u0C3F\u0C02\u0C1A\u0C02\u0C21\u0C3F", "OTP \u0938\u0924\u094D\u092F\u093E\u092A\u093F\u0924 \u0915\u0930\u0947\u0902"],
+  ["Return to Login", "\u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D\u200C\u0C15\u0C41 \u0C24\u0C3F\u0C30\u0C3F\u0C17\u0C3F \u0C35\u0C46\u0C33\u0C4D\u0C33\u0C02\u0C21\u0C3F", "\u0932\u0949\u0917\u093F\u0928 \u092A\u0930 \u0932\u094C\u091F\u0947\u0902"],
+  ["Close", "\u0C2E\u0C42\u0C38\u0C3F\u0C35\u0C47\u0C2F\u0C02\u0C21\u0C3F", "\u092C\u0902\u0926 \u0915\u0930\u0947\u0902"],
+  ["Support Chat", "\u0C38\u0C2A\u0C4B\u0C30\u0C4D\u0C1F\u0C4D \u0C1A\u0C3E\u0C1F\u0C4D", "\u0938\u092A\u094B\u0930\u094D\u091F \u091A\u0948\u091F"],
+  ["Quick topics", "\u0C24\u0C4D\u0C35\u0C30\u0C3F\u0C24 \u0C35\u0C3F\u0C37\u0C2F\u0C3E\u0C32\u0C41", "\u0924\u094D\u0935\u0930\u093F\u0924 \u0935\u093F\u0937\u092F"],
+  ["Type your message", "\u0C2E\u0C40 \u0C38\u0C02\u0C26\u0C47\u0C36\u0C02 \u0C1F\u0C48\u0C2A\u0C4D \u0C1A\u0C47\u0C2F\u0C02\u0C21\u0C3F", "\u0905\u092A\u0928\u093E \u0938\u0902\u0926\u0947\u0936 \u0932\u093F\u0916\u0947\u0902"],
+  ["Send", "\u0C2A\u0C02\u0C2A\u0C02\u0C21\u0C3F", "\u092D\u0947\u091C\u0947\u0902"],
+  ["Admissions", "\u0C2A\u0C4D\u0C30\u0C35\u0C47\u0C36\u0C3E\u0C32\u0C41", "\u092A\u094D\u0930\u0935\u0947\u0936"],
+  ["Classes", "\u0C24\u0C30\u0C17\u0C24\u0C41\u0C32\u0C41", "\u0915\u0915\u094D\u0937\u093E\u090F\u0902"],
+  ["Login help", "\u0C32\u0C3E\u0C17\u0C3F\u0C28\u0C4D \u0C38\u0C39\u0C3E\u0C2F\u0C02", "\u0932\u0949\u0917\u093F\u0928 \u0938\u0939\u093E\u092F\u0924\u093E"],
+  ["Academy Flow", "\u0C05\u0C15\u0C3E\u0C21\u0C2E\u0C40 \u0C2B\u0C4D\u0C32\u0C4B", "\u0905\u0915\u093E\u0926\u092E\u0940 \u092B\u094D\u0932\u094B"],
+  ["Tuitions for next generations", "\u0C24\u0C26\u0C41\u0C2A\u0C30\u0C3F \u0C24\u0C30\u0C3E\u0C32 \u0C15\u0C4B\u0C38\u0C02 \u0C1F\u0C4D\u0C2F\u0C42\u0C37\u0C28\u0C4D\u0C32\u0C41", "\u0905\u0917\u0932\u0940 \u092A\u0940\u0922\u093C\u093F\u092F\u094B\u0902 \u0915\u0947 \u0932\u093F\u090F \u091F\u094D\u092F\u0942\u0936\u0928"],
+  ["Unlock curiosity - every lesson builds a brighter tomorrow.", "\u0C06\u0C38\u0C15\u0C4D\u0C24\u0C3F\u0C28\u0C3F \u0C2A\u0C46\u0C02\u0C1A\u0C02\u0C21\u0C3F - \u0C2A\u0C4D\u0C30\u0C24\u0C3F \u0C2A\u0C3E\u0C20\u0C02 \u0C2E\u0C02\u0C1A\u0C3F \u0C30\u0C47\u0C2A\u0C1F\u0C3F\u0C28\u0C3F \u0C28\u0C3F\u0C30\u0C4D\u0C2E\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C02\u0C26\u0C3F.", "\u091C\u093F\u091C\u094D\u091E\u093E\u0938\u093E \u091C\u0917\u093E\u090F\u0902 - \u0939\u0930 \u092A\u093E\u0920 \u092C\u0947\u0939\u0924\u0930 \u0915\u0932 \u092C\u0928\u093E\u0924\u093E \u0939\u0948."],
+  ["Flow", "\u0C2B\u0C4D\u0C32\u0C4B", "\u092B\u094D\u0932\u094B"],
+  ["Academy", "\u0C05\u0C15\u0C3E\u0C21\u0C2E\u0C40", "\u0905\u0915\u093E\u0926\u092E\u0940"],
+  ["Academy Center", "\u0C05\u0C15\u0C3E\u0C21\u0C2E\u0C40 \u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30\u0C02", "\u0905\u0915\u093E\u0926\u092E\u0940 \u0938\u0947\u0902\u091F\u0930"],
+  ["Academy Center \u2014 Hyderabad", "\u0C05\u0C15\u0C3E\u0C21\u0C2E\u0C40 \u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30\u0C02 \u2014 \u0C39\u0C48\u0C26\u0C30\u0C3E\u0C2C\u0C3E\u0C26\u0C4D", "\u0905\u0915\u093E\u0926\u092E\u0940 \u0938\u0947\u0902\u091F\u0930 \u2014 \u0939\u0948\u0926\u0930\u093E\u092C\u093E\u0926"],
+  ["Academy Center \u2014 Warangal", "\u0C05\u0C15\u0C3E\u0C21\u0C2E\u0C40 \u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30\u0C02 \u2014 \u0C35\u0C30\u0C02\u0C17\u0C32\u0C4D", "\u0905\u0915\u093E\u0926\u092E\u0940 \u0938\u0947\u0902\u091F\u0930 \u2014 \u0935\u093E\u0930\u0902\u0917\u0932"],
+  ["Academy Center \u2014 Karimnagar", "\u0C05\u0C15\u0C3E\u0C21\u0C2E\u0C40 \u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30\u0C02 \u2014 \u0C15\u0C30\u0C40\u0C02\u0C28\u0C17\u0C30\u0C4D", "\u0905\u0915\u093E\u0926\u092E\u0940 \u0938\u0947\u0902\u091F\u0930 \u2014 \u0915\u0930\u0940\u092E\u0928\u0917\u0930"],
+  ["Every student receives a personalized homework plan, milestone goals, and tailored practice modules.", "\u0C2A\u0C4D\u0C30\u0C24\u0C3F \u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C3F\u0C15\u0C3F \u0C35\u0C4D\u0C2F\u0C15\u0C4D\u0C24\u0C3F\u0C17\u0C24 \u0C39\u0C4B\u0C02\u0C35\u0C30\u0C4D\u0C15\u0C4D, \u0C32\u0C15\u0C4D\u0C37\u0C4D\u0C2F\u0C3E\u0C32\u0C41, \u0C38\u0C3E\u0C27\u0C28 \u0C2E\u0C3E\u0C21\u0C4D\u0C2F\u0C42\u0C32\u0C4D\u0C38\u0C4D \u0C05\u0C02\u0C26\u0C41\u0C24\u0C3E\u0C2F\u0C3F.", "\u0939\u0930 \u091B\u093E\u0924\u094D\u0930 \u0915\u094B \u0935\u094D\u092F\u0915\u094D\u0924\u093F\u0917\u0924 \u0939\u094B\u092E\u0935\u0930\u094D\u0915 \u092F\u094B\u091C\u0928\u093E, \u0932\u0915\u094D\u0937\u094D\u092F \u0914\u0930 \u0905\u092D\u094D\u092F\u093E\u0938 \u092E\u0949\u0921\u094D\u092F\u0942\u0932 \u092E\u093F\u0932\u0924\u0947 \u0939\u0948\u0902."],
+  ["Weekly reports, visual attendance meters, and automated scorecards keep parents fully informed.", "\u0C35\u0C3E\u0C30\u0C2A\u0C41 \u0C28\u0C3F\u0C35\u0C47\u0C26\u0C3F\u0C15\u0C32\u0C41, \u0C39\u0C3E\u0C1C\u0C30\u0C41 \u0C2E\u0C40\u0C1F\u0C30\u0C4D\u0C32\u0C41, \u0C38\u0C4D\u0C15\u0C4B\u0C30\u0C4D\u200C\u0C15\u0C3E\u0C30\u0C4D\u0C21\u0C41\u0C32\u0C41 \u0C24\u0C32\u0C4D\u0C32\u0C3F\u0C26\u0C02\u0C21\u0C4D\u0C30\u0C41\u0C32\u0C15\u0C41 \u0C38\u0C4D\u0C2A\u0C37\u0C4D\u0C1F\u0C24 \u0C07\u0C38\u0C4D\u0C24\u0C3E\u0C2F\u0C3F.", "\u0938\u093E\u092A\u094D\u0924\u093E\u0939\u093F\u0915 \u0930\u093F\u092A\u094B\u0930\u094D\u091F, \u0909\u092A\u0938\u094D\u0925\u093F\u0924\u093F \u092E\u0940\u091F\u0930 \u0914\u0930 \u0938\u094D\u0915\u094B\u0930\u0915\u093E\u0930\u094D\u0921 \u0905\u092D\u093F\u092D\u093E\u0935\u0915\u094B\u0902 \u0915\u094B \u0905\u092A\u0921\u0947\u091F \u0930\u0916\u0924\u0947 \u0939\u0948\u0902."],
+  ["Full-fidelity simulated student, parent, tutor, and admin dashboards for immersive learning.", "\u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C3F, \u0C24\u0C32\u0C4D\u0C32\u0C3F\u0C26\u0C02\u0C21\u0C4D\u0C30\u0C41\u0C32\u0C41, \u0C1F\u0C4D\u0C2F\u0C42\u0C1F\u0C30\u0C4D, \u0C05\u0C21\u0C4D\u0C2E\u0C3F\u0C28\u0C4D \u0C21\u0C4D\u0C2F\u0C3E\u0C37\u0C4D\u200C\u0C2C\u0C4B\u0C30\u0C4D\u0C21\u0C4D\u200C\u0C32\u0C24\u0C4B \u0C2A\u0C42\u0C30\u0C4D\u0C24\u0C3F \u0C05\u0C2D\u0C4D\u0C2F\u0C3E\u0C38 \u0C05\u0C28\u0C41\u0C2D\u0C35\u0C02.", "\u091B\u093E\u0924\u094D\u0930, \u0905\u092D\u093F\u092D\u093E\u0935\u0915, \u091F\u094D\u092F\u0942\u091F\u0930 \u0914\u0930 \u090F\u0921\u092E\u093F\u0928 \u0921\u0948\u0936\u092C\u094B\u0930\u094D\u0921 \u0915\u0947 \u0938\u093E\u0925 \u092A\u0942\u0930\u094D\u0923 \u0938\u0940\u0916\u0928\u0947 \u0915\u093E \u0905\u0928\u0941\u092D\u0935."],
+  ["Our support lines are ready to explain customized lesson plans, parent dashboards, school timings, and fees offline/online. Reach out on WhatsApp or schedule a counselor call.", "\u0C2E\u0C3E \u0C38\u0C2A\u0C4B\u0C30\u0C4D\u0C1F\u0C4D \u0C32\u0C48\u0C28\u0C4D\u0C32\u0C41 \u0C2A\u0C3E\u0C20 \u0C2A\u0C4D\u0C30\u0C23\u0C3E\u0C33\u0C3F\u0C15\u0C32\u0C41, \u0C24\u0C32\u0C4D\u0C32\u0C3F\u0C26\u0C02\u0C21\u0C4D\u0C30\u0C41\u0C32 \u0C21\u0C4D\u0C2F\u0C3E\u0C37\u0C4D\u200C\u0C2C\u0C4B\u0C30\u0C4D\u0C21\u0C4D\u200C\u0C32\u0C41, \u0C38\u0C2E\u0C2F\u0C3E\u0C32\u0C41, \u0C2B\u0C40\u0C1C\u0C41\u0C32\u0C41 \u0C35\u0C3F\u0C35\u0C30\u0C3F\u0C02\u0C1A\u0C21\u0C3E\u0C28\u0C3F\u0C15\u0C3F \u0C38\u0C3F\u0C26\u0C4D\u0C27\u0C02\u0C17\u0C3E \u0C09\u0C28\u0C4D\u0C28\u0C3E\u0C2F\u0C3F. WhatsApp \u0C26\u0C4D\u0C35\u0C3E\u0C30\u0C3E \u0C38\u0C02\u0C2A\u0C4D\u0C30\u0C26\u0C3F\u0C02\u0C1A\u0C02\u0C21\u0C3F.", "\u0C39\u0C2E\u0C3E\u0C30\u0C40 \u0C38\u0C2A\u0C4B\u0C30\u0C4D\u0C1F \u0C32\u0C3E\u0C07\u0C28\u0C47\u0C02 \u0C2A\u0C3E\u0C20 \u0C2F\u0C4B\u0C1C\u0C28\u0C3E\u0C0F\u0C02, \u0C05\u0C2D\u0C3F\u0C2D\u0C3E\u0C35\u0C15 \u0C21\u0C48\u0C36\u0C2C\u094B\u0C30\u0C4D\u0C21, \u0C38\u092E\u092F, \u0C14\u0C30 \u0C2B\u0C40\u0C38 \u0C38\u0C2E\u0C1D\u0C3E\u0C28\u0C47 \u0C15\u0C47 \u0C32\u0C3F\u0C0F \u0C24\u0C48\u0C2F\u0C3E\u0C30 \u0C39\u0C48\u0C02. WhatsApp \u0C2A\u0C30 \u0C38\u0C02\u0C2A\u0C30\u0C4D\u0C15 \u0C15\u0C30\u0C47\u0C02."],
+  ["Personalized Parent Dashboard", "\u0C35\u0C4D\u0C2F\u0C15\u0C4D\u0C24\u0C3F\u0C17\u0C24 \u0C24\u0C32\u0C4D\u0C32\u0C3F\u0C26\u0C02\u0C21\u0C4D\u0C30\u0C41\u0C32 \u0C21\u0C4D\u0C2F\u0C3E\u0C37\u0C4D\u200C\u0C2C\u0C4B\u0C30\u0C4D\u0C21\u0C4D", "\u0935\u094D\u092F\u0915\u094D\u0924\u093F\u0917\u0924 \u0905\u092D\u093F\u092D\u093E\u0935\u0915 \u0921\u0948\u0936\u092C\u094B\u0930\u094D\u0921"],
+  ["Unique IDs for Student tracking", "\u0C35\u0C3F\u0C26\u0C4D\u0C2F\u0C3E\u0C30\u0C4D\u0C25\u0C3F \u0C1F\u0C4D\u0C30\u0C3E\u0C15\u0C3F\u0C02\u0C17\u0C4D \u0C15\u0C4B\u0C38\u0C02 \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 IDs", "\u091B\u093E\u0924\u094D\u0930 \u091F\u094D\u0930\u0948\u0915\u093F\u0902\u0917 \u0915\u0947 \u0932\u093F\u090F \u0935\u093F\u0936\u093F\u0937\u094D\u091F ID"],
+  ["Verified Tutors feedback diary", "\u0C27\u0C43\u0C35\u0C40\u0C15\u0C30\u0C3F\u0C02\u0C1A\u0C3F\u0C28 \u0C1F\u0C4D\u0C2F\u0C42\u0C1F\u0C30\u0C4D \u0C2B\u0C40\u0C21\u0C4D\u200C\u0C2C\u0C4D\u0C2F\u0C3E\u0C15\u0C4D \u0C21\u0C48\u0C30\u0C40", "\u0938\u0924\u094D\u092F\u093E\u092A\u093F\u0924 \u091F\u094D\u092F\u0942\u091F\u0930 \u092B\u0940\u0921\u092C\u0948\u0915 \u0921\u093E\u092F\u0930\u0940"],
+  ["WhatsApp support built-in for support", "WhatsApp \u0C38\u0C2A\u0C4B\u0C30\u0C4D\u0C1F\u0C4D \u0C05\u0C02\u0C24\u0C30\u0C4D\u0C28\u0C3F\u0C30\u0C4D\u0C2E\u0C3F\u0C24\u0C02", "WhatsApp \u0938\u092A\u094B\u0930\u094D\u091F \u0907\u0928-\u092C\u093F\u0932\u094D\u091F"],
+  ["WhatsApp Enquiry Group: 6300227011", "WhatsApp \u0C35\u0C3F\u0C1A\u0C3E\u0C30\u0C23 \u0C17\u0C4D\u0C30\u0C42\u0C2A\u0C4D: 6300227011", "WhatsApp \u092A\u0942\u091B\u0924\u093E\u091B \u0917\u094D\u0930\u0942\u092A: 6300227011"],
+  ["Select location and class to unlock course options and book a free session", "\u0C15\u0C4B\u0C30\u0C4D\u0C38\u0C41 \u0C0E\u0C02\u0C2A\u0C3F\u0C15\u0C32\u0C41 \u0C2E\u0C30\u0C3F\u0C2F\u0C41 \u0C09\u0C1A\u0C3F\u0C24 \u0C38\u0C46\u0C37\u0C28\u0C4D \u0C15\u0C4B\u0C38\u0C02 \u0C2A\u0C4D\u0C30\u0C26\u0C47\u0C36\u0C02, \u0C24\u0C30\u0C17\u0C24\u0C3F\u0C28\u0C3F \u0C0E\u0C02\u0C1A\u0C41\u0C15\u0C4B\u0C02\u0C21\u0C3F", "\u0915\u094B\u0930\u094D\u0938 \u0935\u093F\u0915\u0932\u094D\u092A \u0914\u0930 \u092E\u0941\u092B\u094D\u0924 \u0938\u0924\u094D\u0930 \u0915\u0947 \u0932\u093F\u090F \u0938\u094D\u0925\u093E\u0928 \u0914\u0930 \u0915\u0915\u094D\u0937\u093E \u091A\u0941\u0928\u0947\u0902"],
+];
 
 const phraseTranslations: Record<Exclude<Language, "English">, Record<string, string>> = {
-  Telugu: {
-    Dashboard: "డ్యాష్‌బోర్డ్",
-    Students: "విద్యార్థులు",
-    Tutors: "ట్యూటర్లు",
-    Parents: "తల్లిదండ్రులు",
-    Courses: "కోర్సులు",
-    Batches: "బ్యాచ్‌లు",
-    Timetable: "టైమ్‌టేబుల్",
-    Attendance: "హాజరు",
-    Results: "ఫలితాలు",
-    Fees: "ఫీజులు",
-    Reports: "నివేదికలు",
-    Notifications: "నోటిఫికేషన్లు",
-    Settings: "సెట్టింగ్స్",
-    Profile: "ప్రొఫైల్",
-    Messages: "సందేశాలు",
-    Reviews: "సమీక్షలు",
-    Assignments: "అసైన్‌మెంట్లు",
-    Tests: "పరీక్షలు",
-    Schedule: "షెడ్యూల్",
-    "My Tutor": "నా ట్యూటర్",
-    "My Students": "నా విద్యార్థులు",
-    "Student Login": "విద్యార్థి లాగిన్",
-    "Parent Login": "తల్లిదండ్రుల లాగిన్",
-    "Tutor Login": "ట్యూటర్ లాగిన్",
-    "Admin Login": "అడ్మిన్ లాగిన్",
-    "Forgot Password?": "పాస్‌వర్డ్ మర్చిపోయారా?",
-    "Email Verification": "ఇమెయిల్ ధృవీకరణ",
-    "OTP Verification": "OTP ధృవీకరణ",
-    "Set New Password": "కొత్త పాస్‌వర్డ్ సెట్ చేయండి",
-    "Confirm Password": "పాస్‌వర్డ్ నిర్ధారించండి",
-    "Send OTP": "OTP పంపండి",
-    "Verify OTP": "OTP ధృవీకరించండి",
-    "Return to Login": "లాగిన్‌కు తిరిగి వెళ్లండి",
-    "Logout": "లాగౌట్",
-    "Cancel": "రద్దు",
-    "Accept": "అంగీకరించు",
-    "Reject": "తిరస్కరించు",
-    "Registration Request Inbox": "నమోదు అభ్యర్థనల ఇన్‌బాక్స్",
-    "Registration Notifications": "నమోదు నోటిఫికేషన్లు",
-    "Class / Grade *": "తరగతి / గ్రేడ్ *",
-    "Select Course *": "కోర్సు ఎంచుకోండి *",
-    "Preferred Demo Date *": "డెమో తేదీ *",
-    "Book My Free Seat": "ఉచిత సీటును బుక్ చేయండి",
-    "Support Chat": "సపోర్ట్ చాట్",
-    "Quick topics": "త్వరిత విషయాలు",
-    "Type your message": "మీ సందేశం టైప్ చేయండి",
-  },
-  Hindi: {
-    Dashboard: "डैशबोर्ड",
-    Students: "छात्र",
-    Tutors: "ट्यूटर",
-    Parents: "अभिभावक",
-    Courses: "कोर्स",
-    Batches: "बैच",
-    Timetable: "टाइमटेबल",
-    Attendance: "उपस्थिति",
-    Results: "परिणाम",
-    Fees: "फीस",
-    Reports: "रिपोर्ट",
-    Notifications: "सूचनाएं",
-    Settings: "सेटिंग्स",
-    Profile: "प्रोफाइल",
-    Messages: "संदेश",
-    Reviews: "समीक्षाएं",
-    Assignments: "असाइनमेंट",
-    Tests: "परीक्षाएं",
-    Schedule: "शेड्यूल",
-    "My Tutor": "मेरा ट्यूटर",
-    "My Students": "मेरे छात्र",
-    "Student Login": "छात्र लॉगिन",
-    "Parent Login": "अभिभावक लॉगिन",
-    "Tutor Login": "ट्यूटर लॉगिन",
-    "Admin Login": "एडमिन लॉगिन",
-    "Forgot Password?": "पासवर्ड भूल गए?",
-    "Email Verification": "ईमेल सत्यापन",
-    "OTP Verification": "OTP सत्यापन",
-    "Set New Password": "नया पासवर्ड सेट करें",
-    "Confirm Password": "पासवर्ड पुष्टि करें",
-    "Send OTP": "OTP भेजें",
-    "Verify OTP": "OTP सत्यापित करें",
-    "Return to Login": "लॉगिन पर लौटें",
-    "Logout": "लॉगआउट",
-    "Cancel": "रद्द करें",
-    "Accept": "स्वीकार करें",
-    "Reject": "अस्वीकार करें",
-    "Registration Request Inbox": "पंजीकरण अनुरोध इनबॉक्स",
-    "Registration Notifications": "पंजीकरण सूचनाएं",
-    "Class / Grade *": "कक्षा / ग्रेड *",
-    "Select Course *": "कोर्स चुनें *",
-    "Preferred Demo Date *": "पसंदीदा डेमो तारीख *",
-    "Book My Free Seat": "मेरी मुफ्त सीट बुक करें",
-    "Support Chat": "सपोर्ट चैट",
-    "Quick topics": "त्वरित विषय",
-    "Type your message": "अपना संदेश लिखें",
-  },
+  Telugu: {},
+  Hindi: {},
 };
+const reverseMap: Record<Exclude<Language, "English">, Record<string, string>> = {
+  Telugu: {},
+  Hindi: {},
+};
+phrasePairs.forEach(([en, te, hi]) => {
+  if (!phraseTranslations.Telugu[en]) phraseTranslations.Telugu[en] = te;
+  if (!phraseTranslations.Hindi[en]) phraseTranslations.Hindi[en] = hi;
+  if (!reverseMap.Telugu[te]) reverseMap.Telugu[te] = en;
+  if (!reverseMap.Hindi[hi]) reverseMap.Hindi[hi] = en;
+});
 
-const originalTextNodes = new WeakMap<Text, string>();
+const TRANSLATABLE_ATTRS = ["placeholder", "title", "aria-label", "alt"];
+
+function canonicalEnglish(trimmed: string): string {
+  return reverseMap.Telugu[trimmed] || reverseMap.Hindi[trimmed] || trimmed;
+}
+
+function translateValue(current: string, language: Language): string {
+  const trimmed = current.trim();
+  if (!trimmed) return current;
+  const englishKey = canonicalEnglish(trimmed);
+  if (language === "English") {
+    if (englishKey !== trimmed) return current.replace(trimmed, englishKey);
+    return current;
+  }
+  const dict = phraseTranslations[language];
+  const target = dict[englishKey];
+  if (target && target !== trimmed) return current.replace(trimmed, target);
+  return current;
+}
 
 function applyPhraseTranslations(language: Language) {
   if (typeof document === "undefined" || !document.body) return;
-
-  const translations = language === "English" ? null : phraseTranslations[language];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  const nodes: Text[] = [];
   let node = walker.nextNode();
-
   while (node) {
     const textNode = node as Text;
-    const parentName = textNode.parentElement?.tagName;
-    if (parentName !== "SCRIPT" && parentName !== "STYLE" && textNode.textContent?.trim()) {
-      nodes.push(textNode);
+    const parent = textNode.parentElement;
+    const tag = parent?.tagName;
+    if (tag !== "SCRIPT" && tag !== "STYLE" && tag !== "TEXTAREA" && textNode.textContent && textNode.textContent.trim()) {
+      const next = translateValue(textNode.textContent, language);
+      if (next !== textNode.textContent) textNode.textContent = next;
     }
     node = walker.nextNode();
   }
-
-  nodes.forEach((textNode) => {
-    const original = originalTextNodes.get(textNode) || textNode.textContent || "";
-    if (!originalTextNodes.has(textNode)) {
-      originalTextNodes.set(textNode, original);
-    }
-    const trimmed = original.trim();
-    const translated = translations?.[trimmed];
-    textNode.textContent = translated ? original.replace(trimmed, translated) : original;
+  const elems = document.body.querySelectorAll("[placeholder], [title], [aria-label], [alt]");
+  elems.forEach((el) => {
+    TRANSLATABLE_ATTRS.forEach((attr) => {
+      const current = el.getAttribute(attr);
+      if (current === null) return;
+      const next = translateValue(current, language);
+      if (next !== current) el.setAttribute(attr, next);
+    });
   });
 }
 
@@ -360,21 +370,13 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => applyPhraseTranslations(language));
     });
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: TRANSLATABLE_ATTRS });
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
   }, [language]);
 
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-  };
+  const setLanguage = (lang: Language) => setLanguageState(lang);
 
-  const t = (key: string): string => {
-    return dictionary[language]?.[key] || english[key as keyof typeof english] || key;
-  };
+  const t = (key: string): string => dictionary[language]?.[key] || english[key] || key;
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
@@ -385,8 +387,6 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
-  if (!context) {
-    throw new Error("useLanguage must be used within a LanguageProvider");
-  }
+  if (!context) throw new Error("useLanguage must be used within a LanguageProvider");
   return context;
 };

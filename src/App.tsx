@@ -119,9 +119,36 @@ export default function App() {
     }
   }, []);
 
+  const loadRegistrations = useCallback(async () => {
+    try {
+      const response = await apiClient.registrations.getAll();
+      const mapped: RegistrationNotification[] = response.map((reg: any) => ({
+        id: reg._id || reg.id,
+        name: reg.parentName || reg.name,
+        role: "Parent",
+        email: reg.email,
+        mobileNumber: reg.phone || reg.mobileNumber || "",
+        studentClass: reg.classGrade || reg.studentClass || "",
+        registrationDateTime: reg.createdAt
+          ? new Date(reg.createdAt).toLocaleString()
+          : reg.registrationDateTime || "",
+        status: reg.registrationStatus === "Pending Approval"
+          ? "Pending"
+          : reg.registrationStatus === "Approved"
+            ? "Accepted"
+            : reg.registrationStatus === "Rejected"
+              ? "Rejected"
+              : "Pending",
+      }));
+      setRegistrationNotifications(mapped);
+    } catch (error) {
+      console.warn("Unable to load registrations", error);
+    }
+  }, []);
+
   const loadAdminData = useCallback(async () => {
-    await Promise.all([loadAllStudents(), loadTutors(), loadAllFees()]);
-  }, [loadAllStudents, loadTutors, loadAllFees]);
+    await Promise.all([loadAllStudents(), loadTutors(), loadAllFees(), loadRegistrations()]);
+  }, [loadAllStudents, loadTutors, loadAllFees, loadRegistrations]);
 
   const fetchStudentById = async (studentId: string) => {
     try {
@@ -192,10 +219,9 @@ export default function App() {
     setLoggedInRole(role);
   };
 
-  const handleRegisterSuccess = async (notification: Omit<RegistrationNotification, "id" | "status">) => {
+  const handleRegisterSuccess = async (notification: Omit<RegistrationNotification, "status">) => {
     const createdNotification: RegistrationNotification = {
       ...notification,
-      id: `REG-${Date.now()}`,
       status: "Pending",
     };
     setRegistrationNotifications((prev) => [createdNotification, ...prev]);
@@ -377,6 +403,7 @@ export default function App() {
           onSelectStandard={setActiveStandard}
           loggedInRole={loggedInRole}
         />
+        <div className="h-16" />
 
         <main className={isDashboardRoute ? "flex-1 min-h-0 overflow-hidden" : "flex-grow"}>
           <Routes>

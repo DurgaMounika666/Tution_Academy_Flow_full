@@ -12,7 +12,7 @@ import { RegistrationNotification } from "../types";
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onRegisterSuccess: (notification: Omit<RegistrationNotification, "id" | "status">) => void;
+  onRegisterSuccess: (notification: Omit<RegistrationNotification, "status">) => void;
 }
 
 export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterModalProps) {
@@ -230,6 +230,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
       );
       apiClient.clearAuthToken();
       onRegisterSuccess({
+        id: result.registrationId,
         name: parentName.trim(),
         role: "Parent",
         email: normalizedEmail,
