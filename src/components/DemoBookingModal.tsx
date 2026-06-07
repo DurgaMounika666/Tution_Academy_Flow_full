@@ -161,6 +161,7 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "", initialCe
         studentClass,
         course: course.trim(),
         preferredDate: preferredDate,
+        location: center,
       });
 
       setSuccess(true);

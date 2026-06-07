@@ -9,7 +9,7 @@ import {
   BookOpen, Mail, Terminal, Lock, CheckCircle2, ChevronRight, BarChart3, TrendingUp,
   LayoutDashboard, FileText, Bell, Settings, Award, PlusCircle, ArrowUpRight,
   Plus, Trash2, Edit3, Filter, Check, X, Send, Volume2, UserCheck, Calendar,
-  Clock, CheckCircle, AlertCircle, Eye, CreditCard, School, PanelLeftClose, PanelLeftOpen
+  Clock, CheckCircle, AlertCircle, Eye, CreditCard, School, PanelLeftClose, PanelLeftOpen, CalendarCheck
 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
 import { normalizeStudent, normalizeTutor, normalizeFee } from "../utils/normalizers";
@@ -94,6 +94,7 @@ export function AdminDashboard({
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [editingTutor, setEditingTutor] = useState<Tutor | null>(null);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+  const [demoBookings, setDemoBookings] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   
   // Modals Toggles
@@ -178,7 +179,19 @@ export function AdminDashboard({
     if (activeTab === "registrations") {
       fetchBackendRegistrations();
     }
+    if (activeTab === "demo-bookings") {
+      fetchDemoBookings();
+    }
   }, [activeTab]);
+
+  const fetchDemoBookings = async () => {
+    try {
+      const data = await apiClient.bookings.getAllDemoBookings();
+      setDemoBookings(Array.isArray(data) ? data : []);
+    } catch {
+      setDemoBookings([]);
+    }
+  };
 
   const fetchBackendRegistrations = async () => {
     setLoadingRegistrations(true);
@@ -315,6 +328,7 @@ export function AdminDashboard({
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "registrations", label: "Registrations", icon: UserCheck },
+    { id: "demo-bookings", label: "Demo Bookings", icon: CalendarCheck },
     { id: "students", label: "Students", icon: Users },
     { id: "tutors", label: "Tutors", icon: BookOpen },
     { id: "parents", label: "Parents", icon: Users },
@@ -1115,6 +1129,74 @@ export function AdminDashboard({
 
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW: DEMO BOOKINGS */}
+        {/* ========================================================================= */}
+        {activeTab === "demo-bookings" && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <div>
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Demo Booking Requests</h3>
+                <p className="text-[10px] text-slate-500 mt-1">All demo sessions booked by prospective parents/students</p>
+              </div>
+              <span className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-black">
+                {demoBookings.length} Bookings
+              </span>
+            </div>
+
+            {demoBookings.length === 0 ? (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 shadow-sm border border-slate-100 dark:border-slate-800 text-center">
+                <CalendarCheck className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-sm font-bold text-slate-500">No demo bookings yet</p>
+                <p className="text-xs text-slate-400 mt-1">When users book a demo from the landing page, they will appear here.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {demoBookings.map((booking: any, idx: number) => (
+                  <div key={booking._id || idx} className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm font-black text-slate-900 dark:text-white">{booking.fullName}</p>
+                        <p className="text-[10px] text-slate-400 font-bold mt-0.5">{booking.email}</p>
+                      </div>
+                      <span className="px-2 py-1 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 rounded-lg text-[9px] font-black uppercase">
+                        Booked
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <div>
+                        <p className="text-[8px] uppercase font-black text-slate-400">Phone</p>
+                        <p className="font-bold text-slate-700 dark:text-slate-300">{booking.whatsappNumber}</p>
+                      </div>
+                      <div>
+                        <p className="text-[8px] uppercase font-black text-slate-400">Class</p>
+                        <p className="font-bold text-slate-700 dark:text-slate-300">{booking.studentClass || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[8px] uppercase font-black text-slate-400">Course</p>
+                        <p className="font-bold text-slate-700 dark:text-slate-300">{booking.course}</p>
+                      </div>
+                      <div>
+                        <p className="text-[8px] uppercase font-black text-slate-400">Preferred Date</p>
+                        <p className="font-bold text-slate-700 dark:text-slate-300">{booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString() : "N/A"}</p>
+                      </div>
+                      {booking.location && (
+                        <div className="col-span-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                          <p className="text-[8px] uppercase font-black text-slate-400">Center</p>
+                          <p className="font-bold text-slate-700 dark:text-slate-300">{booking.location}</p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-semibold">
+                      Booked on: {booking.createdAt ? new Date(booking.createdAt).toLocaleString() : "Unknown"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

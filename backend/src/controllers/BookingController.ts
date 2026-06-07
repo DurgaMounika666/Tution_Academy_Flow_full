@@ -7,6 +7,11 @@ import { Request, Response } from "express";
 import { DemoBooking } from "../models/DemoBooking";
 
 export class BookingController {
+  static async getAllDemoBookings(req: Request, res: Response) {
+    const bookings = await DemoBooking.find().sort({ createdAt: -1 });
+    return res.status(200).json(bookings);
+  }
+
   static async createDemoBooking(req: Request, res: Response) {
     const { fullName, email, whatsappNumber, course, preferredDate, location, studentClass } = req.body;
 

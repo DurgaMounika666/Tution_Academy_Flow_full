@@ -152,6 +152,8 @@ export const apiClient = {
       location?: string;
       studentClass?: string;
     }) => request("POST", "/bookings/demo", booking),
+
+    getAllDemoBookings: () => request("GET", "/bookings/demo"),
   },
 
   students: {
