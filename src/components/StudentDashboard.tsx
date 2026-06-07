@@ -322,7 +322,7 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => window.open("https://wa.me/916300227011", "_blank")}
+                        onClick={() => handleTabChange("messages")}
                         className="px-4 py-2.5 rounded-xl border border-slate-205 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850 text-slate-800 dark:text-white font-extrabold text-xs tracking-tight transition-colors cursor-pointer"
                       >
                         Message Tutor
@@ -420,13 +420,13 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
                 </div>
                 <div className="flex flex-col gap-2">
                   <button
-                    onClick={() => window.open("https://wa.me/916300227011", "_blank")}
+                    onClick={() => handleTabChange("messages")}
                     className="px-5 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850 text-slate-800 dark:text-white font-extrabold text-xs tracking-tight transition-colors cursor-pointer"
                   >
                     Message Tutor
                   </button>
                   <button
-                    onClick={() => window.open("https://wa.me/916300227011", "_blank")}
+                    onClick={() => handleTabChange("schedule")}
                     className="px-5 py-3 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-extrabold text-xs tracking-tight transition-colors cursor-pointer"
                   >
                     Schedule Session
