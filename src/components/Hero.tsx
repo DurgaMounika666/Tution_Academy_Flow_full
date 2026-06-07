@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
-import { MapPin, GraduationCap, ChevronRight, MessageSquareCode, Sparkles, BookOpen } from "lucide-react";
-import { LOCATIONS, STANDARDS, SUBJECTS_BY_CLASS } from "../data";
+import React from "react";
+import { MapPin, GraduationCap, ChevronRight, MessageSquareCode, Sparkles } from "lucide-react";
+import { LOCATIONS, STANDARDS } from "../data";
 import { useLanguage } from "../context/LanguageContext";
 
 interface HeroProps {
@@ -13,17 +13,12 @@ interface HeroProps {
   onOpenDemo: () => void;
   selectedStandard: string;
   onSelectStandard: (std: string) => void;
+  selectedLocation: string;
+  onSelectLocation: (loc: string) => void;
 }
 
-export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStandard }: HeroProps) {
-  const [selectedLocation, setSelectedLocation] = useState("Hyderabad");
+export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStandard, selectedLocation, onSelectLocation }: HeroProps) {
   const { t } = useLanguage();
-
-  const activeSubjects = SUBJECTS_BY_CLASS[selectedStandard] || [
-    "Comprehensive General Mathematics",
-    "Physical & Natural Science",
-    "Primary English Literature"
-  ];
 
   const handleBookDemo = () => {
     onOpenDemo();
@@ -178,9 +173,10 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
               </label>
               <select
                 value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
+                onChange={(e) => onSelectLocation(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
               >
+                <option value="" disabled>Select Location</option>
                 {LOCATIONS.map((loc) => (
                   <option key={loc} value={loc}>Academy Center — {loc}</option>
                 ))}
@@ -197,6 +193,7 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
                 onChange={(e) => onSelectStandard(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
               >
+                <option value="" disabled>Select Class</option>
                 {STANDARDS.map((std) => (
                   <option key={std} value={std}>{std}</option>
                 ))}
@@ -206,26 +203,12 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={handleBookDemo}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl px-4 py-3 text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm"
+                disabled={!selectedLocation || !selectedStandard}
+                className={`flex-1 font-bold rounded-xl px-4 py-3 text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm ${selectedLocation && selectedStandard ? "bg-emerald-600 hover:bg-emerald-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"}`}
               >
                 <MessageSquareCode className="h-4.5 w-4.5" />
                 <span>{t("bookDemo")}</span>
               </button>
-            </div>
-          </div>
-
-          <div className="mt-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-slate-800 text-left">
-            <p className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">{t("activeSyllabus")} {selectedLocation} for {selectedStandard}:</p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {activeSubjects.map((sub, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-900 dark:text-indigo-300"
-                >
-                  <BookOpen className="h-3 w-3 text-indigo-500" />
-                  {sub}
-                </span>
-              ))}
             </div>
           </div>
         </div>

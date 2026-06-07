@@ -184,11 +184,9 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
     setFormStep(2);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleStep2Next = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
-
-    const normalizedEmail = parentEmail.trim().toLowerCase();
     const validations = [
       ["childName", childName],
       ["childGrade", childGrade],
@@ -208,6 +206,14 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
       setErrorMessage("Please correct the highlighted fields before continuing.");
       return;
     }
+    setFormStep(3);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+
+    const normalizedEmail = parentEmail.trim().toLowerCase();
 
     if (paymentStatus !== "Paid") {
       setErrorMessage("Please complete the advance fee payment before submitting your registration.");
@@ -290,7 +296,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
               </div>
             </div>
           ) : (
-            <form onSubmit={formStep === 1 ? handleNextStep : handleSubmit} className="space-y-4 text-xs font-semibold">
+            <form onSubmit={formStep === 1 ? handleNextStep : formStep === 2 ? handleStep2Next : handleSubmit} className="space-y-4 text-xs font-semibold">
               {errorMessage && (
                 <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-700 p-3 text-rose-700 dark:text-rose-300 text-xs font-bold">
                   {errorMessage}
@@ -301,6 +307,8 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                 <span className={`px-2 py-1 rounded-lg ${formStep === 1 ? "bg-sky-100 text-sky-700" : "bg-slate-100"}`}>Step 1: Parent</span>
                 <ChevronRight className="h-3 w-3" />
                 <span className={`px-2 py-1 rounded-lg ${formStep === 2 ? "bg-sky-100 text-sky-700" : "bg-slate-100"}`}>Step 2: Child & Class</span>
+                <ChevronRight className="h-3 w-3" />
+                <span className={`px-2 py-1 rounded-lg ${formStep === 3 ? "bg-sky-100 text-sky-700" : "bg-slate-100"}`}>Step 3: Payment</span>
               </div>
 
               {formStep === 1 && (<>
@@ -356,8 +364,16 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                   type="tel"
                   value={parentPhone}
                   onChange={(e) => {
-                    setParentPhone(e.target.value);
-                    if (fieldErrors.parentPhone) validateAndSetFieldError("parentPhone", e.target.value);
+                    const val = e.target.value;
+                    const digits = val.replace(/\D/g, "");
+                    // Allow max 10 digits, or 12 if starts with +91
+                    if (val.startsWith("+91") || digits.startsWith("91")) {
+                      if (digits.length > 12) return;
+                    } else {
+                      if (digits.length > 10) return;
+                    }
+                    setParentPhone(val);
+                    if (fieldErrors.parentPhone) validateAndSetFieldError("parentPhone", val);
                   }}
                   onBlur={() => validateAndSetFieldError("parentPhone", parentPhone)}
                   onKeyDown={handleEnterKey("parentPhone", parentPhone)}
@@ -549,6 +565,24 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                 </div>
               </div>
 
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormStep(1)}
+                  className="flex-1 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-xs"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="flex-[2] bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 text-white font-black py-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  Continue to Payment <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+              </>)}
+
+              {formStep === 3 && (<>
               {/* Advance Fee Payment Panel */}
               <div className={`rounded-2xl border-2 p-4 space-y-3 transition-all ${paymentStatus === "Paid" ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20" : "border-amber-300 bg-amber-50 dark:bg-amber-950/10"}`}>
                 <div className="flex items-center justify-between">
@@ -582,13 +616,26 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                     ) : (
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Card Payment Details</p>
-                        <input
-                          type="text"
-                          placeholder="Card Holder Name"
-                          value={simulatedCard.holder}
-                          onChange={(e) => setSimulatedCard(prev => ({ ...prev, holder: e.target.value }))}
-                          className="w-full p-2 rounded-xl border border-slate-200 dark:bg-slate-900 text-xs font-semibold"
-                        />
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Card Holder Name"
+                            value={simulatedCard.holder}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSimulatedCard(prev => ({ ...prev, holder: val }));
+                              if (val.trim() && !/^[A-Za-z\s]+$/.test(val.trim())) {
+                                setFieldErrors(prev => ({ ...prev, cardHolder: "Please enter a valid name (letters only)." }));
+                              } else {
+                                setFieldErrors(prev => ({ ...prev, cardHolder: "" }));
+                              }
+                            }}
+                            className={`w-full p-2 rounded-xl border ${fieldErrors.cardHolder ? "border-rose-500" : "border-slate-200"} dark:bg-slate-900 text-xs font-semibold`}
+                          />
+                          {fieldErrors.cardHolder && (
+                            <p className="text-rose-600 text-[10px] mt-0.5">{fieldErrors.cardHolder}</p>
+                          )}
+                        </div>
                         <input
                           type="text"
                           placeholder="Card Number (16 digits)"
@@ -630,6 +677,10 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                               alert("Please fill in all card details to proceed.");
                               return;
                             }
+                            if (!/^[A-Za-z\s]+$/.test(simulatedCard.holder.trim())) {
+                              setFieldErrors(prev => ({ ...prev, cardHolder: "Please enter a valid name (letters only)." }));
+                              return;
+                            }
                             const txnId = `AF-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
                             setTransactionId(txnId);
                             setPaymentDateTime(new Date().toLocaleString());
@@ -656,7 +707,7 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setFormStep(1)}
+                  onClick={() => setFormStep(2)}
                   className="flex-1 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-xs"
                 >
                   Back

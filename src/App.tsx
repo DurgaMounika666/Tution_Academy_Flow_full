@@ -73,7 +73,8 @@ export default function App() {
     return ["student", "parent", "tutor", "admin"].includes(stored || "") ? stored as UserRole : null;
   });
 
-  const [activeStandard, setActiveStandard] = useState("9th Class");
+  const [activeStandard, setActiveStandard] = useState("");
+  const [activeLocation, setActiveLocation] = useState("");
   const [registerOpen, setRegisterOpen] = useState(false);
   const [demoBookingOpen, setDemoBookingOpen] = useState(false);
   const [registrationNotifications, setRegistrationNotifications] = useState<RegistrationNotification[]>(() => {
@@ -415,6 +416,8 @@ export default function App() {
                   onOpenDemo={() => setDemoBookingOpen(true)}
                   selectedStandard={activeStandard}
                   onSelectStandard={setActiveStandard}
+                  selectedLocation={activeLocation}
+                  onSelectLocation={setActiveLocation}
                 />
                 <WhyChooseUs />
                 <Reviews />
@@ -525,6 +528,7 @@ export default function App() {
           isOpen={demoBookingOpen}
           onClose={() => setDemoBookingOpen(false)}
           initialClass={activeStandard}
+          initialCenter={activeLocation}
         />
 
       </div>

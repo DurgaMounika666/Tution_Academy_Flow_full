@@ -6,30 +6,24 @@
 import React, { useEffect, useState } from "react";
 import { X, CheckCircle2 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
-import { STANDARDS } from "../data";
-
-const COURSE_OPTIONS = [
-  "Mathematics Foundation",
-  "Science Accelerator",
-  "English & Language Skills",
-  "Hybrid Learning Path",
-  "Exam Readiness Program",
-  "Personalised Coaching Course",
-];
+import { STANDARDS, SUBJECTS_BY_CLASS, LOCATIONS } from "../data";
 
 interface DemoBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialClass?: string;
+  initialCenter?: string;
 }
 
-export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }: DemoBookingModalProps) {
+export function DemoBookingModal({ isOpen, onClose, initialClass = "", initialCenter = "" }: DemoBookingModalProps) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
-  const [studentClass, setStudentClass] = useState(initialClass);
-  const [course, setCourse] = useState(COURSE_OPTIONS[0]);
+  const [studentClass, setStudentClass] = useState(initialClass || "");
+  const [course, setCourse] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
+  const [center, setCenter] = useState(initialCenter || "");
+  const [demoMode, setDemoMode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,10 +31,22 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen && STANDARDS.includes(initialClass)) {
       setStudentClass(initialClass);
     }
-  }, [isOpen, initialClass]);
+    if (isOpen && LOCATIONS.includes(initialCenter)) {
+      setCenter(initialCenter);
+    }
+  }, [isOpen, initialClass, initialCenter]);
 
   const isValidName = (value: string) => /^[a-zA-Z\s]+$/.test(value);
   const isValidGmail = (value: string) => /^[^\s@]+@gmail\.com$/i.test(value);
@@ -53,9 +59,11 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }
     setFullName("");
     setEmail("");
     setWhatsappNumber("");
-    setStudentClass(initialClass);
-    setCourse(COURSE_OPTIONS[0]);
+    setStudentClass(initialClass || "");
+    setCourse("");
     setPreferredDate("");
+    setCenter(initialCenter || "");
+    setDemoMode("");
     setErrorMessage("");
   };
 
@@ -70,6 +78,12 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }
   };
 
   const handlePhoneChange = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (value.startsWith("+91") || digits.startsWith("91")) {
+      if (digits.length > 12) return;
+    } else {
+      if (digits.length > 10) return;
+    }
     setWhatsappNumber(value);
     setErrorMessage("");
   };
@@ -167,8 +181,8 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4">
-      <div className="w-full max-w-lg bg-white dark:bg-slate-950 rounded-[28px] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 overflow-y-auto">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-950 rounded-[28px] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-[90vh] flex flex-col my-auto">
         <div className="flex items-start justify-between gap-3 p-5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div>
             <p className="text-xs uppercase tracking-[0.26em] font-black text-sky-600 dark:text-sky-400">Schedule Demo</p>
@@ -180,7 +194,7 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1 modal-scroll">
           {success ? (
             <div className="rounded-3xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-700 p-6 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
@@ -240,10 +254,14 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }
                   Class / Grade *
                   <select
                     value={studentClass}
-                    onChange={(e) => setStudentClass(e.target.value)}
+                    onChange={(e) => {
+                      setStudentClass(e.target.value);
+                      setCourse("");
+                    }}
                     className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
                     required
                   >
+                    <option value="" disabled>Select Class</option>
                     {STANDARDS.map((standard) => (
                       <option key={standard} value={standard}>{standard}</option>
                     ))}
@@ -257,10 +275,43 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }
                     onChange={(e) => setCourse(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
                     required
+                    disabled={!studentClass}
                   >
-                    {COURSE_OPTIONS.map((option) => (
+                    <option value="" disabled>
+                      {studentClass ? "Select Course" : "Select a class first"}
+                    </option>
+                    {(SUBJECTS_BY_CLASS[studentClass] || []).map((option) => (
                       <option key={option} value={option}>{option}</option>
                     ))}
+                  </select>
+                </label>
+
+                <label className="space-y-2 text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
+                  Select Center *
+                  <select
+                    value={center}
+                    onChange={(e) => setCenter(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
+                    required
+                  >
+                    <option value="" disabled>Select Center</option>
+                    {LOCATIONS.map((loc) => (
+                      <option key={loc} value={loc}>Academy Center — {loc}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="space-y-2 text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
+                  Select Demo Mode *
+                  <select
+                    value={demoMode}
+                    onChange={(e) => setDemoMode(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
+                    required
+                  >
+                    <option value="" disabled>Select Demo Mode</option>
+                    <option value="Online">Online</option>
+                    <option value="Offline">Offline</option>
                   </select>
                 </label>
 
@@ -271,6 +322,7 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "1st Class" }
                     min={tomorrow}
                     value={preferredDate}
                     onChange={(e) => handleDateChange(e.target.value)}
+                    title=""
                     className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
                     required
                   />
