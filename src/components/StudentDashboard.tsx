@@ -768,46 +768,62 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
         {/* ===================== TAB: MESSAGES ===================== */}
         {activeTab === "messages" && (
           <div className="space-y-6 text-left">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm uppercase font-extrabold tracking-wider text-slate-400">Messages</h3>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-[#7c3aed]/10 text-[#7c3aed]">2 Unread</span>
               </div>
-              <div className="space-y-3">
-                {[
-                  { from: "Dr. Elena Vance", role: "Tutor", preview: "Great job on the last assignment! I've added some feedback on your quadratic equations problem set. Please review it before our next session.", time: "10:30 AM", unread: true },
-                  { from: "Academy Admin", role: "Admin", preview: "Reminder: Your fee payment of $150.00 is due by June 15, 2026. Please complete the payment to avoid any late charges.", time: "9:15 AM", unread: true },
-                  { from: "Prof. Marcus Chen", role: "Tutor", preview: "The physics lab schedule has been updated for next week. We'll be covering electromagnetic induction. Please bring your lab manual.", time: "Yesterday", unread: false },
-                  { from: "Ms. Sarah Williams", role: "Tutor", preview: "Your Hamlet essay draft has been reviewed. I've attached some notes for revision. The final submission is due June 10th.", time: "Yesterday", unread: false },
-                  { from: "Academy Admin", role: "Admin", preview: "Annual sports day registration is now open! Sign up for your preferred events before June 8th. Limited spots available for track events.", time: "May 30", unread: false },
-                ].map((msg, idx) => (
-                  <div key={idx} className={`p-4 rounded-2xl flex items-start gap-4 transition-colors ${msg.unread
-                    ? "bg-[#7c3aed]/5 dark:bg-[#7c3aed]/10 border border-[#7c3aed]/20"
-                    : "bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850"
-                    }`}>
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center font-black text-sm shrink-0 ${msg.role === "Admin"
-                      ? "bg-amber-100 dark:bg-amber-950/30 text-amber-600"
-                      : "bg-[#7c3aed]/15 text-[#7c3aed]"
-                      }`}>
-                      {msg.from.charAt(0)}
-                    </div>
-                    <div className="flex-grow min-w-0 space-y-1">
-                      <div className="flex justify-between items-center gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-black text-slate-800 dark:text-white">{msg.from}</span>
-                          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${msg.role === "Admin" ? "bg-amber-50 dark:bg-amber-950/30 text-amber-600" : "bg-sky-50 dark:bg-sky-950/30 text-sky-600"
-                            }`}>{msg.role}</span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-slate-400 font-bold">{msg.time}</span>
-                          {msg.unread && <span className="h-2 w-2 rounded-full bg-[#7c3aed] shrink-0" />}
-                        </div>
+
+              {/* Chat area */}
+              <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+                {/* Tutor selector */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                  <span className="text-xs font-bold text-slate-500">Chat with:</span>
+                  {tutors.filter(t => currentStudent.assignedTutorIds.includes(t.id)).map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20"
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Messages list */}
+                <div className="p-4 h-64 overflow-y-auto space-y-3 modal-scroll">
+                  {[
+                    { from: "tutor", name: "Tutor", text: "Great job on the last assignment! Keep up the good work.", time: "10:30 AM" },
+                    { from: "tutor", name: "Tutor", text: "Please review the feedback on your problem set before our next session.", time: "10:32 AM" },
+                  ].map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.from === "student" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[70%] p-3 rounded-2xl text-xs font-bold ${msg.from === "student"
+                        ? "bg-[#7c3aed] text-white rounded-tr-none"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none"
+                        }`}>
+                        <p>{msg.text}</p>
+                        <span className="block text-[9px] mt-1 text-right opacity-70">{msg.time}</span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed truncate">{msg.preview}</p>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                {/* Send input */}
+                <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Type a message to your tutor..."
+                    className="flex-grow p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:border-[#7c3aed]"
+                  />
+                  <button
+                    type="button"
+                    className="px-4 py-2.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-xl text-xs font-bold active:scale-95 transition-all"
+                  >
+                    Send
+                  </button>
+                </div>
               </div>
+
+              <p className="text-[10px] text-slate-400 italic">Messages are sent to your assigned tutor. For admin support, use the WhatsApp Support button.</p>
             </div>
           </div>
         )}
