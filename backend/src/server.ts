@@ -78,6 +78,7 @@ app.get("/health", (req, res) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.post("/api/bookings/demo", BookingController.createDemoBooking);
+app.get("/api/bookings/demo", BookingController.getAllDemoBookings);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/fees", feeRoutes);
