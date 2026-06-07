@@ -159,6 +159,7 @@ export function AdminDashboard({
 
   useEffect(() => {
     setLocalStudents(students);
+    setCourses(buildAllCoursesFromCatalog(students));
   }, [students]);
 
   useEffect(() => {
@@ -1033,7 +1034,7 @@ export function AdminDashboard({
                       {courses.length} Courses
                     </div>
                     <div className="space-y-2 text-xs w-full">
-                      {courses.slice(0, 3).map((c, i) => {
+                      {[...courses].sort((a, b) => b.studentsCount - a.studentsCount).slice(0, 3).map((c, i) => {
                         const bgColors = ["bg-emerald-500", "bg-indigo-500", "bg-amber-500"];
                         return (
                           <div

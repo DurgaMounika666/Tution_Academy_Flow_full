@@ -39,7 +39,7 @@ export function buildAllCoursesFromCatalog(students: StudentSubjectRef[] = []): 
         name,
         tutorName: TUTOR_ROTATION[(gradeIdx + subIdx) % TUTOR_ROTATION.length],
         category: grade,
-        studentsCount: enrolled > 0 ? enrolled : Math.max(2, ((gradeIdx + subIdx) % 12) + 3),
+        studentsCount: enrolled,
         duration: grade === "Special Courses" ? "8 weeks" : "12 weeks",
         mode: (gradeIdx + subIdx) % 2 === 0 ? "Online" : "Offline",
         status: "Active",
