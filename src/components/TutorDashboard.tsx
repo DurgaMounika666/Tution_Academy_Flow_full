@@ -460,7 +460,7 @@ export function TutorDashboard({
         {activeView === "schedule" && <ScheduleView students={myStudents} />}
 
         {activeView === "messages" && (
-          <MessagesView messages={myMessages} onMarkRead={handleMarkMessageRead} />
+          <TutorMessagesView currentTutor={currentTutor} students={myStudents} />
         )}
 
         {activeView === "reviews" && <ReviewsView reviews={myReviews} students={myStudents} />}
@@ -1089,6 +1089,146 @@ function ScheduleView({ students }: { students: Student[] }) {
             )}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function TutorMessagesView({ currentTutor, students }: { currentTutor: Tutor; students: Student[] }) {
+  const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || "");
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMsg, setNewMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const selectedStudent = students.find(s => s.id === selectedStudentId);
+
+  useEffect(() => {
+    if (!selectedStudentId) return;
+    const loadConversation = async () => {
+      try {
+        const data = await apiClient.chat.getConversation(currentTutor.id, selectedStudentId);
+        setMessages(Array.isArray(data) ? data : []);
+      } catch {
+        setMessages([]);
+      }
+    };
+    loadConversation();
+    const interval = setInterval(loadConversation, 5000);
+    return () => clearInterval(interval);
+  }, [selectedStudentId, currentTutor.id]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMsg.trim() || !selectedStudent) return;
+    setSending(true);
+    try {
+      const sent = await apiClient.chat.send({
+        senderId: currentTutor.id,
+        senderName: currentTutor.name,
+        senderRole: "tutor",
+        receiverId: selectedStudentId,
+        receiverName: selectedStudent.name,
+        receiverRole: "student",
+        text: newMsg.trim(),
+      });
+      setMessages([...messages, sent]);
+      setNewMsg("");
+    } catch {
+      // silently fail
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden h-[550px] flex flex-col md:flex-row text-left">
+      {/* Student list */}
+      <div className="w-full md:w-64 border-r border-slate-100 dark:border-slate-800 flex flex-col shrink-0">
+        <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+          <h3 className="text-xs font-black uppercase text-slate-400">Student Chats</h3>
+        </div>
+        <div className="flex-1 overflow-y-auto modal-scroll divide-y divide-slate-100 dark:divide-slate-800">
+          {students.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setSelectedStudentId(s.id)}
+              className={`w-full p-3 flex items-center gap-2.5 text-left transition-colors ${selectedStudentId === s.id
+                ? "bg-emerald-50 dark:bg-emerald-950/20 border-l-4 border-[#10b981]"
+                : "hover:bg-slate-50 dark:hover:bg-slate-950/20"
+                }`}
+            >
+              <div className="h-8 w-8 rounded-full bg-[#10b981]/20 text-[#10b981] flex items-center justify-center font-bold text-xs shrink-0">
+                {s.name.charAt(0)}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{s.name}</p>
+                <p className="text-[10px] text-slate-400">{s.grade}</p>
+              </div>
+            </button>
+          ))}
+          {students.length === 0 && <p className="text-xs text-slate-500 p-4">No assigned students.</p>}
+        </div>
+      </div>
+
+      {/* Chat area */}
+      <div className="flex-1 flex flex-col h-full">
+        {/* Header */}
+        <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-[#10b981]/20 text-[#10b981] flex items-center justify-center font-bold text-xs">
+            {selectedStudent?.name.charAt(0) || "?"}
+          </div>
+          <div>
+            <p className="text-xs font-black text-slate-900 dark:text-white">{selectedStudent?.name || "Select a student"}</p>
+            <p className="text-[10px] text-slate-400">{selectedStudent?.grade}</p>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 p-4 overflow-y-auto space-y-3 modal-scroll">
+          {messages.length === 0 && (
+            <p className="text-xs text-slate-400 text-center py-8">No messages yet.</p>
+          )}
+          {messages.map((msg: any, idx: number) => {
+            const isMe = msg.senderId === currentTutor.id;
+            return (
+              <div key={msg._id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[70%] p-3 rounded-2xl text-xs font-bold ${isMe
+                  ? "bg-[#10b981] text-white rounded-tr-none"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none"
+                  }`}>
+                  <p>{msg.text}</p>
+                  <span className="block text-[9px] mt-1 text-right opacity-70">
+                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Now"}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Send */}
+        <form onSubmit={handleSend} className="p-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-2">
+          <input
+            type="text"
+            placeholder={`Reply to ${selectedStudent?.name || "student"}...`}
+            value={newMsg}
+            onChange={(e) => setNewMsg(e.target.value)}
+            className="flex-grow p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:border-[#10b981]"
+          />
+          <button
+            type="submit"
+            disabled={sending || !newMsg.trim()}
+            className="px-4 py-2.5 bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl text-xs font-bold active:scale-95 transition-all disabled:opacity-50"
+          >
+            Send
+          </button>
+        </form>
       </div>
     </div>
   );

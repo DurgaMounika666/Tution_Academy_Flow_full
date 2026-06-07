@@ -308,6 +308,27 @@ export const apiClient = {
       request("GET", `/reviews/tutor/${tutorId}`),
   },
 
+  chat: {
+    send: (data: {
+      senderId: string;
+      senderName: string;
+      senderRole: "student" | "tutor" | "parent";
+      receiverId: string;
+      receiverName: string;
+      receiverRole: "student" | "tutor" | "parent";
+      text: string;
+    }) => request("POST", "/chat/send", data),
+
+    getConversation: (userId1: string, userId2: string) =>
+      request("GET", `/chat/conversation/${userId1}/${userId2}`),
+
+    getInbox: (userId: string) =>
+      request("GET", `/chat/inbox/${userId}`),
+
+    markRead: (senderId: string, receiverId: string) =>
+      request("PUT", `/chat/read/${senderId}/${receiverId}`),
+  },
+
   timetable: {
     getAll: () => request("GET", "/timetable"),
     getSummary: () => request("GET", "/timetable/summary"),

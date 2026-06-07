@@ -767,65 +767,7 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
 
         {/* ===================== TAB: MESSAGES ===================== */}
         {activeTab === "messages" && (
-          <div className="space-y-6 text-left">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
-              <div className="flex justify-between items-center">
-                <h3 className="text-sm uppercase font-extrabold tracking-wider text-slate-400">Messages</h3>
-              </div>
-
-              {/* Chat area */}
-              <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
-                {/* Tutor selector */}
-                <div className="p-3 bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-                  <span className="text-xs font-bold text-slate-500">Chat with:</span>
-                  {tutors.filter(t => currentStudent.assignedTutorIds.includes(t.id)).map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20"
-                    >
-                      {t.name}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Messages list */}
-                <div className="p-4 h-64 overflow-y-auto space-y-3 modal-scroll">
-                  {[
-                    { from: "tutor", name: "Tutor", text: "Great job on the last assignment! Keep up the good work.", time: "10:30 AM" },
-                    { from: "tutor", name: "Tutor", text: "Please review the feedback on your problem set before our next session.", time: "10:32 AM" },
-                  ].map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.from === "student" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[70%] p-3 rounded-2xl text-xs font-bold ${msg.from === "student"
-                        ? "bg-[#7c3aed] text-white rounded-tr-none"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none"
-                        }`}>
-                        <p>{msg.text}</p>
-                        <span className="block text-[9px] mt-1 text-right opacity-70">{msg.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Send input */}
-                <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type a message to your tutor..."
-                    className="flex-grow p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:border-[#7c3aed]"
-                  />
-                  <button
-                    type="button"
-                    className="px-4 py-2.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-xl text-xs font-bold active:scale-95 transition-all"
-                  >
-                    Send
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-[10px] text-slate-400 italic">Messages are sent to your assigned tutor. For admin support, use the WhatsApp Support button.</p>
-            </div>
-          </div>
+          <StudentMessagesTab currentStudent={currentStudent} tutors={tutors.filter(t => currentStudent.assignedTutorIds.includes(t.id))} />
         )}
 
         {/* ===================== TAB: PROFILE ===================== */}
@@ -884,6 +826,124 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
 
       </main>
 
+    </div>
+  );
+}
+
+function StudentMessagesTab({ currentStudent, tutors }: { currentStudent: Student; tutors: Tutor[] }) {
+  const [selectedTutorId, setSelectedTutorId] = useState(tutors[0]?.id || "");
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMsg, setNewMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const selectedTutor = tutors.find(t => t.id === selectedTutorId);
+
+  useEffect(() => {
+    if (!selectedTutorId) return;
+    const loadConversation = async () => {
+      try {
+        const data = await apiClient.chat.getConversation(currentStudent.id, selectedTutorId);
+        setMessages(Array.isArray(data) ? data : []);
+      } catch {
+        setMessages([]);
+      }
+    };
+    loadConversation();
+    const interval = setInterval(loadConversation, 5000);
+    return () => clearInterval(interval);
+  }, [selectedTutorId, currentStudent.id]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMsg.trim() || !selectedTutor) return;
+    setSending(true);
+    try {
+      const sent = await apiClient.chat.send({
+        senderId: currentStudent.id,
+        senderName: currentStudent.name,
+        senderRole: "student",
+        receiverId: selectedTutorId,
+        receiverName: selectedTutor.name,
+        receiverRole: "tutor",
+        text: newMsg.trim(),
+      });
+      setMessages([...messages, sent]);
+      setNewMsg("");
+    } catch {
+      // silently fail
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 text-left">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden h-[550px] flex flex-col">
+        {/* Tutor selector */}
+        <div className="p-3 bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 flex-wrap">
+          <span className="text-xs font-bold text-slate-500">Chat with:</span>
+          {tutors.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setSelectedTutorId(t.id)}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${selectedTutorId === t.id
+                ? "bg-[#7c3aed] text-white shadow-sm"
+                : "bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 hover:bg-[#7c3aed]/20"
+                }`}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Messages list */}
+        <div className="flex-1 p-4 overflow-y-auto space-y-3 modal-scroll">
+          {messages.length === 0 && (
+            <p className="text-xs text-slate-400 text-center py-8">No messages yet. Start a conversation!</p>
+          )}
+          {messages.map((msg: any, idx: number) => {
+            const isMe = msg.senderId === currentStudent.id;
+            return (
+              <div key={msg._id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[70%] p-3 rounded-2xl text-xs font-bold ${isMe
+                  ? "bg-[#7c3aed] text-white rounded-tr-none"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none"
+                  }`}>
+                  <p>{msg.text}</p>
+                  <span className="block text-[9px] mt-1 text-right opacity-70">
+                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Now"}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Send input */}
+        <form onSubmit={handleSend} className="p-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-2">
+          <input
+            type="text"
+            placeholder={`Message ${selectedTutor?.name || "tutor"}...`}
+            value={newMsg}
+            onChange={(e) => setNewMsg(e.target.value)}
+            className="flex-grow p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:border-[#7c3aed]"
+          />
+          <button
+            type="submit"
+            disabled={sending || !newMsg.trim()}
+            className="px-4 py-2.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-xl text-xs font-bold active:scale-95 transition-all disabled:opacity-50"
+          >
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

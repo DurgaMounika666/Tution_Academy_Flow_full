@@ -29,6 +29,7 @@ import tutorRoutes from "./routes/tutorRoutes";
 import parentRoutes from "./routes/parentRoutes";
 import timetableRoutes from "./routes/timetableRoutes";
 import reviewRoutes from "./routes/reviewRoutes";
+import chatRoutes from "./routes/chatRoutes";
 import registrationRoutes from "./routes/registrationRoutes";
 
 const app: Express = express();
@@ -89,6 +90,7 @@ app.use("/api/tutors", tutorRoutes);
 app.use("/api/parents", parentRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/chat", chatRoutes);
 app.use("/api/registrations", registrationRoutes);
 
 // Error Handling
