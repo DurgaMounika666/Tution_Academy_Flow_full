@@ -116,7 +116,7 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
 
       {/* Sidebar Navigation */}
       <aside className={`${sidebarOpen ? "w-full md:w-64" : "w-0 md:w-0 p-0 overflow-hidden"} bg-[#1d0b3a] dark:bg-[#0e051c] text-indigo-50 flex flex-col ${sidebarOpen ? "p-5" : ""} border-r border-[#2d1257] shrink-0 md:h-full transition-all duration-300`}>
-        {sidebarOpen && (
+        {sidebarOpen && (<>
         <div className="flex-1 min-h-0 overflow-y-auto space-y-6 modal-scroll">
           {/* Logo Header */}
           <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -171,7 +171,7 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
             </div>
           </div>
         </div>
-        )}
+        </>)}
       </aside>
 
       {/* Sidebar open button when collapsed */}

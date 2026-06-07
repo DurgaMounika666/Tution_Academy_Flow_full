@@ -257,7 +257,7 @@ export function TutorDashboard({
       
       {/* Sidebar Navigation */}
       <aside className={`${sidebarOpen ? "w-full md:w-64" : "w-0 md:w-0 p-0 overflow-hidden"} bg-[#133d27] dark:bg-[#071b11] text-emerald-50 flex flex-col ${sidebarOpen ? "p-5" : ""} border-r border-[#194b30] shrink-0 md:h-full transition-all duration-300`}>
-        {sidebarOpen && (
+        {sidebarOpen && (<>
         <div className="flex-1 min-h-0 overflow-y-auto space-y-6 modal-scroll">
           {/* Logo brand */}
           <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -321,7 +321,7 @@ export function TutorDashboard({
             </div>
           </div>
         </div>
-        )}
+        </>)}
       </aside>
 
       {/* Sidebar open button when collapsed */}

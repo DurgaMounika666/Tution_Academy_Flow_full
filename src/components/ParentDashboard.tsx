@@ -2490,7 +2490,7 @@ export function ParentDashboard({
 
       {/* Sidebar Navigation */}
       <aside className={`${sidebarOpen ? "w-full md:w-64" : "w-0 md:w-0 p-0 overflow-hidden"} bg-[#3f2115] dark:bg-[#20100a] text-amber-50 flex flex-col ${sidebarOpen ? "p-5" : ""} border-r border-[#4e2c1e] shrink-0 md:h-full transition-all duration-300`}>
-        {sidebarOpen && (
+        {sidebarOpen && (<>
         <div className="flex-1 min-h-0 overflow-y-auto space-y-6 modal-scroll">
           {/* Logo Brand Header */}
           <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -2547,7 +2547,7 @@ export function ParentDashboard({
             </div>
           </div>
         </div>
-        )}
+        </>)}
       </aside>
 
       {/* Sidebar open button when collapsed */}

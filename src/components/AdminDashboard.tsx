@@ -653,7 +653,7 @@ export function AdminDashboard({
 
       {/* Sidebar Navigation */}
       <aside className={`${sidebarOpen ? "w-full md:w-64" : "w-0 md:w-0 p-0 overflow-hidden"} bg-[#0b1329] dark:bg-[#070d1d] text-slate-100 flex flex-col ${sidebarOpen ? "p-5" : ""} border-r border-[#15254f] shrink-0 md:h-full transition-all duration-300`}>
-        {sidebarOpen && (
+        {sidebarOpen && (<>
         <div className="flex-1 min-h-0 overflow-y-auto space-y-6 text-left modal-scroll">
           {/* Logo Header */}
           <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -721,7 +721,7 @@ export function AdminDashboard({
             </div>
           </div>
         </div>
-        )}
+        </>)}
       </aside>
 
       {/* Sidebar open button when collapsed */}
