@@ -651,8 +651,8 @@ export function AdminDashboard({
     <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
 
       {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
-      <aside className="w-full md:w-64 bg-[#0b1329] dark:bg-[#070d1d] text-slate-100 flex flex-col p-5 border-r border-[#15254f] shrink-0 md:h-full overflow-y-auto">
-        <div className="flex-1 min-h-0 space-y-6 text-left">
+      <aside className="w-full md:w-64 bg-[#0b1329] dark:bg-[#070d1d] text-slate-100 flex flex-col p-5 border-r border-[#15254f] shrink-0 md:h-full">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-6 text-left modal-scroll">
           {/* Logo Header */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
             <span className="p-2 bg-[#2563eb] rounded-xl text-white shadow-lg">

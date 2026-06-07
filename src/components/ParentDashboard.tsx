@@ -2488,8 +2488,8 @@ export function ParentDashboard({
     <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
 
       {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
-      <aside className="w-full md:w-64 bg-[#3f2115] dark:bg-[#20100a] text-amber-50 flex flex-col p-5 border-r border-[#4e2c1e] shrink-0 md:h-full overflow-y-auto">
-        <div className="flex-1 min-h-0 space-y-6">
+      <aside className="w-full md:w-64 bg-[#3f2115] dark:bg-[#20100a] text-amber-50 flex flex-col p-5 border-r border-[#4e2c1e] shrink-0 md:h-full">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-6 modal-scroll">
           {/* Logo Brand Header */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
             <span className="p-2 bg-[#f27a3d] rounded-xl text-white shadow-lg">
