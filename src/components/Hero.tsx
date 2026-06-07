@@ -121,7 +121,7 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
                 <button
                   onClick={() => {
                     const finder = document.getElementById('hero-finder');
-                    if (finder) finder.scrollIntoView({ behavior: "smooth" });
+                    if (finder) finder.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                   className="rounded-xl bg-slate-900 hover:bg-slate-850 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-extrabold px-6 py-3.5 text-sm transition-all shadow-lg active:scale-95 inline-flex items-center gap-2 hover:shadow-sky-500/10"
                 >
@@ -159,7 +159,7 @@ export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStand
           </div>
         </div>
 
-        <div id="hero-finder" className="mt-16 bg-white dark:bg-slate-950 rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-100 dark:border-slate-800/80 max-w-5xl mx-auto hover:shadow-2xl transition-all hero-animate hero-delay-6">
+        <div id="hero-finder" className="mt-16 bg-white dark:bg-slate-950 rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-100 dark:border-slate-800/80 max-w-5xl mx-auto hover:shadow-2xl transition-all hero-animate hero-delay-6 scroll-mt-20">
           <div className="text-center mb-6">
             <span className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">{t("findPerfectClass")}</span>
             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1">{t("selectCenterAndClass")}</h3>
