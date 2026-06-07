@@ -402,6 +402,7 @@ export default function App() {
           activeStandard={activeStandard}
           onSelectStandard={setActiveStandard}
           loggedInRole={loggedInRole}
+          onLogout={loggedInRole ? handleLogout : undefined}
         />
         <div className="h-16" />
 

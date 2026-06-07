@@ -19,7 +19,6 @@ import { buildAllCoursesFromCatalog, CatalogCourse } from "../utils/courseCatalo
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
 import { FeeReceiptModal } from "./FeeReceiptModal";
 import { Footer } from "./Footer";
-import { LogoutButton } from "./LogoutButton";
 import { FooterNavigation } from "./FooterNavigation";
 
 interface AdminDashboardProps {
@@ -714,9 +713,6 @@ export function AdminDashboard({
       </aside>
 
       <main ref={mainPanelRef} data-scroll-container className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6 relative text-left">
-        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
-          <LogoutButton onLogout={onLogout} />
-        </div>
 
         <FooterNavigation
           onBack={() => {
