@@ -9,7 +9,7 @@ import {
   HelpCircle, ChevronRight, BookOpen, GraduationCap, Clock, PlusCircle,
   TrendingUp, CreditCard, Sparkles, X, ArrowRight,
   MessageSquare, Bell, Settings, Award, Calendar, FileText, User, LayoutDashboard, Send, Star,
-  Download, Save, Edit2, Shield, Lock, Globe, Inbox, Filter, Check, Eye, EyeOff
+  Download, Save, Edit2, Shield, Lock, Globe, Inbox, Filter, Check, Eye, EyeOff, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 import { Student, Tutor, FeePayment } from "../types";
 import { SUBJECTS_BY_CLASS, STANDARDS, LOCATIONS } from "../data";
@@ -45,6 +45,7 @@ export function ParentDashboard({
 
   // Active Tab/Menu state for the Sidebar
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const mainPanelRef = useRef<HTMLElement | null>(null);
 
   // Roll out subjects Wizard State
@@ -2487,17 +2488,27 @@ export function ParentDashboard({
   return (
     <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
 
-      {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
-      <aside className="w-full md:w-64 bg-[#3f2115] dark:bg-[#20100a] text-amber-50 flex flex-col p-5 border-r border-[#4e2c1e] shrink-0 md:h-full">
+      {/* Sidebar Navigation */}
+      <aside className={`${sidebarOpen ? "w-full md:w-64" : "w-0 md:w-0 p-0 overflow-hidden"} bg-[#3f2115] dark:bg-[#20100a] text-amber-50 flex flex-col ${sidebarOpen ? "p-5" : ""} border-r border-[#4e2c1e] shrink-0 md:h-full transition-all duration-300`}>
+        {sidebarOpen && (
         <div className="flex-1 min-h-0 overflow-y-auto space-y-6 modal-scroll">
           {/* Logo Brand Header */}
-          <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
-            <span className="p-2 bg-[#f27a3d] rounded-xl text-white shadow-lg">
-              <Users className="h-5 w-5" />
-            </span>
-            <span className="font-extrabold text-sm tracking-widest text-white uppercase">
-              Parent Space
-            </span>
+          <div className="flex items-center justify-between pb-4 border-b border-white/10">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 bg-[#f27a3d] rounded-xl text-white shadow-lg">
+                <Users className="h-5 w-5" />
+              </span>
+              <span className="font-extrabold text-sm tracking-widest text-white uppercase">
+                Parent Space
+              </span>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              title="Close panel"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Navigation Links */}
@@ -2536,7 +2547,19 @@ export function ParentDashboard({
             </div>
           </div>
         </div>
+        )}
       </aside>
+
+      {/* Sidebar open button when collapsed */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed top-20 left-2 z-40 p-2 bg-[#3f2115] border border-[#4e2c1e] rounded-xl text-amber-200 hover:text-white hover:bg-[#4e2c1e] transition-colors shadow-lg"
+          title="Open panel"
+        >
+          <PanelLeftOpen className="h-5 w-5" />
+        </button>
+      )}
 
       <main ref={mainPanelRef} data-scroll-container className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6 relative">
 

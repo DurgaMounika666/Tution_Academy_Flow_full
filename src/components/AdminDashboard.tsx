@@ -9,7 +9,7 @@ import {
   BookOpen, Mail, Terminal, Lock, CheckCircle2, ChevronRight, BarChart3, TrendingUp,
   LayoutDashboard, FileText, Bell, Settings, Award, PlusCircle, ArrowUpRight,
   Plus, Trash2, Edit3, Filter, Check, X, Send, Volume2, UserCheck, Calendar,
-  Clock, CheckCircle, AlertCircle, Eye, CreditCard, School
+  Clock, CheckCircle, AlertCircle, Eye, CreditCard, School, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
 import { normalizeStudent, normalizeTutor, normalizeFee } from "../utils/normalizers";
@@ -61,6 +61,7 @@ export function AdminDashboard({
 
   // Main Tabs Configuration
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const mainPanelRef = useRef<HTMLElement | null>(null);
@@ -650,17 +651,27 @@ export function AdminDashboard({
   return (
     <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
 
-      {/* Sidebar Navigation — fixed height; scrolls only if nav overflows */}
-      <aside className="w-full md:w-64 bg-[#0b1329] dark:bg-[#070d1d] text-slate-100 flex flex-col p-5 border-r border-[#15254f] shrink-0 md:h-full">
+      {/* Sidebar Navigation */}
+      <aside className={`${sidebarOpen ? "w-full md:w-64" : "w-0 md:w-0 p-0 overflow-hidden"} bg-[#0b1329] dark:bg-[#070d1d] text-slate-100 flex flex-col ${sidebarOpen ? "p-5" : ""} border-r border-[#15254f] shrink-0 md:h-full transition-all duration-300`}>
+        {sidebarOpen && (
         <div className="flex-1 min-h-0 overflow-y-auto space-y-6 text-left modal-scroll">
           {/* Logo Header */}
-          <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
-            <span className="p-2 bg-[#2563eb] rounded-xl text-white shadow-lg">
-              <ShieldCheck className="h-5 w-5" />
-            </span>
-            <span className="font-extrabold text-sm tracking-widest text-white uppercase">
-              Admin Gateway
-            </span>
+          <div className="flex items-center justify-between pb-4 border-b border-white/10">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 bg-[#2563eb] rounded-xl text-white shadow-lg">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <span className="font-extrabold text-sm tracking-widest text-white uppercase">
+                Admin Gateway
+              </span>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              title="Close panel"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Navigation Links */}
@@ -710,7 +721,19 @@ export function AdminDashboard({
             </div>
           </div>
         </div>
+        )}
       </aside>
+
+      {/* Sidebar open button when collapsed */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed top-20 left-2 z-40 p-2 bg-[#0b1329] border border-[#15254f] rounded-xl text-slate-300 hover:text-white hover:bg-[#15254f] transition-colors shadow-lg"
+          title="Open panel"
+        >
+          <PanelLeftOpen className="h-5 w-5" />
+        </button>
+      )}
 
       <main ref={mainPanelRef} data-scroll-container className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 space-y-6 relative text-left">
 
