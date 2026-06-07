@@ -1028,33 +1028,63 @@ export function AdminDashboard({
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
                   <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Top Courses</h3>
 
-                  <div className="flex items-center gap-6">
-                    {/* Circular Chart Placeholder */}
-                    <div className="h-28 w-28 rounded-full border-8 border-indigo-500 border-t-emerald-500 flex items-center justify-center font-black text-xs text-slate-900 dark:text-white shrink-0">
-                      {courses.length} Courses
-                    </div>
-                    <div className="space-y-2 text-xs w-full">
-                      {[...courses].sort((a, b) => b.studentsCount - a.studentsCount).slice(0, 3).map((c, i) => {
-                        const bgColors = ["bg-emerald-500", "bg-indigo-500", "bg-amber-500"];
-                        return (
-                          <div
-                            key={c.id}
-                            onClick={() => {
-                              setActiveTab("courses");
-                              setSelectedCourse(c);
-                            }}
-                            className="flex justify-between items-center text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 p-1 rounded transition-colors"
-                          >
-                            <span className="flex items-center gap-1.5 font-medium">
-                              <span className={`h-2.5 w-2.5 rounded-full ${bgColors[i % 3]} block`} />
-                              {c.name}
+                  {(() => {
+                    const topCourses = [...courses].sort((a, b) => b.studentsCount - a.studentsCount).filter(c => c.studentsCount > 0).slice(0, 3);
+                    const totalEnrolled = topCourses.reduce((sum, c) => sum + c.studentsCount, 0);
+                    const chartColors = ["#10b981", "#6366f1", "#f59e0b"];
+                    
+                    // Build conic gradient segments
+                    let gradientParts: string[] = [];
+                    let currentAngle = 0;
+                    topCourses.forEach((c, i) => {
+                      const percentage = totalEnrolled > 0 ? (c.studentsCount / totalEnrolled) * 360 : 0;
+                      gradientParts.push(`${chartColors[i]} ${currentAngle}deg ${currentAngle + percentage}deg`);
+                      currentAngle += percentage;
+                    });
+                    if (currentAngle < 360) {
+                      gradientParts.push(`#e2e8f0 ${currentAngle}deg 360deg`);
+                    }
+                    const gradient = totalEnrolled > 0 
+                      ? `conic-gradient(${gradientParts.join(", ")})`
+                      : "conic-gradient(#e2e8f0 0deg 360deg)";
+
+                    return (
+                      <div className="flex items-center gap-6">
+                        <div
+                          className="h-28 w-28 rounded-full flex items-center justify-center shrink-0 relative"
+                          style={{ background: gradient }}
+                        >
+                          <div className="h-16 w-16 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center">
+                            <span className="font-black text-[10px] text-slate-900 dark:text-white text-center leading-tight">
+                              {totalEnrolled}<br/><span className="text-[8px] text-slate-400 font-bold">Students</span>
                             </span>
-                            <span className="font-bold">{c.studentsCount} Students</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        </div>
+                        <div className="space-y-2 text-xs w-full">
+                          {topCourses.length === 0 ? (
+                            <p className="text-slate-400 text-[10px]">No student enrollments yet</p>
+                          ) : (
+                            topCourses.map((c, i) => (
+                              <div
+                                key={c.id}
+                                onClick={() => {
+                                  setActiveTab("courses");
+                                  setSelectedCourse(c);
+                                }}
+                                className="flex justify-between items-center text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 p-1 rounded transition-colors"
+                              >
+                                <span className="flex items-center gap-1.5 font-medium">
+                                  <span className="h-2.5 w-2.5 rounded-full block" style={{ backgroundColor: chartColors[i] }} />
+                                  {c.name}
+                                </span>
+                                <span className="font-bold">{c.studentsCount} Students</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Fee Collection Overview */}
