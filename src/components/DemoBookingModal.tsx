@@ -144,6 +144,16 @@ export function DemoBookingModal({ isOpen, onClose, initialClass = "", initialCe
       return;
     }
 
+    if (!center.trim()) {
+      setErrorMessage("Please select a learning center.");
+      return;
+    }
+
+    if (!demoMode.trim()) {
+      setErrorMessage("Please select a demo mode (Online/Offline).");
+      return;
+    }
+
     const selectedDate = new Date(preferredDate);
     const earliestAllowed = new Date(tomorrow);
     if (selectedDate < earliestAllowed) {
