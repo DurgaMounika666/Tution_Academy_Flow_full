@@ -10,9 +10,9 @@
 const configuredApiBase = (import.meta as any).env?.VITE_API_URL;
 const API_BASE_CANDIDATES = [
   configuredApiBase,
+  "http://localhost:5002/api",
   "http://localhost:5000/api",
   "http://localhost:5001/api",
-  "http://localhost:5002/api",
   "http://localhost:5003/api",
 ].filter((value, index, self): value is string => Boolean(value) && self.indexOf(value) === index);
 
@@ -46,6 +46,11 @@ const request = async (method: string, endpoint: string, body?: any) => {
         body: body ? JSON.stringify(body) : undefined,
       });
 
+      if (response.status === 404) {
+        lastNetworkError = new Error(`404 at ${url}`);
+        continue;
+      }
+
       activeApiBase = base;
 
       if (!response.ok) {
@@ -55,7 +60,7 @@ const request = async (method: string, endpoint: string, body?: any) => {
 
       return await response.json();
     } catch (error) {
-      if (error instanceof TypeError) {
+      if (error instanceof TypeError || (error instanceof Error && error.message.startsWith("404 at"))) {
         lastNetworkError = error;
         continue;
       }
