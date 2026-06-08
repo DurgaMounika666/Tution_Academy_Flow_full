@@ -5,7 +5,7 @@
 
 import React, { useState, useRef } from "react";
 import { X, Sparkles, UserPlus, CheckCircle2, ChevronRight, UserCheck, Eye, EyeOff, CreditCard } from "lucide-react";
-import { STANDARDS, LOCATIONS, SUBJECTS_BY_CLASS } from "../data";
+import { useCatalog } from "../context/CatalogContext";
 import { apiClient } from "../services/apiClient";
 import { RegistrationNotification } from "../types";
 
@@ -16,6 +16,8 @@ interface RegisterModalProps {
 }
 
 export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterModalProps) {
+  const { standards: STANDARDS, locations: LOCATIONS, subjectsByClass: SUBJECTS_BY_CLASS } = useCatalog();
+
   const [parentName, setParentName] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const [parentPhone, setParentPhone] = useState("");

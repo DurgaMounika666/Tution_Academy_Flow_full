@@ -12,7 +12,7 @@ import {
   Download, Save, Edit2, Shield, Lock, Globe, Inbox, Filter, Check, Eye, EyeOff, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 import { Student, Tutor, FeePayment } from "../types";
-import { SUBJECTS_BY_CLASS, STANDARDS, LOCATIONS } from "../data";
+import { useCatalog } from "../context/CatalogContext";
 import { apiClient } from "../services/apiClient";
 import { normalizeFee, normalizeParent } from "../utils/normalizers";
 import { useTheme } from "../context/ThemeContext";
@@ -34,6 +34,8 @@ interface ParentDashboardProps {
 export function ParentDashboard({
   students, tutors, fees, onUpdateFees, onUpdateStudents, onRefreshFees, onLogout
 }: ParentDashboardProps) {
+
+  const { subjectsByClass: SUBJECTS_BY_CLASS, standards: STANDARDS, locations: LOCATIONS } = useCatalog();
 
   const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || "");
   useEffect(() => {

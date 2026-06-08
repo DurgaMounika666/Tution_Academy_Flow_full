@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from "react";
 import { X, CheckCircle2 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
-import { STANDARDS, SUBJECTS_BY_CLASS, LOCATIONS } from "../data";
+import { useCatalog } from "../context/CatalogContext";
 
 interface DemoBookingModalProps {
   isOpen: boolean;
@@ -16,6 +16,8 @@ interface DemoBookingModalProps {
 }
 
 export function DemoBookingModal({ isOpen, onClose, initialClass = "", initialCenter = "" }: DemoBookingModalProps) {
+  const { standards: STANDARDS, locations: LOCATIONS, subjectsByClass: SUBJECTS_BY_CLASS } = useCatalog();
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");

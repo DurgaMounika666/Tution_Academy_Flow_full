@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BookOpen, Menu, X, ChevronDown, UserPlus, LogIn, ArrowLeft, LogOut } from "lucide-react";
-import { STANDARDS } from "../data";
+import { useCatalog } from "../context/CatalogContext";
 import { useLanguage } from "../context/LanguageContext";
 
 interface NavbarProps {

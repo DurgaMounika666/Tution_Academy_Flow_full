@@ -5,7 +5,7 @@
 
 import React from "react";
 import { MapPin, GraduationCap, ChevronRight, MessageSquareCode, Sparkles } from "lucide-react";
-import { LOCATIONS, STANDARDS } from "../data";
+import { useCatalog } from "../context/CatalogContext";
 import { useLanguage } from "../context/LanguageContext";
 
 interface HeroProps {
@@ -19,6 +19,7 @@ interface HeroProps {
 
 export function Hero({ onRoleChange, onOpenDemo, selectedStandard, onSelectStandard, selectedLocation, onSelectLocation }: HeroProps) {
   const { t } = useLanguage();
+  const { standards: STANDARDS, locations: LOCATIONS } = useCatalog();
 
   const handleBookDemo = () => {
     onOpenDemo();
