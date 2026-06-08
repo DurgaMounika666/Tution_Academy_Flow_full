@@ -129,7 +129,7 @@ export function FeeReceiptModal({ isOpen, receiptData, onClose }: FeeReceiptModa
               Amount Paid Successfully
             </span>
             <span className="text-emerald-600 dark:text-emerald-450 text-xl font-black">
-              ${receiptData.amountPaid}.00
+              ₹{receiptData.amountPaid}.00
             </span>
           </div>
 

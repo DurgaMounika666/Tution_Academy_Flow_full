@@ -1095,19 +1095,51 @@ function ScheduleView({ students }: { students: Student[] }) {
 }
 
 function TutorMessagesView({ currentTutor, students }: { currentTutor: Tutor; students: Student[] }) {
-  const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || "");
+  const [contactTab, setContactTab] = useState<"students" | "parents">("students");
+  const [selectedContactId, setSelectedContactId] = useState(students[0]?.id || "");
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState("");
   const [sending, setSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const selectedStudent = students.find(s => s.id === selectedStudentId);
+  // Derive unique parents from students
+  const parentContacts = useMemo(() => {
+    const seen = new Set<string>();
+    const parents: { email: string; studentNames: string[] }[] = [];
+    for (const s of students) {
+      if (s.parentEmail && !seen.has(s.parentEmail)) {
+        seen.add(s.parentEmail);
+        parents.push({
+          email: s.parentEmail,
+          studentNames: students.filter(st => st.parentEmail === s.parentEmail).map(st => st.name),
+        });
+      }
+    }
+    return parents;
+  }, [students]);
+
+  // When tab changes, reset selection
+  useEffect(() => {
+    if (contactTab === "students") {
+      setSelectedContactId(students[0]?.id || "");
+    } else {
+      setSelectedContactId(parentContacts[0]?.email || "");
+    }
+  }, [contactTab]);
+
+  const selectedStudent = contactTab === "students" ? students.find(s => s.id === selectedContactId) : null;
+  const selectedParent = contactTab === "parents" ? parentContacts.find(p => p.email === selectedContactId) : null;
+
+  const contactDisplayName = selectedStudent?.name || selectedParent?.email || "Select a contact";
+  const contactSubtitle = selectedStudent?.grade || (selectedParent ? `Parent of ${selectedParent.studentNames.join(", ")}` : "");
+  const contactInitial = selectedStudent?.name.charAt(0) || (selectedParent?.email.charAt(0).toUpperCase()) || "?";
+  const receiverRole = contactTab === "students" ? "student" : "parent";
 
   useEffect(() => {
-    if (!selectedStudentId) return;
+    if (!selectedContactId) return;
     const loadConversation = async () => {
       try {
-        const data = await apiClient.chat.getConversation(currentTutor.id, selectedStudentId);
+        const data = await apiClient.chat.getConversation(currentTutor.id, selectedContactId);
         setMessages(Array.isArray(data) ? data : []);
       } catch {
         setMessages([]);
@@ -1116,7 +1148,7 @@ function TutorMessagesView({ currentTutor, students }: { currentTutor: Tutor; st
     loadConversation();
     const interval = setInterval(loadConversation, 5000);
     return () => clearInterval(interval);
-  }, [selectedStudentId, currentTutor.id]);
+  }, [selectedContactId, currentTutor.id]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1124,16 +1156,16 @@ function TutorMessagesView({ currentTutor, students }: { currentTutor: Tutor; st
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMsg.trim() || !selectedStudent) return;
+    if (!newMsg.trim() || !selectedContactId) return;
     setSending(true);
     try {
       const sent = await apiClient.chat.send({
         senderId: currentTutor.id,
         senderName: currentTutor.name,
         senderRole: "tutor",
-        receiverId: selectedStudentId,
-        receiverName: selectedStudent.name,
-        receiverRole: "student",
+        receiverId: selectedContactId,
+        receiverName: contactDisplayName,
+        receiverRole: receiverRole,
         text: newMsg.trim(),
       });
       setMessages([...messages, sent]);
@@ -1147,17 +1179,39 @@ function TutorMessagesView({ currentTutor, students }: { currentTutor: Tutor; st
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden h-[550px] flex flex-col md:flex-row text-left">
-      {/* Student list */}
+      {/* Contact list */}
       <div className="w-full md:w-64 border-r border-slate-100 dark:border-slate-800 flex flex-col shrink-0">
-        <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-          <h3 className="text-xs font-black uppercase text-slate-400">Student Chats</h3>
+        {/* Tab toggle: Students | Parents */}
+        <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
+          <h3 className="text-xs font-black uppercase text-slate-400">Chats</h3>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setContactTab("students")}
+              className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer ${contactTab === "students"
+                ? "bg-[#10b981] text-white shadow-sm"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200"
+              }`}
+            >
+              Students
+            </button>
+            <button
+              onClick={() => setContactTab("parents")}
+              className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer ${contactTab === "parents"
+                ? "bg-[#f27a3d] text-white shadow-sm"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200"
+              }`}
+            >
+              Parents
+            </button>
+          </div>
         </div>
+
         <div className="flex-1 overflow-y-auto modal-scroll divide-y divide-slate-100 dark:divide-slate-800">
-          {students.map((s) => (
+          {contactTab === "students" && students.map((s) => (
             <button
               key={s.id}
-              onClick={() => setSelectedStudentId(s.id)}
-              className={`w-full p-3 flex items-center gap-2.5 text-left transition-colors ${selectedStudentId === s.id
+              onClick={() => setSelectedContactId(s.id)}
+              className={`w-full p-3 flex items-center gap-2.5 text-left transition-colors ${selectedContactId === s.id
                 ? "bg-emerald-50 dark:bg-emerald-950/20 border-l-4 border-[#10b981]"
                 : "hover:bg-slate-50 dark:hover:bg-slate-950/20"
                 }`}
@@ -1171,7 +1225,28 @@ function TutorMessagesView({ currentTutor, students }: { currentTutor: Tutor; st
               </div>
             </button>
           ))}
-          {students.length === 0 && <p className="text-xs text-slate-500 p-4">No assigned students.</p>}
+
+          {contactTab === "parents" && parentContacts.map((p) => (
+            <button
+              key={p.email}
+              onClick={() => setSelectedContactId(p.email)}
+              className={`w-full p-3 flex items-center gap-2.5 text-left transition-colors ${selectedContactId === p.email
+                ? "bg-[#f27a3d]/5 dark:bg-[#f27a3d]/10 border-l-4 border-[#f27a3d]"
+                : "hover:bg-slate-50 dark:hover:bg-slate-950/20"
+                }`}
+            >
+              <div className="h-8 w-8 rounded-full bg-[#f27a3d]/20 text-[#f27a3d] flex items-center justify-center font-bold text-xs shrink-0">
+                {p.email.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{p.email}</p>
+                <p className="text-[10px] text-slate-400 truncate">Parent of {p.studentNames.join(", ")}</p>
+              </div>
+            </button>
+          ))}
+
+          {contactTab === "students" && students.length === 0 && <p className="text-xs text-slate-500 p-4">No assigned students.</p>}
+          {contactTab === "parents" && parentContacts.length === 0 && <p className="text-xs text-slate-500 p-4">No parent contacts found.</p>}
         </div>
       </div>
 
@@ -1179,12 +1254,12 @@ function TutorMessagesView({ currentTutor, students }: { currentTutor: Tutor; st
       <div className="flex-1 flex flex-col h-full">
         {/* Header */}
         <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-[#10b981]/20 text-[#10b981] flex items-center justify-center font-bold text-xs">
-            {selectedStudent?.name.charAt(0) || "?"}
+          <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs ${contactTab === "parents" ? "bg-[#f27a3d]/20 text-[#f27a3d]" : "bg-[#10b981]/20 text-[#10b981]"}`}>
+            {contactInitial}
           </div>
           <div>
-            <p className="text-xs font-black text-slate-900 dark:text-white">{selectedStudent?.name || "Select a student"}</p>
-            <p className="text-[10px] text-slate-400">{selectedStudent?.grade}</p>
+            <p className="text-xs font-black text-slate-900 dark:text-white">{contactDisplayName}</p>
+            <p className="text-[10px] text-slate-400">{contactSubtitle}</p>
           </div>
         </div>
 
@@ -1216,7 +1291,7 @@ function TutorMessagesView({ currentTutor, students }: { currentTutor: Tutor; st
         <form onSubmit={handleSend} className="p-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-2">
           <input
             type="text"
-            placeholder={`Reply to ${selectedStudent?.name || "student"}...`}
+            placeholder={`Reply to ${contactDisplayName}...`}
             value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
             className="flex-grow p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:border-[#10b981]"

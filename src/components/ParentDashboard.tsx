@@ -302,56 +302,57 @@ export function ParentDashboard({
     }
   };
 
-  // 2. Chat / Messages state
-  const [chatHistory, setChatHistory] = useState<Record<string, Array<{
-    id: string;
-    sender: "parent" | "tutor";
-    senderName: string;
-    text: string;
-    time: string;
-  }>>>({});
-
+  // 2. Chat / Messages state (backend-connected)
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [selectedChatTutorId, setSelectedChatTutorId] = useState(tutors[0]?.id || "");
   const [chatSearch, setChatSearch] = useState("");
   const [newMessageText, setNewMessageText] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [chatSending, setChatSending] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessageText.trim()) return;
-
-    const tutorObj = tutors.find(t => t.id === selectedChatTutorId) || tutors[0];
-    const userMsg = {
-      id: `msg-user-${Date.now()}`,
-      sender: "parent" as const,
-      senderName: parentProfile.name,
-      text: newMessageText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  // Load conversation from backend & poll every 5s
+  useEffect(() => {
+    if (!selectedChatTutorId || !parentProfile.email) return;
+    const loadConversation = async () => {
+      try {
+        const data = await apiClient.chat.getConversation(parentProfile.email, selectedChatTutorId);
+        setChatMessages(Array.isArray(data) ? data : []);
+      } catch {
+        setChatMessages([]);
+      }
     };
+    loadConversation();
+    const interval = setInterval(loadConversation, 5000);
+    return () => clearInterval(interval);
+  }, [selectedChatTutorId, parentProfile.email]);
 
-    setChatHistory(prev => ({
-      ...prev,
-      [selectedChatTutorId]: [...(prev[selectedChatTutorId] || []), userMsg]
-    }));
-    setNewMessageText("");
-    setIsTyping(true);
+  // Auto-scroll chat to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
 
-    // Simulate tutor automated encouraging reply
-    setTimeout(() => {
-      setIsTyping(false);
-      const tutorReply = {
-        id: `msg-tutor-reply-${Date.now()}`,
-        sender: "tutor" as const,
-        senderName: tutorObj.name,
-        text: `Thank you for reaching out, Robert. I have received your message regarding ${activeStudent.name}. I will review this during my active office slot and reply in detail as soon as possible.`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      setChatHistory(prev => ({
-        ...prev,
-        [selectedChatTutorId]: [...(prev[selectedChatTutorId] || []), tutorReply]
-      }));
-    }, 1500);
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessageText.trim() || chatSending) return;
+    const tutorObj = tutors.find(t => t.id === selectedChatTutorId) || tutors[0];
+    setChatSending(true);
+    try {
+      const sent = await apiClient.chat.send({
+        senderId: parentProfile.email,
+        senderName: parentProfile.name,
+        senderRole: "parent",
+        receiverId: selectedChatTutorId,
+        receiverName: tutorObj.name,
+        receiverRole: "tutor",
+        text: newMessageText.trim(),
+      });
+      setChatMessages(prev => [...prev, sent]);
+      setNewMessageText("");
+    } catch {
+      // silently fail
+    } finally {
+      setChatSending(false);
+    }
   };
 
   // 3. Support Tickets state
@@ -728,7 +729,7 @@ export function ParentDashboard({
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Pending Fees</span>
                 <div className="flex items-baseline justify-between mt-2">
                   <span className="text-2xl sm:text-3xl font-black text-rose-500">
-                    ${pendingFeesAmount}
+                    ₹{pendingFeesAmount}
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-455 font-bold">
                     Due
@@ -817,7 +818,7 @@ export function ParentDashboard({
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Fee Payment</h3>
-                    <span className="text-[10px] font-bold text-slate-400">Last Payment: ${paidFeesAmount} (Paid)</span>
+                    <span className="text-[10px] font-bold text-slate-400">Last Payment: ₹{paidFeesAmount} (Paid)</span>
                   </div>
 
                   <div className="space-y-3">
@@ -829,7 +830,7 @@ export function ParentDashboard({
                         </div>
 
                         <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                          <span className="text-sm font-black text-slate-900 dark:text-white">${fee.amount}</span>
+                          <span className="text-sm font-black text-slate-900 dark:text-white">₹{fee.amount}</span>
                           {fee.status === "Pending" ? (
                             <button
                               onClick={() => handlePayFee(fee.id)}
@@ -944,29 +945,69 @@ export function ParentDashboard({
                   <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Recent Results</h3>
 
                   <div className="space-y-3">
-                    <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">React JS Quiz</span>
-                        <span className="text-[10px] text-slate-500">May 19, 2026</span>
-                      </div>
-                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg">85%</span>
-                    </div>
+                    {(() => {
+                      const studentResults = activeStudent.results || [];
+                      const studentSubjects = activeStudent.learningSubjects || [];
 
-                    <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">UI Principles Assessment</span>
-                        <span className="text-[10px] text-slate-500">May 18, 2026</span>
-                      </div>
-                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg">92%</span>
-                    </div>
+                      // Build recent results from actual term results data
+                      if (studentResults.length > 0) {
+                        // Show latest term's subject-wise scores
+                        const latest = studentResults[studentResults.length - 1];
+                        const subjectScores: { name: string; score: number }[] = [];
+                        if (latest.mathsScore) subjectScores.push({ name: "Mathematics", score: latest.mathsScore });
+                        if (latest.physicsScore) subjectScores.push({ name: "Physics & Science", score: latest.physicsScore });
+                        if (latest.literatureScore) subjectScores.push({ name: "World Literature", score: latest.literatureScore });
+                        if (latest.compSciScore) subjectScores.push({ name: "Computer Science", score: latest.compSciScore });
+                        // If term has a general score but no subject breakdown
+                        if (subjectScores.length === 0 && latest.score) {
+                          subjectScores.push({ name: `${latest.term} Assessment`, score: latest.score });
+                        }
 
-                    <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">Python Programming basics</span>
-                        <span className="text-[10px] text-slate-550">May 16, 2026</span>
-                      </div>
-                      <span className="text-xs font-black text-[#f27a3d] bg-[#f27a3d]/10 px-2.5 py-1 rounded-lg">78%</span>
-                    </div>
+                        return subjectScores.slice(0, 4).map((item, idx) => (
+                          <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
+                            <div className="space-y-0.5">
+                              <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">{item.name}</span>
+                              <span className="text-[10px] text-slate-500">{latest.term} — GPA: {latest.gpa}</span>
+                            </div>
+                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${
+                              item.score >= 85
+                                ? "text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40"
+                                : item.score >= 70
+                                  ? "text-[#f27a3d] bg-[#f27a3d]/10"
+                                  : "text-rose-500 bg-rose-50 dark:bg-rose-950/40"
+                            }`}>
+                              {item.score}%
+                            </span>
+                          </div>
+                        ));
+                      }
+
+                      // Fallback: show enrolled subjects with completion progress
+                      if (studentSubjects.length > 0) {
+                        return studentSubjects.slice(0, 3).map((sub, idx) => (
+                          <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex justify-between items-center">
+                            <div className="space-y-0.5">
+                              <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">{sub.name}</span>
+                              <span className="text-[10px] text-slate-500">{sub.completedWeeks} weeks completed</span>
+                            </div>
+                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${
+                              sub.completedPercentage >= 75
+                                ? "text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40"
+                                : sub.completedPercentage >= 40
+                                  ? "text-[#f27a3d] bg-[#f27a3d]/10"
+                                  : "text-rose-500 bg-rose-50 dark:bg-rose-950/40"
+                            }`}>
+                              {sub.completedPercentage}%
+                            </span>
+                          </div>
+                        ));
+                      }
+
+                      // No data at all
+                      return (
+                        <p className="text-xs text-slate-400 py-2">No results available yet.</p>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -976,19 +1017,23 @@ export function ParentDashboard({
 
                   <div className="space-y-3">
                     {activeStudentTutors.slice(0, 2).map((t, idx) => {
-                      const tutorChat = chatHistory[t.id] || [];
-                      const lastMsg = tutorChat[tutorChat.length - 1];
+                      // Show the latest message from the current chat if it's for this tutor, otherwise show placeholder
+                      const lastMsgForTutor = selectedChatTutorId === t.id && chatMessages.length > 0
+                        ? chatMessages[chatMessages.length - 1]
+                        : null;
                       return (
-                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2">
+                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors" onClick={() => { setSelectedChatTutorId(t.id); handleTabChange("messages"); }}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <img src={t.image} alt={t.name} className="h-6 w-6 rounded-full object-cover" />
                               <span className="text-xs font-black text-slate-900 dark:text-white leading-none">{t.name}</span>
                             </div>
-                            <span className="text-[9px] text-slate-400">{lastMsg?.time || "10:30 AM"}</span>
+                            <span className="text-[9px] text-slate-400">
+                              {lastMsgForTutor?.createdAt ? new Date(lastMsgForTutor.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
+                            </span>
                           </div>
-                          <p className="text-[11px] text-slate-650 dark:text-slate-350 italic font-medium">
-                            "{lastMsg?.text || "Please ensure she completes the coursework review exercises scheduled for tomorrow morning."}"
+                          <p className="text-[11px] text-slate-650 dark:text-slate-350 italic font-medium truncate">
+                            "{lastMsgForTutor?.text || "Tap to start a conversation"}"
                           </p>
                         </div>
                       );
@@ -1447,11 +1492,11 @@ export function ParentDashboard({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Total Outstanding Balance</span>
-                <span className="text-3xl font-black text-rose-500">${pendingFeesAmount}</span>
+                <span className="text-3xl font-black text-rose-500">₹{pendingFeesAmount}</span>
               </div>
               <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Total Paid Fees</span>
-                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-450">${paidFeesAmount}</span>
+                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-450">₹{paidFeesAmount}</span>
               </div>
               <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Financial Standing</span>
@@ -1527,7 +1572,7 @@ export function ParentDashboard({
                         <td className="py-4 px-4 font-bold">{fee.id}</td>
                         <td className="py-4 px-4 font-extrabold text-slate-900 dark:text-white">{fee.title}</td>
                         <td className="py-4 px-4">{fee.dueDate}</td>
-                        <td className="py-4 px-4 font-black">${fee.amount}</td>
+                        <td className="py-4 px-4 font-black">₹{fee.amount}</td>
                         <td className="py-4 px-4">
                           <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase ${fee.status === "Paid"
                             ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450"
@@ -1588,7 +1633,7 @@ export function ParentDashboard({
                       <tr key={history.transactionId} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10">
                         <td className="py-4 px-4 font-bold text-indigo-650 dark:text-indigo-400">{history.transactionId}</td>
                         <td className="py-4 px-4">{history.date}</td>
-                        <td className="py-4 px-4 font-black">${history.amount}</td>
+                        <td className="py-4 px-4 font-black">₹{history.amount}</td>
                         <td className="py-4 px-4">
                           <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-[10px] uppercase font-bold text-slate-655 dark:text-slate-350">
                             {history.paymentMethod}
@@ -1795,7 +1840,6 @@ export function ParentDashboard({
         );
 
       case "messages":
-        const activeTutorChatList = chatHistory[selectedChatTutorId] || [];
         const filteredTutors = activeStudentTutors.filter(t => t.name.toLowerCase().includes(chatSearch.toLowerCase()));
 
         return (
@@ -1815,11 +1859,11 @@ export function ParentDashboard({
                 />
               </div>
 
-              <div className="flex-1 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/40">
+              <div className="flex-1 overflow-y-auto modal-scroll divide-y divide-slate-100 dark:divide-slate-800/40">
                 {filteredTutors.map((t) => {
-                  const tutorMsgs = chatHistory[t.id] || [];
-                  const lastMsg = tutorMsgs[tutorMsgs.length - 1];
                   const isSelected = selectedChatTutorId === t.id;
+                  // Show last message preview for selected tutor only (from loaded chatMessages)
+                  const lastMsg = isSelected && chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : null;
                   return (
                     <button
                       key={t.id}
@@ -1833,16 +1877,21 @@ export function ParentDashboard({
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline">
                           <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">{t.name}</h4>
-                          <span className="text-[9px] text-slate-400 shrink-0 font-bold">{lastMsg?.time || "10:30 AM"}</span>
+                          <span className="text-[9px] text-slate-400 shrink-0 font-bold">
+                            {lastMsg?.createdAt ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                          </span>
                         </div>
                         <p className="text-[10px] text-slate-400 font-bold mt-0.5 truncate">{t.specialty}</p>
                         <p className="text-[11px] text-slate-550 italic font-medium mt-1 truncate">
-                          "{lastMsg?.text || "Chat with tutor"}"
+                          "{lastMsg?.text || "Tap to start chatting"}"
                         </p>
                       </div>
                     </button>
                   );
                 })}
+                {filteredTutors.length === 0 && (
+                  <p className="text-xs text-slate-400 p-4">No tutors assigned yet.</p>
+                )}
               </div>
             </div>
 
@@ -1851,7 +1900,7 @@ export function ParentDashboard({
               {/* Active tutor header */}
               {(() => {
                 const activeTutorObj = tutors.find(t => t.id === selectedChatTutorId) || tutors[0];
-                return (
+                return activeTutorObj ? (
                   <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <img src={activeTutorObj.image} alt={activeTutorObj.name} className="h-9 w-9 rounded-full object-cover" />
@@ -1861,40 +1910,31 @@ export function ParentDashboard({
                       </div>
                     </div>
                   </div>
-                );
+                ) : null;
               })()}
 
               {/* Chat bubbles list */}
-              <div className="flex-1 p-4 overflow-hidden space-y-4 flex flex-col justify-end">
-                <div className="space-y-4">
-                  {activeTutorChatList.map((msg) => {
-                    const isParent = msg.sender === "parent";
-                    return (
-                      <div key={msg.id} className={`flex ${isParent ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-bold ${isParent
-                          ? "bg-[#f27a3d] text-white rounded-tr-none shadow-sm"
-                          : "bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-tl-none text-slate-800 dark:text-slate-205"
-                          }`}>
-                          <p>{msg.text}</p>
-                          <span className={`block text-[9px] mt-1.5 text-right font-medium opacity-70 ${isParent ? "text-white" : "text-slate-400"}`}>
-                            {msg.time}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-3 rounded-2xl rounded-tl-none text-xs flex items-center gap-1 text-slate-400 font-bold">
-                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
-                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100" />
-                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200" />
-                        <span className="ml-1 text-[10px]">Tutor typing...</span>
+              <div className="flex-1 p-4 overflow-y-auto modal-scroll space-y-4">
+                {chatMessages.length === 0 && (
+                  <p className="text-xs text-slate-400 text-center py-8">No messages yet. Send a message to start the conversation.</p>
+                )}
+                {chatMessages.map((msg: any, idx: number) => {
+                  const isParent = msg.senderId === parentProfile.email;
+                  return (
+                    <div key={msg._id || idx} className={`flex ${isParent ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-bold ${isParent
+                        ? "bg-[#f27a3d] text-white rounded-tr-none shadow-sm"
+                        : "bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-tl-none text-slate-800 dark:text-slate-205"
+                        }`}>
+                        <p>{msg.text}</p>
+                        <span className={`block text-[9px] mt-1.5 text-right font-medium opacity-70 ${isParent ? "text-white" : "text-slate-400"}`}>
+                          {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Now"}
+                        </span>
                       </div>
                     </div>
-                  )}
-                </div>
+                  );
+                })}
+                <div ref={chatEndRef} />
               </div>
 
               {/* Text send box */}
@@ -1908,7 +1948,8 @@ export function ParentDashboard({
                 />
                 <button
                   type="submit"
-                  className="p-3 bg-[#f27a3d] hover:bg-[#ff8950] text-white rounded-xl shadow-sm hover:shadow active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                  disabled={chatSending || !newMessageText.trim()}
+                  className="p-3 bg-[#f27a3d] hover:bg-[#ff8950] text-white rounded-xl shadow-sm hover:shadow active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50"
                 >
                   <Send className="h-4.5 w-4.5" />
                 </button>
@@ -2925,18 +2966,18 @@ export function ParentDashboard({
                       {wizardSubjects.map((sub, idx) => (
                         <div key={idx} className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-200">
                           <span>+ {sub} Tuition module</span>
-                          <span>$150.00</span>
+                          <span>₹150.00</span>
                         </div>
                       ))}
                       <div className="flex justify-between text-xs font-medium text-slate-500 dark:text-slate-450">
                         <span>Base Tuition Fee Rate</span>
-                        <span>${subBaseFee}.00</span>
+                        <span>₹{subBaseFee}.00</span>
                       </div>
                     </div>
 
                     <div className="flex justify-between items-center text-sm font-black text-slate-950 dark:text-white">
                       <span>Total Calculated Fee:</span>
-                      <span className="text-emerald-600 dark:text-emerald-450 text-lg font-black">${computedFee}.00</span>
+                      <span className="text-emerald-600 dark:text-emerald-450 text-lg font-black">₹{computedFee}.00</span>
                     </div>
                   </div>
 
@@ -3071,7 +3112,7 @@ export function ParentDashboard({
                   <option value="">-- Choose Invoice to Pay --</option>
                   {currentChildFees.filter(f => f.status === "Pending").map((fee) => (
                     <option key={fee.id} value={fee.id}>
-                      {fee.title} - ${fee.amount} (Due: {fee.dueDate})
+                      {fee.title} - ₹{fee.amount} (Due: {fee.dueDate})
                     </option>
                   ))}
                   <option value="custom">Custom Miscellaneous Payment</option>
@@ -3346,7 +3387,7 @@ export function ParentDashboard({
               </div>
               <div className="flex justify-between">
                 <span>Amount Charged:</span>
-                <span className="text-slate-900 dark:text-white font-black">${paymentAmount}</span>
+                <span className="text-slate-900 dark:text-white font-black">₹{paymentAmount}</span>
               </div>
             </div>
             <div className="flex gap-2">
