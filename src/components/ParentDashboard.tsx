@@ -302,40 +302,43 @@ export function ParentDashboard({
     }
   };
 
-  // 2. Chat / Messages state (backend-connected)
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  // 2. Chat / Messages state
+  const [messages, setMessages] = useState<any[]>([]);
   const [selectedChatTutorId, setSelectedChatTutorId] = useState(tutors[0]?.id || "");
   const [chatSearch, setChatSearch] = useState("");
   const [newMessageText, setNewMessageText] = useState("");
-  const [chatSending, setChatSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Load conversation from backend & poll every 5s
   useEffect(() => {
-    if (!selectedChatTutorId || !parentProfile.email) return;
+    if (!selectedChatTutorId || !parentProfile?.email) return;
     const loadConversation = async () => {
       try {
         const data = await apiClient.chat.getConversation(parentProfile.email, selectedChatTutorId);
-        setChatMessages(Array.isArray(data) ? data : []);
+        setMessages(Array.isArray(data) ? data : []);
       } catch {
-        setChatMessages([]);
+        setMessages([]);
       }
     };
     loadConversation();
     const interval = setInterval(loadConversation, 5000);
     return () => clearInterval(interval);
-  }, [selectedChatTutorId, parentProfile.email]);
+  }, [selectedChatTutorId, parentProfile?.email]);
 
-  // Auto-scroll chat to bottom on new messages
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
+  }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessageText.trim() || chatSending) return;
+    if (!newMessageText.trim() || !selectedChatTutorId) return;
+
+    const textToSend = newMessageText.trim();
+    setNewMessageText("");
+    setIsTyping(true);
+
     const tutorObj = tutors.find(t => t.id === selectedChatTutorId) || tutors[0];
-    setChatSending(true);
+
     try {
       const sent = await apiClient.chat.send({
         senderId: parentProfile.email,
@@ -344,14 +347,13 @@ export function ParentDashboard({
         receiverId: selectedChatTutorId,
         receiverName: tutorObj.name,
         receiverRole: "tutor",
-        text: newMessageText.trim(),
+        text: textToSend,
       });
-      setChatMessages(prev => [...prev, sent]);
-      setNewMessageText("");
+      setMessages(prev => [...prev, sent]);
     } catch {
       // silently fail
     } finally {
-      setChatSending(false);
+      setIsTyping(false);
     }
   };
 
@@ -969,13 +971,12 @@ export function ParentDashboard({
                               <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">{item.name}</span>
                               <span className="text-[10px] text-slate-500">{latest.term} — GPA: {latest.gpa}</span>
                             </div>
-                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${
-                              item.score >= 85
-                                ? "text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40"
-                                : item.score >= 70
-                                  ? "text-[#f27a3d] bg-[#f27a3d]/10"
-                                  : "text-rose-500 bg-rose-50 dark:bg-rose-950/40"
-                            }`}>
+                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${item.score >= 85
+                              ? "text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40"
+                              : item.score >= 70
+                                ? "text-[#f27a3d] bg-[#f27a3d]/10"
+                                : "text-rose-500 bg-rose-50 dark:bg-rose-950/40"
+                              }`}>
                               {item.score}%
                             </span>
                           </div>
@@ -990,13 +991,12 @@ export function ParentDashboard({
                               <span className="text-xs font-extrabold text-slate-800 dark:text-white block leading-tight">{sub.name}</span>
                               <span className="text-[10px] text-slate-500">{sub.completedWeeks} weeks completed</span>
                             </div>
-                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${
-                              sub.completedPercentage >= 75
-                                ? "text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40"
-                                : sub.completedPercentage >= 40
-                                  ? "text-[#f27a3d] bg-[#f27a3d]/10"
-                                  : "text-rose-500 bg-rose-50 dark:bg-rose-950/40"
-                            }`}>
+                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${sub.completedPercentage >= 75
+                              ? "text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40"
+                              : sub.completedPercentage >= 40
+                                ? "text-[#f27a3d] bg-[#f27a3d]/10"
+                                : "text-rose-500 bg-rose-50 dark:bg-rose-950/40"
+                              }`}>
                               {sub.completedPercentage}%
                             </span>
                           </div>
@@ -1017,23 +1017,17 @@ export function ParentDashboard({
 
                   <div className="space-y-3">
                     {activeStudentTutors.slice(0, 2).map((t, idx) => {
-                      // Show the latest message from the current chat if it's for this tutor, otherwise show placeholder
-                      const lastMsgForTutor = selectedChatTutorId === t.id && chatMessages.length > 0
-                        ? chatMessages[chatMessages.length - 1]
-                        : null;
                       return (
-                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors" onClick={() => { setSelectedChatTutorId(t.id); handleTabChange("messages"); }}>
+                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => { setSelectedChatTutorId(t.id); handleTabChange("messages"); }}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <img src={t.image} alt={t.name} className="h-6 w-6 rounded-full object-cover" />
                               <span className="text-xs font-black text-slate-900 dark:text-white leading-none">{t.name}</span>
                             </div>
-                            <span className="text-[9px] text-slate-400">
-                              {lastMsgForTutor?.createdAt ? new Date(lastMsgForTutor.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
-                            </span>
+                            <span className="text-[9px] text-slate-400">View Chat</span>
                           </div>
-                          <p className="text-[11px] text-slate-650 dark:text-slate-350 italic font-medium truncate">
-                            "{lastMsgForTutor?.text || "Tap to start a conversation"}"
+                          <p className="text-[11px] text-slate-650 dark:text-slate-350 italic font-medium">
+                            Click to open conversation with {t.name.split(" ")[0]}
                           </p>
                         </div>
                       );
@@ -1859,11 +1853,9 @@ export function ParentDashboard({
                 />
               </div>
 
-              <div className="flex-1 overflow-y-auto modal-scroll divide-y divide-slate-100 dark:divide-slate-800/40">
+              <div className="flex-1 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/40">
                 {filteredTutors.map((t) => {
                   const isSelected = selectedChatTutorId === t.id;
-                  // Show last message preview for selected tutor only (from loaded chatMessages)
-                  const lastMsg = isSelected && chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : null;
                   return (
                     <button
                       key={t.id}
@@ -1877,21 +1869,12 @@ export function ParentDashboard({
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline">
                           <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">{t.name}</h4>
-                          <span className="text-[9px] text-slate-400 shrink-0 font-bold">
-                            {lastMsg?.createdAt ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
-                          </span>
                         </div>
                         <p className="text-[10px] text-slate-400 font-bold mt-0.5 truncate">{t.specialty}</p>
-                        <p className="text-[11px] text-slate-550 italic font-medium mt-1 truncate">
-                          "{lastMsg?.text || "Tap to start chatting"}"
-                        </p>
                       </div>
                     </button>
                   );
                 })}
-                {filteredTutors.length === 0 && (
-                  <p className="text-xs text-slate-400 p-4">No tutors assigned yet.</p>
-                )}
               </div>
             </div>
 
@@ -1900,7 +1883,7 @@ export function ParentDashboard({
               {/* Active tutor header */}
               {(() => {
                 const activeTutorObj = tutors.find(t => t.id === selectedChatTutorId) || tutors[0];
-                return activeTutorObj ? (
+                return (
                   <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <img src={activeTutorObj.image} alt={activeTutorObj.name} className="h-9 w-9 rounded-full object-cover" />
@@ -1910,31 +1893,44 @@ export function ParentDashboard({
                       </div>
                     </div>
                   </div>
-                ) : null;
+                );
               })()}
 
               {/* Chat bubbles list */}
-              <div className="flex-1 p-4 overflow-y-auto modal-scroll space-y-4">
-                {chatMessages.length === 0 && (
-                  <p className="text-xs text-slate-400 text-center py-8">No messages yet. Send a message to start the conversation.</p>
-                )}
-                {chatMessages.map((msg: any, idx: number) => {
-                  const isParent = msg.senderId === parentProfile.email;
-                  return (
-                    <div key={msg._id || idx} className={`flex ${isParent ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-bold ${isParent
-                        ? "bg-[#f27a3d] text-white rounded-tr-none shadow-sm"
-                        : "bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-tl-none text-slate-800 dark:text-slate-205"
-                        }`}>
-                        <p>{msg.text}</p>
-                        <span className={`block text-[9px] mt-1.5 text-right font-medium opacity-70 ${isParent ? "text-white" : "text-slate-400"}`}>
-                          {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Now"}
-                        </span>
+              <div className="flex-1 p-4 overflow-hidden space-y-4 flex flex-col justify-end">
+                <div className="space-y-4">
+                  {messages.length === 0 && (
+                    <p className="text-xs text-slate-400 text-center py-8">No messages yet. Send a message to start the conversation.</p>
+                  )}
+                  {messages.map((msg: any, idx: number) => {
+                    const isParent = msg.senderId === parentProfile.email;
+                    return (
+                      <div key={msg._id || idx} className={`flex ${isParent ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-bold ${isParent
+                          ? "bg-[#f27a3d] text-white rounded-tr-none shadow-sm"
+                          : "bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-tl-none text-slate-800 dark:text-slate-205"
+                          }`}>
+                          <p>{msg.text}</p>
+                          <span className={`block text-[9px] mt-1.5 text-right font-medium opacity-70 ${isParent ? "text-white" : "text-slate-400"}`}>
+                            {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Now"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={chatEndRef} />
+
+                  {isTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-3 rounded-2xl rounded-tl-none text-xs flex items-center gap-1 text-slate-400 font-bold">
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100" />
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200" />
+                        <span className="ml-1 text-[10px]">Tutor typing...</span>
                       </div>
                     </div>
-                  );
-                })}
-                <div ref={chatEndRef} />
+                  )}
+                </div>
               </div>
 
               {/* Text send box */}
@@ -1948,8 +1944,7 @@ export function ParentDashboard({
                 />
                 <button
                   type="submit"
-                  disabled={chatSending || !newMessageText.trim()}
-                  className="p-3 bg-[#f27a3d] hover:bg-[#ff8950] text-white rounded-xl shadow-sm hover:shadow active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50"
+                  className="p-3 bg-[#f27a3d] hover:bg-[#ff8950] text-white rounded-xl shadow-sm hover:shadow active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer"
                 >
                   <Send className="h-4.5 w-4.5" />
                 </button>
@@ -2585,62 +2580,62 @@ export function ParentDashboard({
       {/* Sidebar Navigation */}
       <aside className={`${sidebarOpen ? "w-full md:w-64" : "w-0 md:w-0 p-0 overflow-hidden"} bg-[#3f2115] dark:bg-[#20100a] text-amber-50 flex flex-col ${sidebarOpen ? "p-5" : ""} border-r border-[#4e2c1e] shrink-0 md:h-full transition-all duration-300`}>
         {sidebarOpen && (<>
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-6 modal-scroll">
-          {/* Logo Brand Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-white/10">
-            <div className="flex items-center gap-2.5">
-              <span className="p-2 bg-[#f27a3d] rounded-xl text-white shadow-lg">
-                <Users className="h-5 w-5" />
-              </span>
-              <span className="font-extrabold text-sm tracking-widest text-white uppercase">
-                Parent Space
-              </span>
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-6 modal-scroll">
+            {/* Logo Brand Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-[#f27a3d] rounded-xl text-white shadow-lg">
+                  <Users className="h-5 w-5" />
+                </span>
+                <span className="font-extrabold text-sm tracking-widest text-white uppercase">
+                  Parent Space
+                </span>
+              </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                title="Close panel"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-              title="Close panel"
-            >
-              <PanelLeftClose className="h-4 w-4" />
-            </button>
+
+            {/* Navigation Links */}
+            <nav className="space-y-1 text-left">
+              {sidebarItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      handleTabChange(item.id);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${isActive
+                      ? "bg-[#f27a3d] text-white shadow-md transform scale-[1.02]"
+                      : "text-amber-200/70 hover:text-white hover:bg-white/5"
+                      }`}
+                  >
+                    <Icon className="h-4.5 w-4.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="space-y-1 text-left">
-            {sidebarItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    handleTabChange(item.id);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${isActive
-                    ? "bg-[#f27a3d] text-white shadow-md transform scale-[1.02]"
-                    : "text-amber-200/70 hover:text-white hover:bg-white/5"
-                    }`}
-                >
-                  <Icon className="h-4.5 w-4.5 shrink-0" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* User Card Profile Footer */}
-        <div className="pt-4 border-t border-white/10 mt-4 shrink-0 flex items-center justify-between gap-3 text-left">
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-full bg-[#f27a3d]/20 text-[#f27a3d] flex items-center justify-center font-bold text-sm border border-[#f27a3d]/30">
-              RJ
-            </div>
-            <div>
-              <p className="text-xs font-black text-white leading-tight">{parentProfile.name}</p>
-              <p className="text-[10px] text-amber-200/50">Parent Member</p>
+          {/* User Card Profile Footer */}
+          <div className="pt-4 border-t border-white/10 mt-4 shrink-0 flex items-center justify-between gap-3 text-left">
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-full bg-[#f27a3d]/20 text-[#f27a3d] flex items-center justify-center font-bold text-sm border border-[#f27a3d]/30">
+                RJ
+              </div>
+              <div>
+                <p className="text-xs font-black text-white leading-tight">{parentProfile.name}</p>
+                <p className="text-[10px] text-amber-200/50">Parent Member</p>
+              </div>
             </div>
           </div>
-        </div>
         </>)}
       </aside>
 

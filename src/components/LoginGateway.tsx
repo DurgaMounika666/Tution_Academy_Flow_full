@@ -37,7 +37,7 @@ function PasswordField({
   onChange,
   visible,
   onToggle,
-  placeholder = "example",
+  placeholder = "Enter your password",
   autoComplete = "current-password",
 }: PasswordFieldProps) {
   return (
@@ -425,7 +425,7 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister }: LoginGatewayPro
                   type="email"
                   value={tutorEmail}
                   onChange={(e) => setTutorEmail(e.target.value)}
-                  placeholder="example@gmail.com"
+                  placeholder="example@academyflow.com"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                   required
                 />
@@ -458,7 +458,7 @@ export function LoginGateway({ onLoginSuccess, onOpenRegister }: LoginGatewayPro
                   type="email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  placeholder="example@gmail.com"
+                  placeholder="example@academyflow.com"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none"
                   required
                 />
