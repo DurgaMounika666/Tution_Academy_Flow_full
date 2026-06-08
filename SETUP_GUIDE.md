@@ -4,7 +4,7 @@
 
 ### Prerequisites
 - Node.js 18+
-- MongoDB (local or MongoDB Atlas cloud)
+- MongoDB Atlas (Cloud Database - Recommended) or local MongoDB instance
 - Git
 
 ### Step 1: Setup Backend
@@ -19,26 +19,31 @@ npm install
 # Create .env file from example
 cp .env.example .env
 
-# Edit .env with your MongoDB URI
-# MONGODB_URI=mongodb://localhost:27017/academy_flow
+# Edit .env with your MongoDB Atlas connection string:
+# MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/academy_flow?retryWrites=true&w=majority
 ```
 
-#### Option A: Local MongoDB
+#### Option A: MongoDB Atlas (Cloud - Recommended)
+To ensure that all application data persists permanently and is accessible across multiple devices:
+1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) and sign up/login.
+2. Create a new project and build a database (the M0 free tier is fully sufficient).
+3. Under **Database Access**, create a user with read/write privileges.
+4. Under **Network Access**, whitelist your IP address (or `0.0.0.0/0` for access from anywhere).
+5. In **Database** > **Connect** > **Drivers**, select Node.js and copy the connection string.
+6. Replace the placeholder in backend `.env` with your connection string:
+   ```env
+   MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/academy_flow?retryWrites=true&w=majority
+   ```
+
+#### Option B: Local MongoDB (Fallback)
+If you prefer running a local database for offline development:
 ```bash
 # Windows: Download from https://www.mongodb.com/try/download/community
-# Or use Docker:
+# Or use Docker to run local MongoDB:
 docker run -d -p 27017:27017 --name mongodb mongo:latest
+# Then set MONGODB_URI in backend .env to:
+# MONGODB_URI=mongodb://localhost:27017/academy_flow
 ```
-
-#### Option B: MongoDB Atlas (Cloud)
-1. Go to https://www.mongodb.com/cloud/atlas
-2. Create free account
-3. Create a cluster
-4. Get connection string
-5. Update MONGODB_URI in `.env`:
-   ```
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/academy_flow
-   ```
 
 ### Step 2: Start Backend Server
 
@@ -382,13 +387,13 @@ heroku config:set MONGODB_URI=<your_atlas_uri>
 ## ✅ Verification Checklist
 
 - [ ] Node.js installed (v18+)
-- [ ] MongoDB running (local or Atlas)
+- [ ] MongoDB Atlas cluster configured and accessible (or local MongoDB fallback)
 - [ ] Backend dependencies installed (`npm install` in backend/)
-- [ ] `.env` file configured with MongoDB URI
+- [ ] `.env` file configured with the correct `MONGODB_URI`
 - [ ] Backend server running (`npm run dev`)
 - [ ] Frontend dependencies installed
 - [ ] Frontend can reach backend on http://localhost:5000
-- [ ] API client properly configured in frontend
+- [ ] API client properly configured in frontend (loads data from MongoDB instead of localStorage)
 - [ ] All test scenarios pass
 
 ---

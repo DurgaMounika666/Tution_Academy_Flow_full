@@ -36,7 +36,7 @@ type UserRole = "student" | "parent" | "tutor" | "admin";
 
 const SESSION_ROLE_KEY = "academyflow_session_role";
 const SESSION_USER_KEY = "academyflow_session_user";
-const REGISTRATION_NOTIFICATIONS_KEY = "academyflow_registration_notifications";
+// Registration notifications are loaded exclusively from the backend API (MongoDB)
 
 const roleDashboardPath = (role: UserRole | null) => (role ? `/${role}` : "/login");
 
@@ -78,15 +78,7 @@ export default function App() {
   const [activeLocation, setActiveLocation] = useState("");
   const [registerOpen, setRegisterOpen] = useState(false);
   const [demoBookingOpen, setDemoBookingOpen] = useState(false);
-  const [registrationNotifications, setRegistrationNotifications] = useState<RegistrationNotification[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const saved = localStorage.getItem(REGISTRATION_NOTIFICATIONS_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [registrationNotifications, setRegistrationNotifications] = useState<RegistrationNotification[]>([]);
 
   const loadTutors = useCallback(async () => {
     try {
@@ -215,9 +207,8 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    localStorage.setItem(REGISTRATION_NOTIFICATIONS_KEY, JSON.stringify(registrationNotifications));
-  }, [registrationNotifications]);
+  // Registration notifications are persisted in MongoDB via the backend API
+  // No localStorage sync needed — data loads via loadRegistrations()
 
   const persistSession = (role: UserRole, userId?: string) => {
     localStorage.setItem(SESSION_ROLE_KEY, role);
