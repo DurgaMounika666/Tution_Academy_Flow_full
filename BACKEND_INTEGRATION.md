@@ -8,9 +8,9 @@ cd backend
 npm install
 ```
 
-### 2. Start MongoDB
-- **Local**: Ensure MongoDB is running on localhost:27017
-- **Cloud**: Update MONGODB_URI in .env with MongoDB Atlas connection string
+### 2. Configure MongoDB Database Connection
+- **MongoDB Atlas (Recommended)**: Create a cluster and set `MONGODB_URI` in `.env` to your remote Atlas connection string (enables access across all devices and server restarts).
+- **Local Fallback**: Run a local MongoDB instance on `localhost:27017`.
 
 ### 3. Configure Environment
 Copy `.env.example` to `.env` and update values:

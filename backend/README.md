@@ -23,11 +23,13 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-3. **Update MongoDB URI in .env**
-```
-MONGODB_URI=mongodb://localhost:27017/academy_flow
-# Or for MongoDB Atlas:
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/academy_flow
+3. **Configure MongoDB Connection String in .env**
+```env
+# Recommend MongoDB Atlas for cloud persistence:
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/academy_flow?retryWrites=true&w=majority
+
+# Or local fallback for offline development:
+# MONGODB_URI=mongodb://localhost:27017/academy_flow
 ```
 
 ### Running the Server
@@ -160,20 +162,19 @@ All errors return standardized format:
 5. Test endpoints using Postman or similar API client
 6. Connect frontend to backend API endpoints
 
-## Database Setup (MongoDB)
+### MongoDB Atlas (Cloud - Recommended)
+1. Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
+2. Create a new database (M0 tier is free).
+3. Whitelist your IP address under Network Access, and create a Database User.
+4. Copy the connection string under Connect > Drivers.
+5. Update `MONGODB_URI` in `.env` with your connection string.
 
-### Local MongoDB
+### Local MongoDB (Fallback)
 ```bash
 # Windows: Install MongoDB Community Edition
 # Or using Docker:
-docker run -d -p 27017:27017 --name mongodb mongo
+docker run -d -p 27017:27017 --name mongodb mongo:latest
 ```
-
-### MongoDB Atlas (Cloud)
-1. Create account at https://www.mongodb.com/cloud/atlas
-2. Create a cluster
-3. Get connection string
-4. Update `MONGODB_URI` in `.env`
 
 ## Technologies Used
 
