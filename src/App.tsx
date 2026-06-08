@@ -25,6 +25,7 @@ import { ScrollToTop } from "./components/ScrollToTop";
 import { useLanguage } from "./context/LanguageContext";
 import {
   INITIAL_ASSIGNMENTS, INITIAL_REVIEWS, INITIAL_MESSAGES, INITIAL_TESTS,
+  loadCatalog,
 } from "./data";
 import {
   normalizeStudent, normalizeTutor, normalizeFee, normalizeAssignment,
@@ -101,6 +102,10 @@ export default function App() {
       loadTutors();
     }
   }, [location.pathname, tutorsState.length, loadTutors]);
+
+  useEffect(() => {
+    loadCatalog();
+  }, []);
 
   const loadAllFees = useCallback(async () => {
     try {

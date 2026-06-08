@@ -17,6 +17,7 @@ import { Tutor } from "./models/Tutor";
 import { Parent } from "./models/Parent";
 import { Timetable } from "./models/Timetable";
 import { BookingController } from "./controllers/BookingController";
+import { Catalog } from "./models/Catalog";
 
 // Routes
 import authRoutes from "./routes/authRoutes";
@@ -31,6 +32,7 @@ import timetableRoutes from "./routes/timetableRoutes";
 import reviewRoutes from "./routes/reviewRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import registrationRoutes from "./routes/registrationRoutes";
+import catalogRoutes from "./routes/catalogRoutes";
 
 const app: Express = express();
 
@@ -92,6 +94,7 @@ app.use("/api/timetable", timetableRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/registrations", registrationRoutes);
+app.use("/api/catalog", catalogRoutes);
 
 // Error Handling
 app.use(notFound);
@@ -553,6 +556,35 @@ const seedAllData = async () => {
   }
 
   console.log("\n🎓 All seed data loaded successfully!\n");
+
+  // ── 6. Seed Catalog (subjects, standards, locations) ──
+  const catalogCount = await Catalog.countDocuments();
+  if (catalogCount === 0) {
+    const subjectsByClass: Record<string, string[]> = {
+      "1st Class": ["Mathematics", "Environmental Studies", "English", "Telugu", "Hindi"],
+      "2nd Class": ["Mathematics", "Environmental Studies", "English", "Telugu", "Hindi"],
+      "3rd Class": ["Mathematics", "Environmental Studies", "English", "Telugu", "Hindi"],
+      "4th Class": ["Mathematics", "Environmental Studies", "English", "Telugu", "Hindi"],
+      "5th Class": ["Mathematics", "General Science", "English", "Social Studies", "Telugu", "Hindi"],
+      "6th Class": ["Mathematics", "General Science", "English", "Social Studies", "Telugu", "Hindi"],
+      "7th Class": ["Mathematics", "General Science", "English", "Social Studies", "Telugu", "Hindi"],
+      "8th Class": ["Mathematics", "Physics", "Chemistry", "Biology", "English", "Social Studies"],
+      "9th Class": ["Mathematics", "Physics", "Chemistry", "Biology", "English", "Computer Science"],
+      "10th Class": ["Mathematics", "Physics", "Chemistry", "Biology", "English", "Computer Science"],
+    };
+
+    for (const [className, subjects] of Object.entries(subjectsByClass)) {
+      await Catalog.create({ type: "subjects_by_class", key: className, values: subjects });
+    }
+    await Catalog.create({ type: "standards", key: null, values: [
+      "1st Class", "2nd Class", "3rd Class", "4th Class", "5th Class",
+      "6th Class", "7th Class", "8th Class", "9th Class", "10th Class",
+    ]});
+    await Catalog.create({ type: "locations", key: null, values: ["Hyderabad", "Warangal", "Karimnagar"] });
+    await Catalog.create({ type: "class_types", key: null, values: ["Online", "Offline"] });
+    await Catalog.create({ type: "languages", key: null, values: ["English", "Telugu", "Hindi"] });
+    console.log("✅ Catalog data seeded");
+  }
 };
 
 // Connect to MongoDB and Start Server

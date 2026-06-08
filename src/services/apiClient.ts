@@ -343,4 +343,14 @@ export const apiClient = {
     updateStatus: (id: string, status: "Approved" | "Rejected") =>
       request("PUT", `/registrations/${id}/status`, { status }),
   },
+
+  catalog: {
+    getAll: () => request("GET", "/catalog"),
+    upsertSubjects: (className: string, subjects: string[]) =>
+      request("PUT", "/catalog/subjects", { className, subjects }),
+    upsertStandards: (standards: string[]) =>
+      request("PUT", "/catalog/standards", { standards }),
+    upsertLocations: (locations: string[]) =>
+      request("PUT", "/catalog/locations", { locations }),
+  },
 };
