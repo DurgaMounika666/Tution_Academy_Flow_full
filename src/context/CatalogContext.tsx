@@ -57,11 +57,11 @@ export const CatalogProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const data = await apiClient.catalog.getAll();
       setCatalog({
-        standards: data.standards?.length ? data.standards : defaultCatalog.standards,
-        locations: data.locations?.length ? data.locations : defaultCatalog.locations,
-        classTypes: data.classTypes?.length ? data.classTypes : defaultCatalog.classTypes,
-        languages: data.languages?.length ? data.languages : defaultCatalog.languages,
-        subjectsByClass: data.subjectsByClass && Object.keys(data.subjectsByClass).length
+        standards: Array.isArray(data?.standards) && data.standards.length ? data.standards : defaultCatalog.standards,
+        locations: Array.isArray(data?.locations) && data.locations.length ? data.locations : defaultCatalog.locations,
+        classTypes: Array.isArray(data?.classTypes) && data.classTypes.length ? data.classTypes : defaultCatalog.classTypes,
+        languages: Array.isArray(data?.languages) && data.languages.length ? data.languages : defaultCatalog.languages,
+        subjectsByClass: data?.subjectsByClass && typeof data.subjectsByClass === "object" && Object.keys(data.subjectsByClass).length
           ? data.subjectsByClass
           : defaultCatalog.subjectsByClass,
       });
