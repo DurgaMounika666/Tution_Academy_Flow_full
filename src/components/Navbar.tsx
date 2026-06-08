@@ -28,7 +28,7 @@ export function Navbar({ onOpenRegister, activeStandard, onSelectStandard, logge
   const [selectedClassType, setSelectedClassType] = useState("Online & Offline");
   const navbarRef = useRef<HTMLDivElement>(null);
 
-  const standards = STANDARDS;
+  const { standards } = useCatalog();
 
   // Derive current role from URL path
   const pathSegment = location.pathname.split("/")[1] || "landing";
