@@ -7,7 +7,31 @@
 - MongoDB Atlas (Cloud Database - Recommended) or local MongoDB instance
 - Git
 
-### Step 1: Setup Backend
+### Option 1: Root Workspace Shortcuts (Easiest)
+
+You can manage both services directly from the root of the project using root scripts:
+
+```bash
+# 1. Install dependencies for both frontend and backend
+npm run install:all
+
+# 2. In backend/ directory, copy .env.example to .env and configure MONGODB_URI
+# 3. In frontend/ directory, copy .env.example to .env
+
+# 4. Start backend (runs on http://localhost:5000)
+npm run dev:backend
+
+# 5. Start frontend (runs on http://localhost:5173 or http://localhost:3000)
+npm run dev:frontend
+```
+
+---
+
+### Option 2: Running Services Separately
+
+If you prefer managing directories manually:
+
+#### Step 1: Setup Backend
 
 ```bash
 # Navigate to backend directory
@@ -19,11 +43,10 @@ npm install
 # Create .env file from example
 cp .env.example .env
 
-# Edit .env with your MongoDB Atlas connection string:
-# MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/academy_flow?retryWrites=true&w=majority
+# Edit .env with your MongoDB connection string (MONGODB_URI)
 ```
 
-#### Option A: MongoDB Atlas (Cloud - Recommended)
+##### Option A: MongoDB Atlas (Cloud - Recommended)
 To ensure that all application data persists permanently and is accessible across multiple devices:
 1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) and sign up/login.
 2. Create a new project and build a database (the M0 free tier is fully sufficient).
@@ -35,7 +58,7 @@ To ensure that all application data persists permanently and is accessible acros
    MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/academy_flow?retryWrites=true&w=majority
    ```
 
-#### Option B: Local MongoDB (Fallback)
+##### Option B: Local MongoDB (Fallback)
 If you prefer running a local database for offline development:
 ```bash
 # Windows: Download from https://www.mongodb.com/try/download/community
@@ -45,7 +68,7 @@ docker run -d -p 27017:27017 --name mongodb mongo:latest
 # MONGODB_URI=mongodb://localhost:27017/academy_flow
 ```
 
-### Step 2: Start Backend Server
+#### Step 2: Start Backend Server
 
 ```bash
 # From backend directory
@@ -56,16 +79,22 @@ npm run dev
 # Server running on: http://localhost:5000
 ```
 
-### Step 3: Setup Frontend
+#### Step 3: Setup Frontend
 
 ```bash
-# From frontend directory
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
 npm install
+
+# Create .env file from example
+cp .env.example .env
 
 # Start frontend (keep backend running)
 npm run dev
 
-# Frontend will run on: http://localhost:5173
+# Frontend will run on: http://localhost:5173 or http://localhost:3000
 ```
 
 ### Step 4: Test Integration
@@ -388,10 +417,10 @@ heroku config:set MONGODB_URI=<your_atlas_uri>
 
 - [ ] Node.js installed (v18+)
 - [ ] MongoDB Atlas cluster configured and accessible (or local MongoDB fallback)
-- [ ] Backend dependencies installed (`npm install` in backend/)
-- [ ] `.env` file configured with the correct `MONGODB_URI`
-- [ ] Backend server running (`npm run dev`)
-- [ ] Frontend dependencies installed
+- [ ] Backend dependencies installed (`npm install` in backend/ or `npm run install:all` from root)
+- [ ] `.env` file configured with the correct `MONGODB_URI` in backend/
+- [ ] Backend server running (`npm run dev` in backend/ or `npm run dev:backend` from root)
+- [ ] Frontend dependencies installed (`npm install` in frontend/ or `npm run install:all` from root)
 - [ ] Frontend can reach backend on http://localhost:5000
 - [ ] API client properly configured in frontend (loads data from MongoDB instead of localStorage)
 - [ ] All test scenarios pass

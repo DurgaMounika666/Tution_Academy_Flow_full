@@ -1,20 +1,26 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Academy Flow Workspace
 
-# Run and deploy your AI Studio app
+This repository is organized into two separate folders:
+1. **Frontend**: Located in [frontend/](file:///c:/Users/akhil/Desktop/ACADEMY/Tution_Academy_Flow_full/frontend/) (Vite + React + TypeScript)
+2. **Backend**: Located in [backend/](file:///c:/Users/akhil/Desktop/ACADEMY/Tution_Academy_Flow_full/backend/) (Node.js + Express + MongoDB)
 
-This contains everything you need to run your app locally.
+## 🚀 Quick Start
 
-View your app in AI Studio: https://ai.studio/apps/9a5dca6b-3afc-4dc5-808b-f8e0b6ecc8f3
+### 1. Install Dependencies
+You can install dependencies for both the frontend and backend at once by running this command in the project root:
+```bash
+npm run install:all
+```
 
-## Run Locally
+### 2. Configure Environment Variables
+- **Backend**: Go to the `backend/` directory, copy `.env.example` to `.env`, and fill in your database connection details (specifically `MONGODB_URI`).
+- **Frontend**: Go to the `frontend/` directory, copy `.env.example` to `.env`, and customize details if needed.
 
-**Prerequisites:**  Node.js
+### 3. Run the Services
+You can run the frontend and backend servers directly from the project root:
+- **Run Backend**: `npm run dev:backend` (Starts the server on http://localhost:5000)
+- **Run Frontend**: `npm run dev:frontend` (Starts the Vite development server on http://localhost:3000 or http://localhost:5173)
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+For detailed setup options and verification, please refer to the [Setup Guide](file:///c:/Users/akhil/Desktop/ACADEMY/Tution_Academy_Flow_full/SETUP_GUIDE.md).

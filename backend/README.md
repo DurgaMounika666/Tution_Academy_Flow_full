@@ -39,9 +39,8 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/academy_flow?ret
 npm run dev
 ```
 
-**Production build:**
+**Production mode:**
 ```bash
-npm run build
 npm start
 ```
 
@@ -51,38 +50,37 @@ npm start
 backend/
 ├── src/
 │   ├── config/
-│   │   ├── database.ts       (MongoDB connection)
-│   │   └── env.ts            (Environment variables)
+│   │   ├── database.js       (MongoDB connection)
+│   │   └── env.js            (Environment variables)
 │   ├── middleware/
-│   │   ├── auth.ts           (JWT authentication & role-based access)
-│   │   └── errorHandler.ts   (Error handling)
+│   │   ├── auth.js           (JWT authentication & role-based access)
+│   │   └── errorHandler.js   (Error handling)
 │   ├── models/
-│   │   ├── User.ts
-│   │   ├── Student.ts
-│   │   ├── Tutor.ts
-│   │   ├── Parent.ts
-│   │   ├── FeePayment.ts
-│   │   ├── Assignment.ts
-│   │   ├── Attendance.ts
-│   │   └── Result.ts
+│   │   ├── User.js
+│   │   ├── Student.js
+│   │   ├── Tutor.js
+│   │   ├── Parent.js
+│   │   ├── FeePayment.js
+│   │   ├── Assignment.js
+│   │   ├── Attendance.js
+│   │   └── Result.js
 │   ├── services/
-│   │   ├── AuthService.ts    (Authentication logic)
-│   │   ├── StudentService.ts (Student operations)
-│   │   ├── FeeService.ts     (Fee management)
-│   │   ├── TutorService.ts   (Tutor operations)
-│   │   └── AssignmentService.ts (Assignment operations)
+│   │   ├── AuthService.js    (Authentication logic)
+│   │   ├── StudentService.js (Student operations)
+│   │   ├── FeeService.js     (Fee management)
+│   │   ├── TutorService.js   (Tutor operations)
+│   │   └── AssignmentService.js (Assignment operations)
 │   ├── controllers/
-│   │   ├── AuthController.ts
-│   │   ├── StudentController.ts
-│   │   └── FeeController.ts
+│   │   ├── AuthController.js
+│   │   ├── StudentController.js
+│   │   └── FeeController.js
 │   ├── routes/
-│   │   ├── authRoutes.ts
-│   │   ├── studentRoutes.ts
-│   │   ├── feeRoutes.ts
-│   │   └── attendanceRoutes.ts
-│   └── server.ts             (Main entry point)
+│   │   ├── authRoutes.js
+│   │   ├── studentRoutes.js
+│   │   ├── feeRoutes.js
+│   │   └── attendanceRoutes.js
+│   └── server.js             (Main entry point)
 ├── package.json
-├── tsconfig.json
 └── .env.example
 ```
 
@@ -179,7 +177,7 @@ docker run -d -p 27017:27017 --name mongodb mongo:latest
 ## Technologies Used
 
 - **Express.js** - Web framework
-- **TypeScript** - Type safety
+- **JavaScript** - Core logic
 - **MongoDB** - Database
 - **Mongoose** - ODM
 - **JWT** - Authentication
