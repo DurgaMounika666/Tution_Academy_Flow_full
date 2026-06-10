@@ -10,7 +10,8 @@ import {
   MapPin, AlertCircle, FileText, Download, LayoutDashboard, Award,
   DollarSign, MessageSquare, Bell, Settings, Star, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
-import { Student, Tutor } from "../types";
+import { Student, Tutor, FeePayment, Assignment } from "../types";
+import { normalizeFee, normalizeAssignment } from "../utils/normalizers";
 import { Footer } from "./Footer";
 import { FooterNavigation } from "./FooterNavigation";
 import { apiClient } from "../services/apiClient";
@@ -33,7 +34,18 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
   const [reviewMsg, setReviewMsg] = useState("");
   const mainPanelRef = useRef<HTMLElement | null>(null);
 
+  // Dynamic States for API connections
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [attendanceRate, setAttendanceRate] = useState(currentStudent.attendanceRate);
+  const [presentCount, setPresentCount] = useState(currentStudent.presentCount);
+  const [absentCount, setAbsentCount] = useState(currentStudent.absentCount);
+  const [studentFees, setStudentFees] = useState<FeePayment[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+
   const assignedTutors = tutors.filter((t) => currentStudent.assignedTutorIds.includes(t.id));
+  const latestGpa = currentStudent.results && currentStudent.results.length > 0
+    ? currentStudent.results[currentStudent.results.length - 1].gpa
+    : 4.0;
 
   useEffect(() => {
     const loadReviews = async () => {
@@ -46,6 +58,55 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
     };
     loadReviews();
   }, [currentStudent.id]);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        const response = await apiClient.attendance.getByStudent(currentStudent.id);
+        if (response && Array.isArray(response.records)) {
+          setAttendanceRecords(response.records);
+          setAttendanceRate(response.attendanceRate ?? currentStudent.attendanceRate);
+          setPresentCount(response.presentCount ?? currentStudent.presentCount);
+          setAbsentCount(response.absentCount ?? currentStudent.absentCount);
+        }
+      } catch (error) {
+        console.warn("Failed to load attendance records", error);
+      }
+    };
+    fetchAttendance();
+  }, [currentStudent.id]);
+
+  useEffect(() => {
+    const fetchFees = async () => {
+      try {
+        const response = await apiClient.fees.getByStudent(currentStudent.id);
+        setStudentFees((response || []).map(normalizeFee));
+      } catch (error) {
+        console.warn("Failed to load fees for student", error);
+      }
+    };
+    fetchFees();
+  }, [currentStudent.id]);
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const list: Assignment[] = [];
+        for (const tutorId of currentStudent.assignedTutorIds) {
+          const res = await apiClient.attendance.getAssignmentsByTutor(tutorId);
+          if (Array.isArray(res)) {
+            list.push(...res.map(normalizeAssignment));
+          }
+        }
+        setAssignments(list);
+      } catch (error) {
+        console.warn("Failed to fetch student assignments", error);
+      }
+    };
+    if (currentStudent.assignedTutorIds?.length > 0) {
+      fetchAssignments();
+    }
+  }, [currentStudent.assignedTutorIds, currentStudent.id]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,10 +310,10 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Attendance</span>
                 <div className="flex items-baseline justify-between mt-2">
                   <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
-                    {currentStudent.attendanceRate}%
+                    {attendanceRate}%
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 font-bold">
-                    Excellent
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${attendanceRate >= 90 ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450" : "bg-amber-50 dark:bg-amber-950/30 text-amber-605"}`}>
+                    {attendanceRate >= 90 ? "Excellent" : "Average"}
                   </span>
                 </div>
               </div>
@@ -273,10 +334,10 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Fee Status</span>
                 <div className="flex items-baseline justify-between mt-2">
                   <span className="text-2xl sm:text-3xl font-black text-rose-500">
-                    $150
+                    ${studentFees.filter(f => f.status === "Pending").reduce((acc, curr) => acc + curr.amount, 0)}
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-455 font-bold">
-                    Due
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${studentFees.some(f => f.status === "Pending") ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-455" : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600"}`}>
+                    {studentFees.some(f => f.status === "Pending") ? "Due" : "Paid"}
                   </span>
                 </div>
               </div>
@@ -284,11 +345,11 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-28">
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">Latest Result</span>
                 <div className="flex items-baseline justify-between mt-2">
-                  <span className="text-2xl sm:text-3xl font-black text-emerald-650 dark:text-emerald-450">
-                    A+
+                  <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-450">
+                    {latestGpa} GPA
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 font-bold">
-                    Top GPA
+                    Latest
                   </span>
                 </div>
               </div>
@@ -469,31 +530,58 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center h-36">
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 mb-2">Attendance Rate</span>
-                <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400">{currentStudent.attendanceRate}%</span>
-                <span className="text-[10px] px-2 py-0.5 mt-2 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 font-bold">
-                  {currentStudent.attendanceRate >= 90 ? "Excellent" : currentStudent.attendanceRate >= 75 ? "Good" : "Needs Improvement"}
+                <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400">{attendanceRate}%</span>
+                <span className={`text-[10px] px-2 py-0.5 mt-2 rounded font-bold ${attendanceRate >= 90 ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600" : "bg-amber-50 dark:bg-amber-950/30 text-amber-600"}`}>
+                  {attendanceRate >= 90 ? "Excellent" : attendanceRate >= 75 ? "Good" : "Needs Improvement"}
                 </span>
               </div>
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center h-36">
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 mb-2">Days Present</span>
-                <span className="text-4xl font-black text-sky-600 dark:text-sky-400">{currentStudent.presentCount}</span>
+                <span className="text-4xl font-black text-sky-600 dark:text-sky-400">{presentCount}</span>
                 <span className="text-[10px] px-2 py-0.5 mt-2 rounded bg-sky-50 dark:bg-sky-950/30 text-sky-600 font-bold">Present</span>
               </div>
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center h-36">
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 mb-2">Days Absent</span>
-                <span className="text-4xl font-black text-rose-500 dark:text-rose-400">{currentStudent.absentCount}</span>
+                <span className="text-4xl font-black text-rose-500 dark:text-rose-400">{absentCount}</span>
                 <span className="text-[10px] px-2 py-0.5 mt-2 rounded bg-rose-50 dark:bg-rose-950/30 text-rose-600 font-bold">Absent</span>
               </div>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
               <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-4">Attendance Summary</h3>
               <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" style={{ width: `${currentStudent.attendanceRate}%` }} />
+                <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" style={{ width: `${attendanceRate}%` }} />
               </div>
-              <p className="text-xs text-slate-500 mt-3">
-                You have attended <strong className="text-slate-900 dark:text-white">{currentStudent.presentCount}</strong> out of <strong className="text-slate-900 dark:text-white">{currentStudent.presentCount + currentStudent.absentCount}</strong> total classes this term.
+              <p className="text-xs text-slate-505 mt-3">
+                You have attended <strong className="text-slate-900 dark:text-white">{presentCount}</strong> out of <strong className="text-slate-900 dark:text-white">{presentCount + absentCount}</strong> total classes this term.
               </p>
             </div>
+            {attendanceRecords.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 mt-6">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-4">Detailed Records</h3>
+                <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-[9px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold">
+                        <th className="text-left px-4 py-2">Date</th>
+                        <th className="text-left px-4 py-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
+                      {attendanceRecords.map((r, idx) => (
+                        <tr key={r.attendanceId || idx}>
+                          <td className="px-4 py-3">{new Date(r.date).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.status === "Present" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -540,35 +628,32 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
         {activeTab === "assignments" && (
           <div className="space-y-6 text-left">
             {/* Summary cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 text-center">
                 <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 mb-1">Total</p>
-                <p className="text-2xl font-black text-slate-900 dark:text-white">4</p>
+                <p className="text-2xl font-black text-slate-900 dark:text-white">
+                  {assignments.length}
+                </p>
               </div>
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 text-center">
-                <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 mb-1">Submitted</p>
-                <p className="text-2xl font-black text-emerald-600">2</p>
+                <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 mb-1">Active</p>
+                <p className="text-2xl font-black text-amber-500">
+                  {assignments.filter(a => a.status === "Active").length}
+                </p>
               </div>
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 text-center">
-                <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 mb-1">Pending</p>
-                <p className="text-2xl font-black text-amber-500">1</p>
-              </div>
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 text-center">
-                <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 mb-1">Overdue</p>
-                <p className="text-2xl font-black text-rose-500">1</p>
+                <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 mb-1">Completed</p>
+                <p className="text-2xl font-black text-emerald-600">
+                  {assignments.filter(a => a.status === "Completed").length}
+                </p>
               </div>
             </div>
 
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
               <h3 className="text-sm uppercase font-extrabold tracking-wider text-slate-400">All Assignments</h3>
               <div className="space-y-3">
-                {[
-                  { title: "Quadratic Equations — Problem Set 5", subject: "Mathematics", dueDate: "Jun 05, 2026", status: "Submitted", grade: "A" },
-                  { title: "Newton's Laws Lab Report", subject: "Physics", dueDate: "Jun 03, 2026", status: "Submitted", grade: "B+" },
-                  { title: "Shakespeare Essay — Hamlet Analysis", subject: "Literature", dueDate: "Jun 10, 2026", status: "Pending", grade: null },
-                  { title: "Data Structures — Binary Tree Implementation", subject: "Computer Science", dueDate: "May 28, 2026", status: "Overdue", grade: null },
-                ].map((assignment, idx) => (
-                  <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                {assignments.map((assignment) => (
+                  <div key={assignment.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                     <div className="space-y-1">
                       <span className="text-sm font-black text-slate-800 dark:text-white block leading-tight">{assignment.title}</span>
                       <div className="flex items-center gap-2">
@@ -578,22 +663,18 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {assignment.grade && (
-                        <span className="text-xs font-black text-[#7c3aed] bg-[#7c3aed]/10 px-2.5 py-1 rounded-lg">
-                          Grade: {assignment.grade}
-                        </span>
-                      )}
-                      <span className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-tight rounded-xl shrink-0 ${assignment.status === "Submitted"
+                      <span className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-tight rounded-xl shrink-0 ${assignment.status === "Completed"
                         ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600"
-                        : assignment.status === "Pending"
-                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600"
-                          : "bg-rose-50 dark:bg-rose-950/40 text-rose-500"
+                        : "bg-amber-50 dark:bg-amber-950/40 text-amber-600"
                         }`}>
                         {assignment.status}
                       </span>
                     </div>
                   </div>
                 ))}
+                {assignments.length === 0 && (
+                  <p className="text-xs text-slate-550 text-center py-6">No homework assignments published yet.</p>
+                )}
               </div>
             </div>
           </div>
@@ -630,28 +711,40 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-2xl p-5 text-center">
                   <p className="text-[10px] uppercase font-extrabold tracking-wider text-rose-400 mb-1">Pending Due</p>
-                  <p className="text-3xl font-black text-rose-500">$150.00</p>
-                  <p className="text-xs text-rose-400 mt-1">Outstanding Invoice</p>
+                  <p className="text-3xl font-black text-rose-500">
+                    ${studentFees.filter(f => f.status === "Pending").reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-rose-400 mt-1">Outstanding Invoices</p>
                 </div>
                 <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-2xl p-5 text-center">
-                  <p className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-400 mb-1">Last Payment</p>
-                  <p className="text-3xl font-black text-emerald-600">$300.00</p>
+                  <p className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-400 mb-1">Total Paid</p>
+                  <p className="text-3xl font-black text-emerald-600">
+                    ${studentFees.filter(f => f.status === "Paid").reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)}
+                  </p>
                   <p className="text-xs text-emerald-400 mt-1">Paid Successfully</p>
                 </div>
               </div>
               <div className="bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 p-4 rounded-2xl space-y-3 text-xs">
-                <div className="flex justify-between items-center text-slate-700 dark:text-slate-350">
-                  <span>Pending Outstanding Invoice</span>
-                  <span className="font-extrabold text-rose-500">$150.00 Due</span>
-                </div>
-                <div className="flex justify-between items-center text-slate-700 dark:text-slate-350">
-                  <span>Last Term Payment</span>
-                  <span className="font-extrabold text-emerald-600">$300.00 Paid</span>
-                </div>
-                <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex justify-between items-center">
-                  <span className="font-bold text-slate-900 dark:text-white">Receipt status</span>
-                  <span className="text-[10px] text-slate-400 font-mono">Ledger ID: #AF-ST-101</span>
-                </div>
+                {studentFees.map((fee) => (
+                  <div key={fee.id} className="flex justify-between items-center text-slate-700 dark:text-slate-350 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                    <div className="text-left space-y-0.5">
+                      <span className="font-bold text-slate-900 dark:text-white block">{fee.title}</span>
+                      <span className="text-[10px] text-slate-400 block">Due Date: {fee.dueDate} {fee.transactionId ? `| TxID: ${fee.transactionId}` : ''}</span>
+                    </div>
+                    <span className={`font-extrabold px-2 py-1 rounded-lg ${fee.status === "Paid" ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30" : "text-rose-500 bg-rose-50 dark:bg-rose-950/30"}`}>
+                      ${fee.amount.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+                {studentFees.length === 0 && (
+                  <p className="text-xs text-slate-550 text-center py-4">No fee invoices recorded in ledger.</p>
+                )}
+                {studentFees.length > 0 && (
+                  <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex justify-between items-center">
+                    <span className="font-bold text-slate-900 dark:text-white">Receipt status</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Student ID: {currentStudent.id}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

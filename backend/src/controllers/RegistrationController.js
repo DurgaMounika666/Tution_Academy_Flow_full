@@ -41,95 +41,94 @@ class RegistrationController {
       if (status === "Approved") {
         const normalizedEmail = registration.email.toLowerCase().trim();
         
-        // 1. Double check User email doesn't already exist
-        const existingUser = await User.findOne({ email: normalizedEmail });
-        if (existingUser) {
-          // If User already exists for some reason, maybe update role and enable it
-          existingUser.role = "parent";
-          existingUser.isActive = true;
-          await existingUser.save();
+        // 1. Ensure parent User account exists and is active
+        let parentUser = await User.findOne({ email: normalizedEmail });
+        if (parentUser) {
+          parentUser.role = "parent";
+          parentUser.isActive = true;
+          await parentUser.save();
         } else {
-          // Create new parent User account
-          const parentUser = new User({
+          parentUser = new User({
             email: normalizedEmail,
             password: registration.password, // This was already hashed during registration request!
             role: "parent",
             isActive: true,
           });
           await parentUser.save();
+        }
 
-          // 2. Generate Student User Credentials
-          const studentCount = await Student.countDocuments();
-          const studentId = `ST-${100 + studentCount + 1}`;
-          
-          let studentEmail = `${registration.studentName.toLowerCase().replace(/[^a-z0-9]/g, "")}@student.academyflow.com`;
-          const existingStudentUser = await User.findOne({ email: studentEmail });
-          if (existingStudentUser) {
-            studentEmail = `${registration.studentName.toLowerCase().replace(/[^a-z0-9]/g, "")}.${Date.now().toString().slice(-4)}@student.academyflow.com`;
-          }
+        // 2. Generate Student User Credentials
+        const studentCount = await Student.countDocuments();
+        const studentId = `ST-${100 + studentCount + 1}`;
+        
+        let studentEmail = `${registration.studentName.toLowerCase().replace(/[^a-z0-9]/g, "")}@student.academyflow.com`;
+        const existingStudentUser = await User.findOne({ email: studentEmail });
+        if (existingStudentUser) {
+          studentEmail = `${registration.studentName.toLowerCase().replace(/[^a-z0-9]/g, "")}.${Date.now().toString().slice(-4)}@student.academyflow.com`;
+        }
 
-          const studentHashedPassword = await bcrypt.hash("password", 10);
-          const studentUser = new User({
-            email: studentEmail,
-            password: studentHashedPassword,
-            role: "student",
-            isActive: true,
-          });
-          await studentUser.save();
+        const studentHashedPassword = await bcrypt.hash("password", 10);
+        const studentUser = new User({
+          email: studentEmail,
+          password: studentHashedPassword,
+          role: "student",
+          isActive: true,
+        });
+        await studentUser.save();
 
-          // 3. Create Parent Profile
-          let parentProfile = await Parent.findOne({ email: normalizedEmail });
-          if (!parentProfile) {
-            parentProfile = await Parent.create({
-              userId: parentUser._id,
-              email: normalizedEmail,
-              name: registration.parentName,
-              phone: registration.phone,
-              address: registration.location,
-              childrenIds: [studentId],
-            });
-          } else {
-            await Parent.findOneAndUpdate(
-              { email: normalizedEmail },
-              { $addToSet: { childrenIds: studentId } }
-            );
-          }
-
-          // 4. Create Student Profile
-          await Student.create({
-            studentId,
-            userId: studentUser._id,
-            name: registration.studentName,
-            grade: registration.classGrade,
-            section: "Section A",
-            parentEmail: normalizedEmail,
-            parentId: parentProfile._id,
-            assignedTutorIds: ["T-201"],
-            learningSubjects: ["Basic Mathematics"],
-            classMode: registration.classMode,
+        // 3. Ensure Parent Profile exists and link child
+        let parentProfile = await Parent.findOne({ email: normalizedEmail });
+        if (!parentProfile) {
+          parentProfile = await Parent.create({
+            userId: parentUser._id,
+            email: normalizedEmail,
+            name: registration.parentName,
             phone: registration.phone,
             address: registration.location,
-            attendanceRate: 100,
-            presentCount: 0,
-            absentCount: 0,
+            childrenIds: [studentId],
           });
-
-          // 5. Create FeePayment record for advance fee
-          await FeeService.createFee(
-            studentId,
-            "Enrollment & Registration Fee (Advance)",
-            registration.advanceFeeAmount,
-            new Date(),
-            undefined,
-            registration.studentName
-          ).then(async (fee) => {
-            fee.approvalStatus = "Approved";
-            fee.status = "Paid";
-            fee.transactionId = registration.transactionId;
-            fee.paymentMethod = "Registration";
-            await fee.save();
-          });
+        } else {
+          parentProfile = await Parent.findOneAndUpdate(
+            { email: normalizedEmail },
+            { $addToSet: { childrenIds: studentId } },
+            { new: true }
+          );
         }
+
+        // 4. Create Student Profile
+        await Student.create({
+          studentId,
+          userId: studentUser._id,
+          name: registration.studentName,
+          grade: registration.classGrade,
+          section: "Section A",
+          parentEmail: normalizedEmail,
+          parentId: parentProfile._id,
+          assignedTutorIds: ["T-201"],
+          learningSubjects: ["Basic Mathematics"],
+          classMode: registration.classMode,
+          phone: registration.phone,
+          address: registration.location,
+          attendanceRate: 100,
+          presentCount: 0,
+          absentCount: 0,
+        });
+
+        // 5. Create FeePayment record for advance fee
+        await FeeService.createFee(
+          studentId,
+          "Enrollment & Registration Fee (Advance)",
+          registration.advanceFeeAmount,
+          new Date(),
+          undefined,
+          registration.studentName
+        ).then(async (fee) => {
+          fee.approvalStatus = "Approved";
+          fee.status = "Paid";
+          fee.transactionId = registration.transactionId;
+          fee.paymentMethod = "Registration";
+          await fee.save();
+        });
       } else if (status === "Rejected") {
         // Rejecting: Disable login if a user exists
         const user = await User.findOne({ email: registration.email.toLowerCase().trim() });

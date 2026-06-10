@@ -46,26 +46,31 @@ const request = async (method: string, endpoint: string, body?: any) => {
         body: body ? JSON.stringify(body) : undefined,
       });
 
-      if (response.status === 404) {
-        lastNetworkError = new Error(`404 at ${url}`);
-        continue;
-      }
-
+      // A successful HTTP connection confirms the server is reachable and active
       activeApiBase = base;
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || error.error || `API Error: ${response.status}`);
+        let errorMessage = `API Error: ${response.status}`;
+        try {
+          const error = await response.json();
+          errorMessage = error.message || error.error || errorMessage;
+        } catch (_) {
+          // If response body is not JSON or cannot be parsed
+        }
+        const apiError = new Error(errorMessage);
+        (apiError as any).status = response.status;
+        throw apiError;
       }
 
       return await response.json();
     } catch (error) {
-      if (error instanceof TypeError || (error instanceof Error && error.message.startsWith("404 at"))) {
+      // Only fallback to other ports on network errors (e.g. connection refused)
+      if (error instanceof TypeError) {
         lastNetworkError = error;
         continue;
       }
 
-      console.error(`API Request Failed: ${method} ${endpoint}`, error);
+      // Propagate API errors or other non-connection errors immediately
       throw error;
     }
   }
@@ -199,7 +204,7 @@ export const apiClient = {
   },
 
   fees: {
-    create: (fee: { studentId: string; title: string; amount: number; dueDate: string }) =>
+    create: (fee: { studentId: string; title: string; amount: number; dueDate: string; studentName?: string }) =>
       request("POST", "/fees", fee),
 
     getAll: () => request("GET", "/fees/all"),
@@ -333,9 +338,15 @@ export const apiClient = {
     getAll: () => request("GET", "/timetable"),
     getSummary: () => request("GET", "/timetable/summary"),
     getByTutor: (tutorId: string) => request("GET", `/timetable/tutor/${tutorId}`),
+    getByStudent: (studentId: string) => request("GET", `/timetable/student/${studentId}`),
     create: (data: any) => request("POST", "/timetable", data),
     update: (scheduleId: string, data: any) => request("PUT", `/timetable/${scheduleId}`, data),
     delete: (scheduleId: string) => request("DELETE", `/timetable/${scheduleId}`),
+  },
+
+  results: {
+    getByStudent: (studentId: string) => request("GET", `/results/student/${studentId}`),
+    upsert: (data: any) => request("POST", "/results", data),
   },
 
   registrations: {

@@ -128,9 +128,27 @@ export function ParentDashboard({
     }
   };
 
-  // Compute pricing
-  const subBaseFee = wizardMode === "Online" ? 200 : 350;
-  const computedFee = subBaseFee + (wizardSubjects.length * 150);
+  // Compute pricing dynamically from feeStructures matching className & selected subjects.
+  // Fall back to $150 per subject if not configured.
+  const computedFee = (() => {
+    let total = 0;
+    const subBaseFee = wizardMode === "Online" ? 200 : 350;
+    
+    wizardSubjects.forEach((sub) => {
+      const match = feeStructures.find(
+        (f) =>
+          f.className?.toLowerCase() === wizardClass?.toLowerCase() &&
+          f.subject?.toLowerCase() === sub?.toLowerCase()
+      );
+      if (match) {
+        total += match.amount;
+      } else {
+        total += 150;
+      }
+    });
+
+    return total > 0 ? total + subBaseFee : subBaseFee;
+  })();
 
   const toggleSubjectSelect = (sub: string) => {
     if (wizardSubjects.includes(sub)) {
@@ -184,6 +202,7 @@ export function ParentDashboard({
 
       const feeResponse = await apiClient.fees.create({
         studentId: selectedStudentId,
+        studentName: activeStudent?.name || "Student",
         title: `Rollout: ${wizardSubjects.join(", ")} (${wizardClass})`,
         amount: computedFee,
         dueDate: new Date().toISOString().split("T")[0],
@@ -514,42 +533,19 @@ export function ParentDashboard({
     setIsReceiptModalOpen(true);
   };
 
-  const [paymentHistory, setPaymentHistory] = useState<Array<{
-    transactionId: string;
-    studentName: string;
-    parentName: string;
-    invoiceId: string;
-    invoiceTitle: string;
-    amount: number;
-    paymentMethod: string;
-    date: string;
-    status: string;
-  }>>([
-    {
-      transactionId: "AF-TXN-88219",
-      studentName: "Abhilash",
-      parentName: "Robert Johnson",
-      invoiceId: "FP-503",
-      invoiceTitle: "May Tuition",
-      amount: 1500,
-      paymentMethod: "Credit Card",
-      date: "2026-05-30",
-      status: "Success"
-    },
-    {
-      transactionId: "AF-TXN-12940",
-      studentName: "Abhilash",
-      parentName: "Robert Johnson",
-      invoiceId: "FP-501",
-      invoiceTitle: "April Tuition",
-      amount: 1200,
-      paymentMethod: "UPI",
-      date: "2026-04-28",
-      status: "Success"
-    }
-  ]);
-
-  const activeStudentPaymentHistory = paymentHistory.filter(h => h.studentName.toLowerCase() === activeStudent.name.toLowerCase());
+  const activeStudentPaymentHistory = currentChildFees
+    .filter((f) => f.status === "Paid")
+    .map((f) => ({
+      transactionId: f.transactionId || "N/A",
+      studentName: f.studentName || activeStudent?.name || "Student",
+      parentName: parentProfile.name || "Parent",
+      invoiceId: f.id,
+      invoiceTitle: f.title,
+      amount: f.amount,
+      paymentMethod: f.paymentMethod || "Online",
+      date: f.paidDate || (f.dueDate ? f.dueDate : new Date().toISOString().split("T")[0]),
+      status: "Success",
+    }));
 
   const validatePaymentForm = () => {
     const errors: Record<string, string> = {};
@@ -615,6 +611,7 @@ export function ParentDashboard({
       } else {
         const feeResponse = await apiClient.fees.create({
           studentId: activeStudent.id,
+          studentName: activeStudent.name,
           title: invoiceTitle,
           amount: paymentAmount,
           dueDate: paymentDate,
@@ -626,18 +623,17 @@ export function ParentDashboard({
       }
       await onRefreshFees();
 
-      const newHistoryRecord = {
-        transactionId: txnId,
+      setReceiptData({
         studentName: activeStudent.name,
         parentName: parentProfile.name,
-        invoiceId: isCustom ? paymentInvoiceNumber : targetInvoiceId,
-        invoiceTitle: invoiceTitle,
-        amount: paymentAmount,
+        transactionId: txnId,
+        amountPaid: paymentAmount,
         paymentMethod: paymentMethod,
-        date: paymentDate,
-        status: "Success"
-      };
-      setPaymentHistory([newHistoryRecord, ...paymentHistory]);
+        paymentDate: paymentDate,
+        paymentStatus: "Success",
+        invoiceTitle: invoiceTitle,
+        footerEmail: parentProfile.email,
+      });
     } catch (error: any) {
       setPaymentErrors({ general: error.message || "Payment processing failed." });
       return;
@@ -656,19 +652,40 @@ export function ParentDashboard({
     setPaymentSuccessPopupOpen(true);
   };
 
-  // Mock static attendance log history for the selected student
-  const attendanceLogs = [
-    { date: "2026-06-01", subject: "Mathematics", type: "Online", status: "Present", remarks: "Attended full session" },
-    { date: "2026-05-29", subject: "Physics", type: "Online", status: "Present", remarks: "Active participation" },
-    { date: "2026-05-28", subject: "Computer Science", type: "Offline", status: "Absent", remarks: "Medical leave notified" },
-    { date: "2026-05-27", subject: "Mathematics", type: "Online", status: "Present", remarks: "On time" },
-    { date: "2026-05-26", subject: "Physics", type: "Online", status: "Present", remarks: "Completed quiz during class" },
-    { date: "2026-05-25", subject: "Mathematics", type: "Online", status: "Present", remarks: "Attended full session" },
-    { date: "2026-05-22", subject: "Computer Science", type: "Offline", status: "Present", remarks: "Good performance" },
-    { date: "2026-05-21", subject: "Physics", type: "Online", status: "Present", remarks: "Engaged in discussion" },
-    { date: "2026-05-20", subject: "Mathematics", type: "Online", status: "Absent", remarks: "Unexcused absence" },
-    { date: "2026-05-19", subject: "Physics", type: "Online", status: "Present", remarks: "On time" }
-  ];
+  // Dynamic child attendance logs loaded from backend API
+  const [attendanceLogs, setAttendanceLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      if (!activeStudent?.id) {
+        setAttendanceLogs([]);
+        return;
+      }
+      try {
+        const response = await apiClient.attendance.getByStudent(activeStudent.id);
+        if (response && Array.isArray(response.records)) {
+          const mappedLogs = response.records.map((r: any, idx: number) => {
+            const subject = activeStudent.learningSubjects[idx % activeStudent.learningSubjects.length]?.name || "Tuition";
+            const type = activeStudent.classTimings.find(t => t.subject === subject)?.mode || "Online";
+            return {
+              date: new Date(r.date).toLocaleDateString(),
+              subject,
+              type,
+              status: r.status,
+              remarks: r.status === "Present" ? "Attended full session" : "Absence logged in system",
+            };
+          });
+          setAttendanceLogs(mappedLogs);
+        } else {
+          setAttendanceLogs([]);
+        }
+      } catch (error) {
+        console.warn("Failed to load attendance for child", error);
+        setAttendanceLogs([]);
+      }
+    };
+    fetchAttendance();
+  }, [activeStudent?.id, activeStudent?.learningSubjects, activeStudent?.classTimings]);
 
   // Sidebar Menu Items
   const sidebarItems = [
@@ -2764,7 +2781,7 @@ export function ParentDashboard({
             </div>
 
             {/* Modal Content body (State Driven) */}
-            <div className="p-6 overflow-hidden max-h-[70vh] flex-1 space-y-4">
+            <div className="p-6 overflow-y-auto max-h-[70vh] flex-1 space-y-4 modal-scroll">
 
               {/* STEP 1: Class & Subject Select */}
               {wizardStep === 1 && (
@@ -3055,7 +3072,7 @@ export function ParentDashboard({
               </button>
             </div>
 
-            <form onSubmit={handleProcessPayment} className="p-6 overflow-hidden max-h-[80vh] flex-1 space-y-4 text-xs font-bold">
+            <form onSubmit={handleProcessPayment} className="p-6 overflow-y-auto max-h-[75vh] flex-1 space-y-4 text-xs font-bold modal-scroll">
 
               {/* Autofilled Fields */}
               <div className="grid grid-cols-2 gap-4">
@@ -3388,22 +3405,8 @@ export function ParentDashboard({
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  const histItem = paymentHistory[0];
-                  if (histItem) {
-                    setReceiptData({
-                      studentName: histItem.studentName,
-                      parentName: histItem.parentName,
-                      transactionId: histItem.transactionId,
-                      amountPaid: histItem.amount,
-                      paymentMethod: histItem.paymentMethod,
-                      paymentDate: histItem.date,
-                      paymentStatus: histItem.status,
-                      invoiceTitle: histItem.invoiceTitle,
-                      footerEmail: parentProfile.email,
-                    });
-                    setPaymentSuccessPopupOpen(false);
-                    setIsReceiptModalOpen(true);
-                  }
+                  setPaymentSuccessPopupOpen(false);
+                  setIsReceiptModalOpen(true);
                 }}
                 className="flex-1 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-black shadow cursor-pointer"
               >

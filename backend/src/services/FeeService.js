@@ -24,6 +24,9 @@ class FeeService {
     let resolvedStudentName = studentName;
 
     if (!resolvedStudentName) {
+      if (!studentId) {
+        throw new Error("Cannot resolve student name: studentId is missing");
+      }
       const student = await Student.findOne({ studentId });
       if (!student) {
         throw new Error(`Student ${studentId} not found`);

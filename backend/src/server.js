@@ -32,6 +32,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const registrationRoutes = require("./routes/registrationRoutes");
 const catalogRoutes = require("./routes/catalogRoutes");
+const resultRoutes = require("./routes/resultRoutes");
 
 const app = express();
 
@@ -94,6 +95,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/registrations", registrationRoutes);
 app.use("/api/catalog", catalogRoutes);
+app.use("/api/results", resultRoutes);
 
 // Error Handling
 app.use(notFound);

@@ -67,6 +67,9 @@ export interface FeePayment {
   status: "Paid" | "Pending";
   dueDate: string;
   transactionId?: string;
+  paidDate?: string;
+  paymentMethod?: string;
+  approvalStatus?: string;
 }
 
 export interface ParentProfile {

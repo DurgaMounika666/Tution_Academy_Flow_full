@@ -71,6 +71,22 @@ export function AdminDashboard({
   const [localTutors, setLocalTutors] = useState<Tutor[]>(tutors);
   const [localFees, setLocalFees] = useState<FeePayment[]>(fees);
   const [courses, setCourses] = useState<Course[]>(() => buildAllCoursesFromCatalog(students));
+
+  useEffect(() => {
+    setLocalStudents(students);
+  }, [students]);
+
+  useEffect(() => {
+    setLocalTutors(tutors);
+  }, [tutors]);
+
+  useEffect(() => {
+    setLocalFees(fees);
+  }, [fees]);
+
+  useEffect(() => {
+    setCourses(buildAllCoursesFromCatalog(students));
+  }, [students]);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<FeeReceiptData | null>(null);
   const [batches, setBatches] = useState<Batch[]>([
@@ -508,6 +524,7 @@ export function AdminDashboard({
     try {
       const response = await apiClient.fees.create({
         studentId: newFee.studentId,
+        studentName: targetSt.name,
         title: newFee.title,
         amount: Number(newFee.amount),
         dueDate: newFee.dueDate

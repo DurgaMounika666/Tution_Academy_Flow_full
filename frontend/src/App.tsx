@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 import { apiClient } from "./services/apiClient";
@@ -48,7 +48,7 @@ export default function App() {
   const [tutorsState, setTutorsState] = useState<Tutor[]>([]);
   const [feesState, setFeesState] = useState<FeePayment[]>([]);
   const [assignmentsState, setAssignmentsState] = useState<Assignment[]>(INITIAL_ASSIGNMENTS);
-  const [reviewsState] = useState<Review[]>(INITIAL_REVIEWS);
+  const [reviewsState, setReviewsState] = useState<Review[]>(INITIAL_REVIEWS);
   const [messagesState, setMessagesState] = useState<Message[]>(INITIAL_MESSAGES);
   const [testsState, setTestsState] = useState<TestScore[]>(INITIAL_TESTS);
 
@@ -72,12 +72,51 @@ export default function App() {
     const stored = localStorage.getItem(SESSION_ROLE_KEY);
     return ["student", "parent", "tutor", "admin"].includes(stored || "") ? stored as UserRole : null;
   });
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const restoredRoleRef = useRef<UserRole | null>(null);
 
   const [activeStandard, setActiveStandard] = useState("");
   const [activeLocation, setActiveLocation] = useState("");
   const [registerOpen, setRegisterOpen] = useState(false);
   const [demoBookingOpen, setDemoBookingOpen] = useState(false);
   const [registrationNotifications, setRegistrationNotifications] = useState<RegistrationNotification[]>([]);
+
+  const enrichStudentData = async (student: Student): Promise<Student> => {
+    try {
+      const [resultsRes, timetableRes] = await Promise.all([
+        apiClient.results.getByStudent(student.id).catch(() => []),
+        apiClient.timetable.getByStudent(student.id).catch(() => []),
+      ]);
+      
+      const enrichedResults = (resultsRes || []).map((r: any) => ({
+        term: r.term || "Current Evaluation",
+        gpa: r.gpa ?? 4.0,
+        score: r.score ?? 100,
+        mathsScore: r.mathsScore ?? 95,
+        physicsScore: r.physicsScore ?? 92,
+        literatureScore: r.literatureScore ?? 93,
+        compSciScore: r.compSciScore ?? 91,
+      }));
+
+      const classTimings = (Array.isArray(timetableRes) && timetableRes.length > 0)
+        ? timetableRes.map((t: any) => ({
+            subject: t.subject,
+            time: `${t.startTime} - ${t.endTime}`,
+            day: t.day,
+            mode: t.mode,
+          }))
+        : student.classTimings;
+
+      return {
+        ...student,
+        results: enrichedResults.length > 0 ? enrichedResults : student.results,
+        classTimings,
+      };
+    } catch (error) {
+      console.warn(`Unable to enrich student data for ${student.id}`, error);
+      return student;
+    }
+  };
 
   const loadTutors = useCallback(async () => {
     try {
@@ -106,7 +145,9 @@ export default function App() {
   const loadAllStudents = useCallback(async () => {
     try {
       const response = await apiClient.students.getAll();
-      setStudentsState(response.map(normalizeStudent));
+      const normalized = response.map(normalizeStudent);
+      const enriched = await Promise.all(normalized.map(enrichStudentData));
+      setStudentsState(enriched);
     } catch (error) {
       console.warn("Unable to load students", error);
     }
@@ -146,7 +187,8 @@ export default function App() {
   const fetchStudentById = async (studentId: string) => {
     try {
       const response = await apiClient.students.getById(studentId);
-      return normalizeStudent(response);
+      const student = normalizeStudent(response);
+      return await enrichStudentData(student);
     } catch (error) {
       console.warn("Unable to fetch student by id", error);
       return null;
@@ -169,13 +211,32 @@ export default function App() {
         loadTutors(),
       ]);
       const normalized = studentsRes.map(normalizeStudent);
-      setStudentsState(normalized);
-      if (normalized[0]?.id) {
-        setActiveStudentId(normalized[0].id);
-        await fetchFeesForStudent(normalized[0].id);
+      const enriched = await Promise.all(normalized.map(enrichStudentData));
+      setStudentsState(enriched);
+      if (enriched[0]?.id) {
+        setActiveStudentId(enriched[0].id);
+        await fetchFeesForStudent(enriched[0].id);
       }
     } catch (error) {
       console.warn("Unable to load parent students", error);
+    }
+  };
+
+  const fetchTutorReviews = async (tutorId: string) => {
+    try {
+      const response = await apiClient.reviews.getByTutor(tutorId);
+      // Map review list to reviews type
+      const reviews = response.map((r: any) => ({
+        id: r.reviewId || r._id || r.id,
+        studentId: r.studentId || "",
+        studentName: r.studentName || "Student",
+        rating: r.rating || 5,
+        comment: r.comment || "",
+        date: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "Recent",
+      }));
+      setReviewsState(reviews);
+    } catch (error) {
+      console.warn("Unable to load tutor reviews", error);
     }
   };
 
@@ -186,8 +247,13 @@ export default function App() {
         apiClient.students.getByTutor(tutorId),
       ]);
       setTutorsState([normalizeTutor(tutorRes)]);
-      setStudentsState(studentsRes.map(normalizeStudent));
-      await fetchTutorAssignments(tutorId);
+      const normalized = studentsRes.map(normalizeStudent);
+      const enriched = await Promise.all(normalized.map(enrichStudentData));
+      setStudentsState(enriched);
+      await Promise.all([
+        fetchTutorAssignments(tutorId),
+        fetchTutorReviews(tutorId),
+      ]);
     } catch (error) {
       console.warn("Unable to load tutor data", error);
     }
@@ -225,28 +291,34 @@ export default function App() {
     userId?: string
   ) => {
     persistSession(role, userId);
-
-    if (role === "student" && userId) {
-      setActiveStudentId(userId);
-      const student = await fetchStudentById(userId);
-      if (student) {
-        setStudentsState([student]);
-        await Promise.all([fetchFeesForStudent(student.id), loadTutors()]);
+    setIsLoadingData(true);
+    try {
+      if (role === "student" && userId) {
+        setActiveStudentId(userId);
+        const student = await fetchStudentById(userId);
+        if (student) {
+          setStudentsState([student]);
+          await Promise.all([fetchFeesForStudent(student.id), loadTutors()]);
+        }
+        navigate("/student");
+      } else if (role === "parent" && userId) {
+        setActiveParentEmail(userId);
+        await fetchParentData(userId);
+        navigate("/parent");
+      } else if (role === "tutor" && userId) {
+        setActiveTutorId(userId);
+        await fetchTutorData(userId);
+        navigate("/tutor");
+      } else if (role === "admin") {
+        await loadAdminData();
+        navigate("/admin");
+      } else {
+        navigate(`/${role}`);
       }
-      navigate("/student");
-    } else if (role === "parent" && userId) {
-      setActiveParentEmail(userId);
-      await fetchParentData(userId);
-      navigate("/parent");
-    } else if (role === "tutor" && userId) {
-      setActiveTutorId(userId);
-      await fetchTutorData(userId);
-      navigate("/tutor");
-    } else if (role === "admin") {
-      await loadAdminData();
-      navigate("/admin");
-    } else {
-      navigate(`/${role}`);
+    } catch (error) {
+      console.error("Login redirect handling failed", error);
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
@@ -269,6 +341,7 @@ export default function App() {
     apiClient.clearAuthToken();
     localStorage.removeItem(SESSION_ROLE_KEY);
     localStorage.removeItem(SESSION_USER_KEY);
+    restoredRoleRef.current = null;
     setLoggedInRole(null);
     setStudentsState([]);
     setTutorsState([]);
@@ -330,24 +403,45 @@ export default function App() {
   const isDashboardRoute = ["/student", "/parent", "/tutor", "/admin"].includes(location.pathname);
 
   useEffect(() => {
+    if (restoredRoleRef.current === loggedInRole) {
+      return;
+    }
+
     const restoreSessionData = async () => {
-      if (loggedInRole === "student" && activeStudentId && studentsState.length === 0) {
-        const student = await fetchStudentById(activeStudentId);
-        if (student) {
-          setStudentsState([student]);
-          await Promise.all([fetchFeesForStudent(student.id), loadTutors()]);
+      const needsStudentLoad = loggedInRole === "student" && activeStudentId && studentsState.length === 0;
+      const needsParentLoad = loggedInRole === "parent" && activeParentEmail && studentsState.length === 0;
+      const needsTutorLoad = loggedInRole === "tutor" && activeTutorId && tutorsState.length === 0;
+      const needsAdminLoad = loggedInRole === "admin" && studentsState.length === 0 && tutorsState.length === 0;
+
+      if (!needsStudentLoad && !needsParentLoad && !needsTutorLoad && !needsAdminLoad) {
+        return;
+      }
+
+      restoredRoleRef.current = loggedInRole;
+      setIsLoadingData(true);
+      try {
+        if (needsStudentLoad) {
+          const student = await fetchStudentById(activeStudentId);
+          if (student) {
+            setStudentsState([student]);
+            await Promise.all([fetchFeesForStudent(student.id), loadTutors()]);
+          }
+        } else if (needsParentLoad) {
+          await fetchParentData(activeParentEmail);
+        } else if (needsTutorLoad) {
+          await fetchTutorData(activeTutorId);
+        } else if (needsAdminLoad) {
+          await loadAdminData();
         }
-      } else if (loggedInRole === "parent" && activeParentEmail && studentsState.length === 0) {
-        await fetchParentData(activeParentEmail);
-      } else if (loggedInRole === "tutor" && activeTutorId && tutorsState.length === 0) {
-        await fetchTutorData(activeTutorId);
-      } else if (loggedInRole === "admin" && studentsState.length === 0 && tutorsState.length === 0) {
-        await loadAdminData();
+      } catch (error) {
+        console.error("Failed to restore session data", error);
+      } finally {
+        setIsLoadingData(false);
       }
     };
 
     restoreSessionData();
-  }, [loggedInRole]);
+  }, [loggedInRole, activeStudentId, activeParentEmail, activeTutorId, studentsState.length, tutorsState.length]);
 
   useEffect(() => {
     if (loggedInRole !== "student") return;
@@ -429,7 +523,15 @@ export default function App() {
             <Route path="/classes/:type" element={<ClassInfo />} />
 
             <Route path="/student" element={
-              renderProtectedDashboard("student", currentStudent ? (
+              renderProtectedDashboard("student", isLoadingData ? (
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-6 text-center animate-fade-in">
+                  <div className="relative w-16 h-16 mb-4">
+                    <div className="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-800"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400 font-medium animate-pulse">Loading student dashboard...</p>
+                </div>
+              ) : currentStudent ? (
                 <StudentDashboard
                   key={`student-${activeStudentId}`}
                   currentStudent={currentStudent}
@@ -437,14 +539,55 @@ export default function App() {
                   onLogout={handleLogout}
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">
-                  Please log in as a student to view your dashboard.
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-8 text-center max-w-md mx-auto animate-fade-in">
+                  <div className="w-16 h-16 bg-amber-50 dark:bg-amber-950/30 text-amber-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-amber-200/50 dark:border-amber-900/50">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">Student Profile Not Found</h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 leading-relaxed">
+                    We couldn't retrieve the student profile for ID <span className="font-semibold">{activeStudentId || "unknown"}</span>. Please verify your connection or retry below.
+                  </p>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={async () => {
+                        setIsLoadingData(true);
+                        try {
+                          const student = await fetchStudentById(activeStudentId);
+                          if (student) {
+                            setStudentsState([student]);
+                            await Promise.all([fetchFeesForStudent(student.id), loadTutors()]);
+                          }
+                        } finally {
+                          setIsLoadingData(false);
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-all duration-200 shadow-md hover:shadow-lg active:scale-95"
+                    >
+                      Retry Connection
+                    </button>
+                    <button 
+                      onClick={handleLogout}
+                      className="px-5 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium text-sm transition-all duration-200"
+                    >
+                      Log Out
+                    </button>
+                  </div>
                 </div>
               ))
             } />
 
             <Route path="/parent" element={
-              renderProtectedDashboard("parent", studentsState.length > 0 ? (
+              renderProtectedDashboard("parent", isLoadingData ? (
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-6 text-center animate-fade-in">
+                  <div className="relative w-16 h-16 mb-4">
+                    <div className="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-800"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400 font-medium animate-pulse">Loading parent portal...</p>
+                </div>
+              ) : studentsState.length > 0 ? (
                 <ParentDashboard
                   key={`parent-${activeParentEmail}`}
                   students={studentsState}
@@ -456,14 +599,51 @@ export default function App() {
                   onLogout={handleLogout}
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">
-                  Please log in as a parent to view your dashboard.
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-8 text-center max-w-md mx-auto animate-fade-in">
+                  <div className="w-16 h-16 bg-amber-50 dark:bg-amber-950/30 text-amber-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-amber-200/50 dark:border-amber-900/50">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">No Student Accounts Found</h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 leading-relaxed">
+                    We couldn't retrieve any student details associated with the parent account <span className="font-semibold">{activeParentEmail || "unknown"}</span>. This may happen if your registration is pending approval or if there is a connection issue.
+                  </p>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={async () => {
+                        setIsLoadingData(true);
+                        try {
+                          await fetchParentData(activeParentEmail);
+                        } finally {
+                          setIsLoadingData(false);
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-all duration-200 shadow-md hover:shadow-lg active:scale-95"
+                    >
+                      Retry Connection
+                    </button>
+                    <button 
+                      onClick={handleLogout}
+                      className="px-5 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium text-sm transition-all duration-200"
+                    >
+                      Log Out
+                    </button>
+                  </div>
                 </div>
               ))
             } />
 
             <Route path="/tutor" element={
-              renderProtectedDashboard("tutor", currentTutor ? (
+              renderProtectedDashboard("tutor", isLoadingData ? (
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-6 text-center animate-fade-in">
+                  <div className="relative w-16 h-16 mb-4">
+                    <div className="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-800"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400 font-medium animate-pulse">Loading tutor dashboard...</p>
+                </div>
+              ) : currentTutor ? (
                 <TutorDashboard
                   key={`tutor-${activeTutorId}`}
                   currentTutor={currentTutor}
@@ -479,14 +659,51 @@ export default function App() {
                   onLogout={handleLogout}
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">
-                  Please log in as a tutor to view your dashboard.
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-8 text-center max-w-md mx-auto animate-fade-in">
+                  <div className="w-16 h-16 bg-amber-50 dark:bg-amber-950/30 text-amber-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-amber-200/50 dark:border-amber-900/50">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">Tutor Profile Not Found</h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 leading-relaxed">
+                    We couldn't retrieve the tutor profile for ID <span className="font-semibold">{activeTutorId || "unknown"}</span>. Please verify your connection or retry below.
+                  </p>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={async () => {
+                        setIsLoadingData(true);
+                        try {
+                          await fetchTutorData(activeTutorId);
+                        } finally {
+                          setIsLoadingData(false);
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-all duration-200 shadow-md hover:shadow-lg active:scale-95"
+                    >
+                      Retry Connection
+                    </button>
+                    <button 
+                      onClick={handleLogout}
+                      className="px-5 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium text-sm transition-all duration-200"
+                    >
+                      Log Out
+                    </button>
+                  </div>
                 </div>
               ))
             } />
 
             <Route path="/admin" element={
-              renderProtectedDashboard("admin", (
+              renderProtectedDashboard("admin", isLoadingData ? (
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-6 text-center animate-fade-in">
+                  <div className="relative w-16 h-16 mb-4">
+                    <div className="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-800"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400 font-medium animate-pulse">Loading admin dashboard...</p>
+                </div>
+              ) : (
                 <AdminDashboard
                   key="admin-dashboard"
                   students={studentsState}

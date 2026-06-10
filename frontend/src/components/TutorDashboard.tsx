@@ -82,6 +82,21 @@ export function TutorDashboard({
   const [attendanceMarkedToday, setAttendanceMarkedToday] = useState<Record<string, boolean>>({});
   const mainPanelRef = useRef<HTMLElement | null>(null);
 
+  // Dynamic Tutor Schedule State
+  const [tutorSchedule, setTutorSchedule] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      try {
+        const data = await apiClient.timetable.getByTutor(currentTutor.id);
+        setTutorSchedule(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.warn("Failed to load tutor schedule", error);
+      }
+    };
+    fetchSchedule();
+  }, [currentTutor.id]);
+
   const myStudents = useMemo(
     () => students.filter((s) => currentTutor.assignedStudentIds.includes(s.id)),
     [students, currentTutor]
@@ -183,11 +198,32 @@ export function TutorDashboard({
     }
   };
 
-  const handleUpdateScores = (e: React.FormEvent) => {
+  const handleUpdateScores = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeStudent) return;
     const avg = (mathsVal + physicsVal + litVal) / 3;
     const calcGPA = Number((avg / 25).toFixed(2));
+
+    try {
+      const term = activeStudent.results && activeStudent.results.length > 0
+        ? activeStudent.results[activeStudent.results.length - 1].term
+        : "Term 1";
+
+      await apiClient.results.upsert({
+        studentId: activeStudent.id,
+        term,
+        gpa: calcGPA,
+        mathsScore: mathsVal,
+        physicsScore: physicsVal,
+        literatureScore: litVal,
+        compSciScore: activeStudent.results && activeStudent.results.length > 0
+          ? activeStudent.results[activeStudent.results.length - 1].compSciScore || 90
+          : 90
+      });
+    } catch (error) {
+      console.warn("Failed to persist scores to database", error);
+      showNotif("Failed to save to database. Grades kept locally.");
+    }
 
     const updated = students.map((s) => {
       if (s.id === activeStudent.id) {
@@ -201,6 +237,15 @@ export function TutorDashboard({
             literatureScore: litVal,
             gpa: calcGPA
           };
+        } else {
+          nextResults.push({
+            term: "Term 1",
+            gpa: calcGPA,
+            mathsScore: mathsVal,
+            physicsScore: physicsVal,
+            literatureScore: litVal,
+            compSciScore: 90
+          });
         }
         return { ...s, results: nextResults };
       }
@@ -457,7 +502,7 @@ export function TutorDashboard({
           />
         )}
 
-        {activeView === "schedule" && <ScheduleView students={myStudents} />}
+        {activeView === "schedule" && <ScheduleView schedule={tutorSchedule} />}
 
         {activeView === "messages" && (
           <TutorMessagesView currentTutor={currentTutor} students={myStudents} />
@@ -1052,31 +1097,28 @@ function ResultsView({
   );
 }
 
-function ScheduleView({ students }: { students: Student[] }) {
-  const all = students.flatMap((s) =>
-    s.classTimings.map((c) => ({ ...c, student: s.name }))
-  );
+function ScheduleView({ schedule }: { schedule: any[] }) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-left">
       <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Class Schedule</h3>
-      <div className="overflow-hidden rounded-2xl border border-slate-105">
+      <div className="overflow-hidden rounded-2xl border border-slate-100">
         <table className="w-full text-xs">
           <thead>
             <tr className="text-[9px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold">
               <th className="text-left px-4 py-2">Subject</th>
-              <th className="text-left px-4 py-2">Student</th>
+              <th className="text-left px-4 py-2">Grade Standard</th>
               <th className="text-left px-4 py-2">Day</th>
               <th className="text-left px-4 py-2">Time</th>
               <th className="text-left px-4 py-2">Mode</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
-            {all.map((c, idx) => (
-              <tr key={idx} className="hover:bg-slate-50/50">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-355">
+            {schedule.map((c, idx) => (
+              <tr key={c.scheduleId || idx} className="hover:bg-slate-50/50">
                 <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{c.subject}</td>
-                <td className="px-4 py-3">{c.student}</td>
+                <td className="px-4 py-3">{c.grade}</td>
                 <td className="px-4 py-3">{c.day}</td>
-                <td className="px-4 py-3">{c.time}</td>
+                <td className="px-4 py-3">{c.startTime} - {c.endTime}</td>
                 <td className="px-4 py-3">
                   <span className="text-[9px] uppercase font-black px-2.5 py-1 rounded-lg bg-sky-100 text-sky-700 dark:bg-sky-950/45 dark:text-sky-300 shrink-0">
                     {c.mode}
@@ -1084,7 +1126,7 @@ function ScheduleView({ students }: { students: Student[] }) {
                 </td>
               </tr>
             ))}
-            {all.length === 0 && (
+            {schedule.length === 0 && (
               <tr><td colSpan={5} className="py-6 text-center text-slate-550">No classes scheduled.</td></tr>
             )}
           </tbody>
