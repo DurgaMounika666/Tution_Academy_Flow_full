@@ -56,6 +56,12 @@ export const normalizeFee = (apiFee: any): FeePayment => ({
     ? apiFee.dueDate.split("T")[0]
     : new Date(apiFee.dueDate).toISOString().split("T")[0],
   transactionId: apiFee.transactionId,
+  paymentMethod: apiFee.paymentMethod,
+  paidDate: apiFee.paidDate
+    ? (typeof apiFee.paidDate === "string"
+      ? apiFee.paidDate.split("T")[0]
+      : new Date(apiFee.paidDate).toISOString().split("T")[0])
+    : undefined,
 });
 
 export const normalizeAssignment = (apiAssignment: any): Assignment => ({

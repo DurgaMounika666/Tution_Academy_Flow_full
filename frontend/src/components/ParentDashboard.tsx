@@ -503,6 +503,7 @@ export function ParentDashboard({
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState<"UPI" | "Credit Card" | "Debit Card" | "Net Banking" | "Wallet">("Credit Card");
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
   // Card Inputs
   const [cardHolderName, setCardHolderName] = useState("");
@@ -594,6 +595,9 @@ export function ParentDashboard({
     e.preventDefault();
     if (!validatePaymentForm()) return;
 
+    setIsPaymentProcessing(true);
+    setPaymentErrors({});
+
     const txnId = `AF-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
     setLatestTxnId(txnId);
 
@@ -635,7 +639,9 @@ export function ParentDashboard({
         footerEmail: parentProfile.email,
       });
     } catch (error: any) {
-      setPaymentErrors({ general: error.message || "Payment processing failed." });
+      const errMsg = error?.message || "Payment processing failed. Please check your connection and try again.";
+      setPaymentErrors({ general: errMsg });
+      setIsPaymentProcessing(false);
       return;
     }
 
@@ -647,6 +653,7 @@ export function ParentDashboard({
     setPaymentSelectedInvoiceId("");
     setPaymentInvoiceNumber("");
     setPaymentAmount(0);
+    setIsPaymentProcessing(false);
 
     setIsPaymentModalOpen(false);
     setPaymentSuccessPopupOpen(true);
@@ -3357,21 +3364,31 @@ export function ParentDashboard({
                 )}
               </div>
 
+              {/* General Error Display */}
+              {paymentErrors.general && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                  <p className="text-xs font-bold text-rose-600 dark:text-rose-400">{paymentErrors.general}</p>
+                </div>
+              )}
+
               {/* Submit Buttons */}
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)}
-                  className="px-4 py-2.5 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold"
+                  disabled={isPaymentProcessing}
+                  className="px-4 py-2.5 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                  disabled={isPaymentProcessing}
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed text-white font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <CheckCircle2 className="h-4 w-4" />
-                  <span>Pay Now</span>
+                  <span>{isPaymentProcessing ? "Processing..." : "Pay Now"}</span>
                 </button>
               </div>
 
