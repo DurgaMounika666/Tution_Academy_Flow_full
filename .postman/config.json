@@ -1,0 +1,15 @@
+{
+  "workspace": {
+    "id": "d975a2ed-6a92-4632-a0b6-ca19d1343840"
+  },
+  "entities": {
+    "environments": [],
+    "flows": [],
+    "globals": [],
+    "mocks": [],
+    "specs": [],
+    "collections": [
+      "..\\Academy_Flow_API.postman_collection.json"
+    ]
+  }
+}

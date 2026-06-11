@@ -9,9 +9,10 @@ import {
   BookOpen, Mail, Terminal, Lock, CheckCircle2, ChevronRight, BarChart3, TrendingUp,
   LayoutDashboard, FileText, Bell, Settings, Award, PlusCircle, ArrowUpRight,
   Plus, Trash2, Edit3, Filter, Check, X, Send, Volume2, UserCheck, Calendar,
-  Clock, CheckCircle, AlertCircle, Eye, CreditCard, School, PanelLeftClose, PanelLeftOpen, CalendarCheck
+  Clock, CheckCircle, AlertCircle, Eye, CreditCard, School, PanelLeftClose, PanelLeftOpen, CalendarCheck, ClipboardList
 } from "lucide-react";
 import { apiClient } from "../services/apiClient";
+import { AdminReviewsView } from "./AdminReviewsView";
 import { normalizeStudent, normalizeTutor, normalizeFee } from "../utils/normalizers";
 import { Student, Tutor, FeePayment, RegistrationNotification } from "../types";
 import { STANDARDS, SUBJECTS_BY_CLASS } from "../data";
@@ -379,6 +380,7 @@ export function AdminDashboard({
     { id: "results", label: "Results", icon: Award },
     { id: "fees", label: "Fees", icon: DollarSign },
     { id: "reports", label: "Reports", icon: BarChart3 },
+    { id: "reviews", label: "Reviews", icon: ClipboardList },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "settings", label: "Settings", icon: Settings },
   ];
@@ -2314,6 +2316,11 @@ export function AdminDashboard({
         )}
 
         {/* ========================================================================= */}
+        {/* VIEW: REVIEWS */}
+        {/* ========================================================================= */}
+        {activeTab === "reviews" && (
+          <AdminReviewsView students={localStudents} />
+        )}
         {/* VIEW: NOTIFICATIONS */}
         {/* ========================================================================= */}
         {activeTab === "notifications" && (
@@ -2631,6 +2638,18 @@ export function AdminDashboard({
                                 <div className="col-span-2">
                                   <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Transaction ID</p>
                                   <p className="font-mono font-bold text-slate-700 dark:text-slate-200">{reg.transactionId}</p>
+                                </div>
+                              )}
+                              {reg.selectedCourses && reg.selectedCourses.length > 0 && (
+                                <div className="col-span-2">
+                                  <p className="text-[9px] uppercase font-black text-slate-400 tracking-wide">Selected Courses</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {reg.selectedCourses.map((c: string, idx: number) => (
+                                      <span key={idx} className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold px-2.5 py-0.5 rounded-full text-[10px]">
+                                        {c}
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
                               <div>

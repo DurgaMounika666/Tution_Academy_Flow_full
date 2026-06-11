@@ -67,6 +67,14 @@ class TutorService {
     for (const key of allowed) {
       if (updateData[key] !== undefined) filtered[key] = updateData[key];
     }
+
+    const tutor = await Tutor.findOne({ tutorId });
+    if (tutor && updateData.email) {
+      const newEmail = updateData.email.toLowerCase().trim();
+      filtered.email = newEmail;
+      await User.findByIdAndUpdate(tutor.userId, { email: newEmail });
+    }
+
     return Tutor.findOneAndUpdate({ tutorId }, filtered, { new: true });
   }
 

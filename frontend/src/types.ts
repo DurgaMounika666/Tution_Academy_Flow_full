@@ -56,6 +56,7 @@ export interface Tutor {
   image: string;
   assignedStudentIds: string[];
   pendingTasksCount: number;
+  subjects: string[];
 }
 
 export interface FeePayment {

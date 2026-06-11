@@ -8,6 +8,7 @@ const { ParentRegistration } = require("../models/ParentRegistration");
 const { User } = require("../models/User");
 const { Parent } = require("../models/Parent");
 const { Student } = require("../models/Student");
+const { Tutor } = require("../models/Tutor");
 const { FeeService } = require("../services/FeeService");
 
 class RegistrationController {
@@ -95,6 +96,21 @@ class RegistrationController {
           );
         }
 
+        // Find tutors who teach selected courses
+        const selectedCourses = registration.selectedCourses || [];
+        const matchedTutors = await Tutor.find({
+          subjects: { $in: selectedCourses }
+        });
+        
+        // Filter out tutors whose User accounts are inactive
+        const matchedTutorIds = [];
+        for (const tutor of matchedTutors) {
+          const user = await User.findById(tutor.userId);
+          if (user && user.isActive) {
+            matchedTutorIds.push(tutor.tutorId);
+          }
+        }
+
         // 4. Create Student Profile
         await Student.create({
           studentId,
@@ -104,8 +120,8 @@ class RegistrationController {
           section: "Section A",
           parentEmail: normalizedEmail,
           parentId: parentProfile._id,
-          assignedTutorIds: ["T-201"],
-          learningSubjects: ["Basic Mathematics"],
+          assignedTutorIds: matchedTutorIds,
+          learningSubjects: selectedCourses.length > 0 ? selectedCourses : ["Mathematics"],
           classMode: registration.classMode,
           phone: registration.phone,
           address: registration.location,
@@ -113,6 +129,14 @@ class RegistrationController {
           presentCount: 0,
           absentCount: 0,
         });
+
+        // Update matched tutors with the new student ID
+        if (matchedTutorIds.length > 0) {
+          await Tutor.updateMany(
+            { tutorId: { $in: matchedTutorIds } },
+            { $addToSet: { assignedStudentIds: studentId } }
+          );
+        }
 
         // 5. Create FeePayment record for advance fee
         await FeeService.createFee(

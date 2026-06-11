@@ -43,6 +43,7 @@ export const normalizeTutor = (apiTutor: any): Tutor => ({
   image: apiTutor.image || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
   assignedStudentIds: apiTutor.assignedStudentIds || [],
   pendingTasksCount: apiTutor.pendingTasksCount ?? 0,
+  subjects: apiTutor.subjects || [],
 });
 
 export const normalizeFee = (apiFee: any): FeePayment => ({

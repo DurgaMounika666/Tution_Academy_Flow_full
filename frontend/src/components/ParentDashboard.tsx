@@ -2480,39 +2480,6 @@ export function ParentDashboard({
                       className="w-4 h-4 accent-[#f27a3d] cursor-pointer"
                     />
                   </label>
-
-                  <div className="flex items-center justify-between p-1">
-                    <div>
-                      <p className="text-slate-850 dark:text-white font-extrabold">Default Language Select</p>
-                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Dashboard preferred display localization</p>
-                    </div>
-                    <select
-                      value={preferredLang}
-                      onChange={(e) => setPreferredLang(e.target.value)}
-                      className="p-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-205 rounded-lg font-bold"
-                    >
-                      <option>English</option>
-                      <option>Telugu</option>
-                      <option>Hindi</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Theme selection */}
-                <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-3 text-xs font-bold">
-                  <h4 className="text-slate-400 uppercase tracking-widest text-[9px] font-black">Portal Theme Settings</h4>
-                  <div className="flex items-center justify-between p-1">
-                    <div>
-                      <p className="text-slate-850 dark:text-white font-extrabold">Dark Mode Visual Theme</p>
-                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Switch portal to standard dark system layout</p>
-                    </div>
-                    <button
-                      onClick={toggleDarkMode}
-                      className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 hover:dark:bg-slate-900 font-black text-xs transition-all cursor-pointer text-slate-800 dark:text-white"
-                    >
-                      {darkMode ? "Disable Dark" : "Enable Dark"}
-                    </button>
-                  </div>
                 </div>
               </div>
 
@@ -2990,7 +2957,7 @@ export function ParentDashboard({
                       ))}
                       <div className="flex justify-between text-xs font-medium text-slate-500 dark:text-slate-450">
                         <span>Base Tuition Fee Rate</span>
-                        <span>₹{subBaseFee}.00</span>
+                        <span>₹{wizardMode === "Online" ? 200 : 350}.00</span>
                       </div>
                     </div>
 

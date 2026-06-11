@@ -361,34 +361,37 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
                 {/* My Tutor Card */}
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5">
                   <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">My Tutor</h3>
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
-                    <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                      <img
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtyd2CRb90hNdYfBUMT1G-WThzLZAZF92RO58CqttTvKAeDFYdafu_oYAUYJpgv8OnQXgnlrekQojBmHtmXFFLL-np47rR8OMuEOLo_3RzeFzOve2Rtp1F5j7rEYdgOEmhacGcX4mbh2PLF1mMgDvNlqZpjTE4-jMD8v5Fj4DIWQlm_oPECHD8zCJgwMvBAHsaepCZawoKDTNECjxqnVM2A89IZOQY-G-cF96q40-pAvnLsHMj5qQn7QRRzw8uAuS5dMl2LfSYNcI"
-                        alt="John Smith"
-                        className="h-16 w-16 rounded-full object-cover border border-slate-100 shadow-sm"
-                      />
-                      <div>
-                        <h4 className="text-lg font-black text-slate-900 dark:text-white leading-tight">Dr. Elena Vance</h4>
-                        <p className="text-xs text-slate-550 mt-1">Mathematics & Logic Expert</p>
-                        <div className="flex items-center gap-1 mt-1 text-amber-500">
-                          <Star className="h-4 w-4 fill-amber-500" />
-                          <Star className="h-4 w-4 fill-amber-500" />
-                          <Star className="h-4 w-4 fill-amber-500" />
-                          <Star className="h-4 w-4 fill-amber-500" />
-                          <Star className="h-4 w-4 fill-amber-500" />
-                          <span className="text-xs font-black ml-1 text-slate-900 dark:text-white">4.9 / 5.0 Rating</span>
+                  <div className="space-y-4 divide-y divide-slate-100 dark:divide-slate-800">
+                    {assignedTutors.map((tutor, idx) => (
+                      <div key={tutor.id} className={`flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 ${idx > 0 ? "pt-4" : ""}`}>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                          <img
+                            src={tutor.image}
+                            alt={tutor.name}
+                            className="h-16 w-16 rounded-full object-cover border border-slate-100 shadow-sm"
+                          />
+                          <div>
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white leading-tight">{tutor.name}</h4>
+                            <p className="text-xs text-slate-550 mt-1">{tutor.specialty}</p>
+                            <div className="flex items-center gap-1 mt-1 text-amber-500">
+                              <Star className="h-4 w-4 fill-amber-500" />
+                              <span className="text-xs font-black ml-1 text-slate-900 dark:text-white">4.9 / 5.0 Rating</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleTabChange("messages")}
+                            className="px-4 py-2.5 rounded-xl border border-slate-205 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850 text-slate-800 dark:text-white font-extrabold text-xs tracking-tight transition-colors cursor-pointer"
+                          >
+                            Message Tutor
+                          </button>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleTabChange("messages")}
-                        className="px-4 py-2.5 rounded-xl border border-slate-205 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850 text-slate-800 dark:text-white font-extrabold text-xs tracking-tight transition-colors cursor-pointer"
-                      >
-                        Message Tutor
-                      </button>
-                    </div>
+                    ))}
+                    {assignedTutors.length === 0 && (
+                      <p className="text-xs text-slate-500 text-center py-4">No tutors assigned yet.</p>
+                    )}
                   </div>
                 </div>
 
@@ -458,41 +461,46 @@ export function StudentDashboard({ currentStudent, tutors, onLogout }: StudentDa
           <div className="space-y-6 text-left">
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
               <h3 className="text-sm uppercase font-extrabold tracking-wider text-slate-400">My Tutor Details</h3>
-              <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
-                <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
-                  <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtyd2CRb90hNdYfBUMT1G-WThzLZAZF92RO58CqttTvKAeDFYdafu_oYAUYJpgv8OnQXgnlrekQojBmHtmXFFLL-np47rR8OMuEOLo_3RzeFzOve2Rtp1F5j7rEYdgOEmhacGcX4mbh2PLF1mMgDvNlqZpjTE4-jMD8v5Fj4DIWQlm_oPECHD8zCJgwMvBAHsaepCZawoKDTNECjxqnVM2A89IZOQY-G-cF96q40-pAvnLsHMj5qQn7QRRzw8uAuS5dMl2LfSYNcI"
-                    alt="Dr. Elena Vance"
-                    className="h-24 w-24 rounded-full object-cover border-2 border-[#7c3aed]/30 shadow-lg"
-                  />
-                  <div className="space-y-2">
-                    <h4 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">Dr. Elena Vance</h4>
-                    <p className="text-sm text-slate-500">Mathematics & Logic Expert</p>
-                    <div className="flex items-center gap-1 mt-1 text-amber-500">
-                      <Star className="h-5 w-5 fill-amber-500" />
-                      <Star className="h-5 w-5 fill-amber-500" />
-                      <Star className="h-5 w-5 fill-amber-500" />
-                      <Star className="h-5 w-5 fill-amber-500" />
-                      <Star className="h-5 w-5 fill-amber-500" />
-                      <span className="text-sm font-black ml-2 text-slate-900 dark:text-white">4.9 / 5.0 Rating</span>
+              <div className="space-y-6 divide-y divide-slate-100 dark:divide-slate-800">
+                {assignedTutors.map((tutor, idx) => (
+                  <div key={tutor.id} className={`flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 ${idx > 0 ? "pt-6 animate-fade-in" : ""}`}>
+                    <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+                      <img
+                        src={tutor.image}
+                        alt={tutor.name}
+                        className="h-24 w-24 rounded-full object-cover border-2 border-[#7c3aed]/30 shadow-lg"
+                      />
+                      <div className="space-y-2">
+                        <h4 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">{tutor.name}</h4>
+                        <p className="text-sm text-slate-550 font-semibold">{tutor.specialty}</p>
+                        <div className="flex items-center gap-1 mt-1 text-amber-500 justify-center sm:justify-start">
+                          <Star className="h-5 w-5 fill-amber-500" />
+                          <span className="text-sm font-black ml-2 text-slate-900 dark:text-white">4.9 / 5.0 Rating</span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                          Specializes in {tutor.specialty}. Subjects: {tutor.subjects?.join(", ") || "General Study"}. Available for one-on-one doubt sessions.
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-400 mt-2">Specializes in advanced algebra, calculus, and logical reasoning. Available for one-on-one doubt sessions.</p>
+                    <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+                      <button
+                        onClick={() => handleTabChange("messages")}
+                        className="w-full sm:w-auto px-5 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850 text-slate-800 dark:text-white font-extrabold text-xs tracking-tight transition-colors cursor-pointer text-center"
+                      >
+                        Message Tutor
+                      </button>
+                      <button
+                        onClick={() => handleTabChange("schedule")}
+                        className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-extrabold text-xs tracking-tight transition-colors cursor-pointer text-center"
+                      >
+                        Schedule Session
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => handleTabChange("messages")}
-                    className="px-5 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850 text-slate-800 dark:text-white font-extrabold text-xs tracking-tight transition-colors cursor-pointer"
-                  >
-                    Message Tutor
-                  </button>
-                  <button
-                    onClick={() => handleTabChange("schedule")}
-                    className="px-5 py-3 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-extrabold text-xs tracking-tight transition-colors cursor-pointer"
-                  >
-                    Schedule Session
-                  </button>
-                </div>
+                ))}
+                {assignedTutors.length === 0 && (
+                  <p className="text-xs text-slate-500 text-center py-6">No tutors currently assigned to you.</p>
+                )}
               </div>
             </div>
           </div>

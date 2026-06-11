@@ -179,6 +179,7 @@ class AuthService {
         email: normalizedEmail,
         studentId: student.studentId,
         userId: student.userId.toString(),
+        name: student.name,
       };
     }
 
@@ -191,6 +192,7 @@ class AuthService {
         role,
         email: normalizedEmail,
         userId: "admin-001",
+        name: "Administrator",
       };
     }
 
@@ -199,10 +201,20 @@ class AuthService {
       throw new Error("No active account was found for this email and role.");
     }
 
+    let name = "User";
+    if (role === "tutor") {
+      const tutor = await Tutor.findOne({ email: normalizedEmail });
+      if (tutor) name = tutor.name;
+    } else if (role === "parent") {
+      const parent = await Parent.findOne({ email: normalizedEmail });
+      if (parent) name = parent.name;
+    }
+
     return {
       role,
       email: normalizedEmail,
       userId: user._id.toString(),
+      name,
     };
   }
 
@@ -219,11 +231,16 @@ class AuthService {
 
     console.log(`[Academy Flow] Password reset OTP for ${role} ${target.email}: ${otp}`);
 
+    // Trigger asynchronous email dispatch
+    const { EmailService } = require("./EmailService");
+    EmailService.sendOtp(target.email, target.name, otp).catch((err) => {
+      console.error("[AuthService] Error sending OTP email in background:", err.message);
+    });
+
     return {
       role,
       email: target.email,
       expiresInMinutes: 10,
-      ...(config.nodeEnv !== "production" ? { otp } : {}),
     };
   }
 
@@ -311,7 +328,8 @@ class AuthService {
 
   static async loginTutor(email, password) {
     try {
-      const user = await User.findOne({ email, role: "tutor" }).select("+password");
+      const normalizedEmail = email.toLowerCase().trim();
+      const user = await User.findOne({ email: normalizedEmail, role: "tutor" }).select("+password");
       if (!user) {
         throw new Error("Invalid tutor credentials. Please check your email.");
       }
@@ -325,7 +343,7 @@ class AuthService {
       }
 
       // Fetch tutor profile
-      const tutorProfile = await Tutor.findOne({ email });
+      const tutorProfile = await Tutor.findOne({ email: normalizedEmail });
 
       const token = this.generateToken(user._id.toString(), "tutor");
       const refreshToken = this.generateRefreshToken(user._id.toString(), "tutor");
@@ -336,7 +354,7 @@ class AuthService {
         userId: user._id.toString(),
         tutorId: tutorProfile?.tutorId || "",
         tutorName: tutorProfile?.name || "",
-        email,
+        email: normalizedEmail,
       };
     } catch (error) {
       throw error;
