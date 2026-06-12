@@ -8,6 +8,7 @@ import { X, Sparkles, UserPlus, CheckCircle2, ChevronRight, UserCheck, Eye, EyeO
 import { useCatalog } from "../context/CatalogContext";
 import { apiClient } from "../services/apiClient";
 import { RegistrationNotification } from "../types";
+import { loadRazorpayScript } from "../utils/razorpayLoader";
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -39,6 +40,74 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const handleProcessRazorpayPayment = async () => {
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded) {
+      alert("Failed to load Razorpay payment overlay. Check your internet connection.");
+      return;
+    }
+
+    setIsPaying(true);
+    setErrorMessage("");
+
+    try {
+      // Create Razorpay order on backend
+      const orderResponse = await apiClient.payments.createOrder("REGISTRATION", 150);
+      const { orderId, currency } = orderResponse;
+
+      const options = {
+        key: (import.meta as any).env.VITE_RAZORPAY_KEY_ID || "rzp_test_placeholder",
+        amount: 150 * 100, // paise
+        currency: currency,
+        name: "Academy Flow",
+        description: "Parent Registration Fee",
+        order_id: orderId,
+        handler: async function (response: any) {
+          try {
+            // Verify payment on backend
+            const verifyResponse = await apiClient.payments.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              feeId: "REGISTRATION",
+            });
+
+            if (verifyResponse.success) {
+              setTransactionId(response.razorpay_payment_id);
+              setPaymentDateTime(new Date().toLocaleString());
+              setPaymentStatus("Paid");
+            } else {
+              setErrorMessage("Payment verification failed. Please try again.");
+            }
+          } catch (err: any) {
+            setErrorMessage(err.message || "Server verification error. Contact support.");
+          } finally {
+            setIsPaying(false);
+          }
+        },
+        prefill: {
+          name: parentName,
+          email: parentEmail,
+          contact: parentPhone,
+        },
+        theme: {
+          color: "#0ea5e9", // Match RegisterModal sky blue accent
+        },
+        modal: {
+          ondismiss: function () {
+            setIsPaying(false);
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to initiate transaction.");
+      setIsPaying(false);
+    }
+  };
 
   const parentNameRef = useRef<HTMLInputElement>(null);
   const parentEmailRef = useRef<HTMLInputElement>(null);
@@ -661,104 +730,15 @@ export function RegisterModal({ isOpen, onClose, onRegisterSuccess }: RegisterMo
                       <p className="text-slate-500">Amount: <span className="text-emerald-700 font-bold">₹150.00</span></p>
                     </div>
                   ) : (
-                    <>
-                      {!isPaying ? (
-                        <button
-                          type="button"
-                          onClick={() => setIsPaying(true)}
-                          className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-white font-black rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-2"
-                        >
-                          <CreditCard className="h-3.5 w-3.5" />
-                          Pay Advance Fee — ₹150
-                        </button>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Card Payment Details</p>
-                          <div>
-                            <input
-                              type="text"
-                              placeholder="Card Holder Name"
-                              value={simulatedCard.holder}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setSimulatedCard(prev => ({ ...prev, holder: val }));
-                                if (val.trim() && !/^[A-Za-z\s]+$/.test(val.trim())) {
-                                  setFieldErrors(prev => ({ ...prev, cardHolder: "Please enter a valid name (letters only)." }));
-                                } else {
-                                  setFieldErrors(prev => ({ ...prev, cardHolder: "" }));
-                                }
-                              }}
-                              className={`w-full p-2 rounded-xl border ${fieldErrors.cardHolder ? "border-rose-500" : "border-slate-200"} dark:bg-slate-900 text-xs font-semibold`}
-                            />
-                            {fieldErrors.cardHolder && (
-                              <p className="text-rose-600 text-[10px] mt-0.5">{fieldErrors.cardHolder}</p>
-                            )}
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Card Number (16 digits)"
-                            maxLength={19}
-                            value={simulatedCard.number}
-                            onChange={(e) => {
-                              const v = e.target.value.replace(/\D/g, "").slice(0, 16);
-                              const formatted = v.replace(/(.{4})/g, "$1 ").trim();
-                              setSimulatedCard(prev => ({ ...prev, number: formatted }));
-                            }}
-                            className="w-full p-2 rounded-xl border border-slate-200 dark:bg-slate-900 text-xs font-semibold font-mono"
-                          />
-                          <div className="grid grid-cols-2 gap-2">
-                            <input
-                              type="text"
-                              placeholder="MM/YY"
-                              maxLength={5}
-                              value={simulatedCard.expiry}
-                              onChange={(e) => {
-                                let v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                                if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
-                                setSimulatedCard(prev => ({ ...prev, expiry: v }));
-                              }}
-                              className="w-full p-2 rounded-xl border border-slate-200 dark:bg-slate-900 text-xs font-semibold"
-                            />
-                            <input
-                              type="text"
-                              placeholder="CVV"
-                              maxLength={3}
-                              value={simulatedCard.cvv}
-                              onChange={(e) => setSimulatedCard(prev => ({ ...prev, cvv: e.target.value.replace(/\D/g, "").slice(0, 3) }))}
-                              className="w-full p-2 rounded-xl border border-slate-200 dark:bg-slate-900 text-xs font-semibold"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!simulatedCard.holder.trim() || simulatedCard.number.replace(/\s/g, "").length < 16 || !simulatedCard.expiry || simulatedCard.cvv.length < 3) {
-                                alert("Please fill in all card details to proceed.");
-                                return;
-                              }
-                              if (!/^[A-Za-z\s]+$/.test(simulatedCard.holder.trim())) {
-                                setFieldErrors(prev => ({ ...prev, cardHolder: "Please enter a valid name (letters only)." }));
-                                return;
-                              }
-                              const txnId = `AF-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
-                              setTransactionId(txnId);
-                              setPaymentDateTime(new Date().toLocaleString());
-                              setPaymentStatus("Paid");
-                              setIsPaying(false);
-                            }}
-                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs transition-all active:scale-95"
-                          >
-                            Confirm Payment ₹150
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setIsPaying(false)}
-                            className="w-full py-1.5 text-slate-500 text-[10px] font-bold hover:underline"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-                    </>
+                    <button
+                      type="button"
+                      disabled={isPaying}
+                      onClick={handleProcessRazorpayPayment}
+                      className="w-full py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-black rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <CreditCard className="h-3.5 w-3.5 animate-pulse" />
+                      {isPaying ? "Opening Payment Gateway..." : "Pay Advance Fee via Razorpay — ₹150"}
+                    </button>
                   )}
                 </div>
 

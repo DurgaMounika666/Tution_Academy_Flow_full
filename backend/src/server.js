@@ -33,6 +33,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const registrationRoutes = require("./routes/registrationRoutes");
 const catalogRoutes = require("./routes/catalogRoutes");
 const resultRoutes = require("./routes/resultRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 const app = express();
 
@@ -96,6 +97,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/registrations", registrationRoutes);
 app.use("/api/catalog", catalogRoutes);
 app.use("/api/results", resultRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // Error Handling
 app.use(notFound);

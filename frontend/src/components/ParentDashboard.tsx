@@ -20,6 +20,7 @@ import { FeeReceiptModal } from "./FeeReceiptModal";
 import { buildFeeReceiptFromPayment, FeeReceiptData } from "../utils/feeReceipt";
 import { Footer } from "./Footer";
 import { FooterNavigation } from "./FooterNavigation";
+import { loadRazorpayScript } from "../utils/razorpayLoader";
 
 interface ParentDashboardProps {
   students: Student[];
@@ -593,13 +594,28 @@ export function ParentDashboard({
 
   const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validatePaymentForm()) return;
+    
+    // Validate inputs
+    const errors: Record<string, string> = {};
+    if (!paymentInvoiceNumber.trim()) {
+      errors.invoiceNumber = "Invoice number is required.";
+    }
+    if (paymentAmount <= 0) {
+      errors.amount = "Payment amount must be greater than 0.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setPaymentErrors(errors);
+      return;
+    }
+
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded) {
+      alert("Failed to load Razorpay payment overlay. Check your internet connection.");
+      return;
+    }
 
     setIsPaymentProcessing(true);
     setPaymentErrors({});
-
-    const txnId = `AF-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
-    setLatestTxnId(txnId);
 
     const targetInvoiceId = paymentSelectedInvoiceId;
     const isCustom = targetInvoiceId === "custom" || !targetInvoiceId;
@@ -608,11 +624,10 @@ export function ParentDashboard({
       : (fees.find(f => f.id === targetInvoiceId)?.title || "Tuition Fee");
 
     try {
-      if (!isCustom) {
-        const response = await apiClient.fees.markAsPaid(targetInvoiceId, txnId, paymentMethod);
-        const updatedFee = normalizeFee(response.fee || response);
-        onUpdateFees(fees.map(f => (f.id === targetInvoiceId ? updatedFee : f)));
-      } else {
+      let finalFeeId = targetInvoiceId;
+
+      // Create a pending fee record if they enter custom manual payments
+      if (isCustom) {
         const feeResponse = await apiClient.fees.create({
           studentId: activeStudent.id,
           studentName: activeStudent.name,
@@ -621,42 +636,83 @@ export function ParentDashboard({
           dueDate: paymentDate,
         });
         const created = normalizeFee(feeResponse.fee || feeResponse);
-        const paidResponse = await apiClient.fees.markAsPaid(created.id, txnId, paymentMethod);
-        const paidFee = normalizeFee(paidResponse.fee || paidResponse);
-        onUpdateFees([paidFee, ...fees]);
+        finalFeeId = created.id;
       }
-      await onRefreshFees();
 
-      setReceiptData({
-        studentName: activeStudent.name,
-        parentName: parentProfile.name,
-        transactionId: txnId,
-        amountPaid: paymentAmount,
-        paymentMethod: paymentMethod,
-        paymentDate: paymentDate,
-        paymentStatus: "Success",
-        invoiceTitle: invoiceTitle,
-        footerEmail: parentProfile.email,
-      });
+      // 1. Create Razorpay order on backend
+      const orderResponse = await apiClient.payments.createOrder(finalFeeId, paymentAmount);
+      const { orderId, currency } = orderResponse;
+
+      // 2. Open Razorpay widget themed with our color code
+      const options = {
+        key: (import.meta as any).env.VITE_RAZORPAY_KEY_ID || "rzp_test_placeholder",
+        amount: Math.round(paymentAmount * 100), // paise
+        currency: currency,
+        name: "Academy Flow",
+        description: invoiceTitle,
+        order_id: orderId,
+        handler: async function (response: any) {
+          try {
+            // 3. Verify signatures on backend
+            const verifyResponse = await apiClient.payments.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              feeId: finalFeeId,
+            });
+
+            if (verifyResponse.success) {
+              setLatestTxnId(response.razorpay_payment_id);
+              await onRefreshFees();
+
+              setReceiptData({
+                studentName: activeStudent.name,
+                parentName: parentProfile.name,
+                transactionId: response.razorpay_payment_id,
+                amountPaid: paymentAmount,
+                paymentMethod: "Razorpay Online",
+                paymentDate: paymentDate,
+                paymentStatus: "Success",
+                invoiceTitle: invoiceTitle,
+                footerEmail: parentProfile.email,
+              });
+
+              // Reset local payment states
+              setPaymentSelectedInvoiceId("");
+              setPaymentInvoiceNumber("");
+              setPaymentAmount(0);
+              setIsPaymentModalOpen(false);
+              setPaymentSuccessPopupOpen(true);
+            } else {
+              setPaymentErrors({ general: "Payment verification failed." });
+            }
+          } catch (err: any) {
+            setPaymentErrors({ general: err.message || "Failed to verify transaction." });
+          } finally {
+            setIsPaymentProcessing(false);
+          }
+        },
+        prefill: {
+          name: parentProfile.name || "",
+          email: parentProfile.email || "",
+          contact: parentProfile.phone || "",
+        },
+        theme: {
+          color: "#f27a3d", // Signature Academy Flow brand orange
+        },
+        modal: {
+          ondismiss: function () {
+            setIsPaymentProcessing(false);
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
     } catch (error: any) {
-      const errMsg = error?.message || "Payment processing failed. Please check your connection and try again.";
-      setPaymentErrors({ general: errMsg });
+      setPaymentErrors({ general: error.message || "Failed to initiate payment." });
       setIsPaymentProcessing(false);
-      return;
     }
-
-    // Clear Modal inputs
-    setCardHolderName("");
-    setCardNumber("");
-    setCardExpiry("");
-    setCardCvv("");
-    setPaymentSelectedInvoiceId("");
-    setPaymentInvoiceNumber("");
-    setPaymentAmount(0);
-    setIsPaymentProcessing(false);
-
-    setIsPaymentModalOpen(false);
-    setPaymentSuccessPopupOpen(true);
   };
 
   // Dynamic child attendance logs loaded from backend API
@@ -3145,190 +3201,15 @@ export function ParentDashboard({
                 />
               </div>
 
-              {/* Payment Methods Selection Tabs */}
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <label className="text-slate-400 block uppercase tracking-wider text-[9px]">Select Payment Method</label>
-                <div className="grid grid-cols-5 gap-1 text-[10px] font-black text-center">
-                  {(["UPI", "Credit Card", "Debit Card", "Net Banking", "Wallet"] as const).map((method) => {
-                    const isSel = paymentMethod === method;
-                    return (
-                      <button
-                        type="button"
-                        key={method}
-                        onClick={() => {
-                          setPaymentMethod(method);
-                          setPaymentErrors({});
-                        }}
-                        className={`py-2 rounded-lg border transition-all cursor-pointer truncate ${isSel
-                          ? "bg-[#f27a3d] text-white border-[#f27a3d] shadow-sm"
-                          : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
-                          }`}
-                      >
-                        {method}
-                      </button>
-                    );
-                  })}
+              {/* Payment Methods info */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-center flex flex-col items-center">
+                <div className="flex items-center gap-1.5 text-slate-500 font-bold py-1">
+                  <Shield className="h-4 w-4 text-emerald-500" />
+                  <span>Secure checkout powered by Razorpay</span>
                 </div>
-              </div>
-
-              {/* Dynamic Payment Method Fields */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-150 dark:border-slate-850 rounded-2xl space-y-3 mt-3">
-                {paymentMethod === "UPI" && (
-                  <div className="space-y-3 text-center flex flex-col items-center">
-                    {/* SVG QR Code Placeholder */}
-                    <div className="h-28 w-28 bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-center shadow-sm">
-                      <svg viewBox="0 0 100 100" className="w-full h-full text-slate-800">
-                        <path d="M5,5 h30 v30 h-30 z M5,15 h30 M15,5 v30" stroke="currentColor" strokeWidth="2" fill="none" />
-                        <path d="M65,5 h30 v30 h-30 z M65,15 h30 M75,5 v30" stroke="currentColor" strokeWidth="2" fill="none" />
-                        <path d="M5,65 h30 v30 h-30 z M5,75 h30 M15,65 v30" stroke="currentColor" strokeWidth="2" fill="none" />
-                        <rect x="10" y="10" width="10" height="10" fill="currentColor" />
-                        <rect x="70" y="10" width="10" height="10" fill="currentColor" />
-                        <rect x="10" y="70" width="10" height="10" fill="currentColor" />
-                        <rect x="45" y="45" width="10" height="10" fill="currentColor" />
-                        <rect x="55" y="60" width="15" height="15" fill="currentColor" />
-                        <rect x="70" y="70" width="10" height="20" fill="currentColor" />
-                        <rect x="85" y="85" width="10" height="10" fill="currentColor" />
-                      </svg>
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-bold">Scan QR Code or pay using UPI ID</span>
-
-                    <div className="w-full space-y-1 text-left">
-                      <label className="text-slate-655 block">Your UPI ID</label>
-                      <input
-                        type="text"
-                        placeholder="username@bank"
-                        value={upiId}
-                        onChange={(e) => setUpiId(e.target.value)}
-                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
-                      />
-                      {paymentErrors.upiId && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.upiId}</p>}
-                    </div>
-                  </div>
-                )}
-
-                {(paymentMethod === "Credit Card" || paymentMethod === "Debit Card") && (
-                  <div className="space-y-3 text-left">
-                    <div className="space-y-1">
-                      <label className="text-slate-655 block">Card Holder Name</label>
-                      <input
-                        type="text"
-                        placeholder="John Doe"
-                        value={cardHolderName}
-                        onChange={(e) => setCardHolderName(e.target.value)}
-                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
-                      />
-                      {paymentErrors.cardHolderName && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.cardHolderName}</p>}
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-slate-655 block">Card Number</label>
-                      <input
-                        type="text"
-                        maxLength={19}
-                        placeholder="1234 5678 1234 5678"
-                        value={cardNumber}
-                        onChange={(e) => {
-                          const v = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-                          const matches = v.match(/\d{4,16}/g);
-                          const match = (matches && matches[0]) || "";
-                          const parts = [];
-
-                          for (let i = 0, len = match.length; i < len; i += 4) {
-                            parts.push(match.substring(i, i + 4));
-                          }
-
-                          if (parts.length > 0) {
-                            setCardNumber(parts.join(" "));
-                          } else {
-                            setCardNumber(v);
-                          }
-                        }}
-                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
-                      />
-                      {paymentErrors.cardNumber && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.cardNumber}</p>}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-slate-655 block">Expiry Date</label>
-                        <input
-                          type="text"
-                          placeholder="MM/YY"
-                          maxLength={5}
-                          value={cardExpiry}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, "");
-                            if (val.length >= 2) {
-                              setCardExpiry(val.substring(0, 2) + "/" + val.substring(2, 4));
-                            } else {
-                              setCardExpiry(val);
-                            }
-                          }}
-                          className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
-                        />
-                        {paymentErrors.cardExpiry && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.cardExpiry}</p>}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-slate-655 block">CVV</label>
-                        <input
-                          type={passwordVisibility.cvv ? "text" : "password"}
-                          placeholder="•••"
-                          maxLength={3}
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, ""))}
-                          className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setPasswordVisibility((prev) => ({ ...prev, cvv: !prev.cvv }))}
-                          className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-slate-500 hover:text-sky-600"
-                        >
-                          {passwordVisibility.cvv ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                          <span>{passwordVisibility.cvv ? "Hide" : "Show"}</span>
-                        </button>
-                        {paymentErrors.cardCvv && <p className="text-rose-500 text-[10px] mt-0.5">{paymentErrors.cardCvv}</p>}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {paymentMethod === "Net Banking" && (
-                  <div className="space-y-3 text-left">
-                    <div className="space-y-1">
-                      <label className="text-slate-655 block">Choose Bank</label>
-                      <select
-                        value={selectedBank}
-                        onChange={(e) => setSelectedBank(e.target.value)}
-                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
-                      >
-                        <option>SBI Bank</option>
-                        <option>HDFC Bank</option>
-                        <option>ICICI Bank</option>
-                        <option>Axis Bank</option>
-                        <option>Kotak Mahindra Bank</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {paymentMethod === "Wallet" && (
-                  <div className="space-y-3 text-left">
-                    <div className="space-y-1">
-                      <label className="text-slate-655 block">Choose Digital Wallet</label>
-                      <select
-                        value={selectedWallet}
-                        onChange={(e) => setSelectedWallet(e.target.value)}
-                        className="w-full p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
-                      >
-                        <option>Google Pay</option>
-                        <option>PhonePe</option>
-                        <option>Paytm</option>
-                        <option>Amazon Pay</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
+                <p className="text-[10px] text-slate-400 max-w-xs font-semibold">
+                  You can pay using UPI, Credit/Debit cards, Net Banking, or popular digital wallets.
+                </p>
               </div>
 
               {/* General Error Display */}

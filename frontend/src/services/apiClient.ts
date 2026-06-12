@@ -364,4 +364,14 @@ export const apiClient = {
     upsertLocations: (locations: string[]) =>
       request("PUT", "/catalog/locations", { locations }),
   },
+  payments: {
+    createOrder: (feeId: string, amount: number) =>
+      request("POST", "/payments/create-order", { feeId, amount }),
+    verifyPayment: (payload: {
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature: string;
+      feeId: string;
+    }) => request("POST", "/payments/verify-payment", payload),
+  },
 };
