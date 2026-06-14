@@ -71,7 +71,7 @@ export function AdminDashboard({
   const [localStudents, setLocalStudents] = useState<Student[]>(students);
   const [localTutors, setLocalTutors] = useState<Tutor[]>(tutors);
   const [localFees, setLocalFees] = useState<FeePayment[]>(fees);
-  const [courses, setCourses] = useState<Course[]>(() => buildAllCoursesFromCatalog(students));
+  const [courses, setCourses] = useState<Course[]>(() => buildAllCoursesFromCatalog(students, tutors));
 
   useEffect(() => {
     setLocalStudents(students);
@@ -86,14 +86,14 @@ export function AdminDashboard({
   }, [fees]);
 
   useEffect(() => {
-    setCourses(buildAllCoursesFromCatalog(students));
-  }, [students]);
+    setCourses(buildAllCoursesFromCatalog(students, localTutors));
+  }, [students, localTutors]);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<FeeReceiptData | null>(null);
   const [batches, setBatches] = useState<Batch[]>([
-    { id: "B-401", name: "Batch A - Morning STEM", courseName: "Mathematics", tutorName: "Dr. Elena Vance", timings: "09:00 AM - 10:30 AM", days: "Monday, Wednesday", studentsCount: 15, status: "Active" },
-    { id: "B-402", name: "Batch B - Evening Physics", courseName: "Physics", tutorName: "Prof. Julian Thorne", timings: "04:00 PM - 05:30 PM", days: "Tuesday, Thursday", studentsCount: 12, status: "Active" },
-    { id: "B-403", name: "Batch C - Friday Coding", courseName: "Computer Science", tutorName: "Mr. Anand Kumar", timings: "02:00 PM - 05:00 PM", days: "Friday", studentsCount: 18, status: "Active" }
+    { id: "B-401", name: "Batch A - Morning STEM", courseName: "Mathematics", tutorName: "Dr. Anitha Sharma", timings: "09:00 AM - 10:30 AM", days: "Monday, Wednesday", studentsCount: 15, status: "Active" },
+    { id: "B-402", name: "Batch B - Evening Physics", courseName: "Physics", tutorName: "Prof. Narayana Rao", timings: "04:00 PM - 05:30 PM", days: "Tuesday, Thursday", studentsCount: 12, status: "Active" },
+    { id: "B-403", name: "Batch C - Friday Coding", courseName: "Computer Science", tutorName: "Mr. Anand Krishna", timings: "02:00 PM - 05:00 PM", days: "Friday", studentsCount: 18, status: "Active" }
   ]);
   const [notifications, setNotifications] = useState<SystemNotification[]>([
     { id: "N-501", title: "Term 2 Examination Schedule", message: "Term 2 exams will start from June 15th. Detailed schedule published.", target: "All", date: "2026-05-28" },
@@ -179,8 +179,8 @@ export function AdminDashboard({
 
   useEffect(() => {
     setLocalStudents(students);
-    setCourses(buildAllCoursesFromCatalog(students));
-  }, [students]);
+    setCourses(buildAllCoursesFromCatalog(students, tutors));
+  }, [students, tutors]);
 
   useEffect(() => {
     setLocalTutors(tutors);
@@ -678,6 +678,44 @@ export function AdminDashboard({
   };
 
   // --- FILTERS & COMPUTATIONS ---
+  const resolveTutorNameForCourse = (courseName: string, fallbackName: string) => {
+    if (!localTutors || localTutors.length === 0) return fallbackName;
+    
+    const matchSubject = (subjectName: string, tutorSubject: string): boolean => {
+      const s1 = subjectName.toLowerCase();
+      const s2 = tutorSubject.toLowerCase();
+      if (s1 === s2) return true;
+      if (s1.includes(s2) || s2.includes(s1)) return true;
+      
+      const words1 = s1.split(/[\s/()]+/).filter(w => w.length > 3);
+      const words2 = s2.split(/[\s/()]+/).filter(w => w.length > 3);
+      for (const w1 of words1) {
+        if (words2.includes(w1)) return true;
+      }
+      return false;
+    };
+
+    const matchedTutors = localTutors.filter((t) =>
+      t.subjects?.some((s) => matchSubject(courseName, s))
+    );
+
+    if (matchedTutors.length > 0) {
+      matchedTutors.sort((a, b) => {
+        const aSpec = a.specialty.toLowerCase().includes(courseName.toLowerCase()) ? 1 : 0;
+        const bSpec = b.specialty.toLowerCase().includes(courseName.toLowerCase()) ? 1 : 0;
+        return bSpec - aSpec;
+      });
+      return matchedTutors[0].name;
+    }
+
+    const looseMatched = localTutors.find((t) =>
+      t.specialty.toLowerCase().includes(courseName.toLowerCase()) ||
+      courseName.toLowerCase().includes(t.specialty.toLowerCase())
+    );
+    if (looseMatched) return looseMatched.name;
+    return fallbackName;
+  };
+
   const filteredStudents = localStudents.filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGrade = gradeFilter === "All" || s.grade === gradeFilter;
@@ -1429,7 +1467,9 @@ export function AdminDashboard({
                   <div className="grid grid-cols-2 gap-2 text-center bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl">
                     <div>
                       <p className="text-[9px] uppercase font-black text-slate-400">Assigned</p>
-                      <p className="text-sm font-black text-slate-800 dark:text-slate-200">{tutor.assignedStudentIds.length} Students</p>
+                      <p className="text-sm font-black text-slate-800 dark:text-slate-200">
+                        {localStudents.filter((s) => s.assignedTutorIds.includes(tutor.id)).length} Students
+                      </p>
                     </div>
                     <div>
                       <p className="text-[9px] uppercase font-black text-slate-400">Tasks Workload</p>
@@ -1659,7 +1699,7 @@ export function AdminDashboard({
                     </div>
                     <div className="space-y-0.5 col-span-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                       <p className="text-[8px] uppercase font-black text-slate-400">Assigned Faculty Instructor</p>
-                      <p className="font-bold text-slate-900 dark:text-white">{b.tutorName}</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{resolveTutorNameForCourse(b.courseName, b.tutorName)}</p>
                     </div>
                   </div>
 
@@ -2850,23 +2890,23 @@ export function AdminDashboard({
                 <span className="font-bold text-slate-800 dark:text-slate-200">{selectedTutor.email}</span>
               </div>
 
-              <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-850">
+              <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-855">
                 <h4 className="font-extrabold text-[10px] uppercase tracking-wider text-slate-400">Assigned Student Wards Roster</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  {selectedTutor.assignedStudentIds.map((id) => {
-                    const student = localStudents.find(s => s.id === id);
-                    return (
-                      <div key={id} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-[10px]">
-                          {student?.name[0]}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-800 dark:text-slate-200">{student?.name || id}</p>
-                          <p className="text-[9px] text-slate-450">{student?.grade || "Grade Level"}</p>
-                        </div>
+                  {localStudents.filter((s) => s.assignedTutorIds.includes(selectedTutor.id)).map((student) => (
+                    <div key={student.id} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-[10px]">
+                        {student.name[0]}
                       </div>
-                    );
-                  })}
+                      <div>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{student.name}</p>
+                        <p className="text-[9px] text-slate-450">{student.grade || "Grade Level"}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {localStudents.filter((s) => s.assignedTutorIds.includes(selectedTutor.id)).length === 0 && (
+                    <p className="text-slate-400 italic">No students assigned.</p>
+                  )}
                 </div>
               </div>
             </div>

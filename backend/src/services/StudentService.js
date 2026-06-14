@@ -56,6 +56,33 @@ class StudentService {
 
     const parent = await Parent.findOne({ email: parentEmail });
 
+    let assignedTutorIds = data.assignedTutorIds || [];
+    const learningSubjects = data.learningSubjects || ["Mathematics"];
+
+    if (assignedTutorIds.length === 0 && learningSubjects.length > 0) {
+      const allTutors = await Tutor.find({});
+      const matchSubject = (subjectName, tutorSubject) => {
+        const s1 = subjectName.toLowerCase();
+        const s2 = tutorSubject.toLowerCase();
+        if (s1 === s2) return true;
+        if (s1.includes(s2) || s2.includes(s1)) return true;
+        const words1 = s1.split(/[\s/()]+/).filter(w => w.length > 3);
+        const words2 = s2.split(/[\s/()]+/).filter(w => w.length > 3);
+        for (const w1 of words1) {
+          if (words2.includes(w1)) return true;
+        }
+        return false;
+      };
+      for (const tutor of allTutors) {
+        const teachesSelected = tutor.subjects?.some(sub => 
+          learningSubjects.some(course => matchSubject(course, sub))
+        );
+        if (teachesSelected) {
+          assignedTutorIds.push(tutor.tutorId);
+        }
+      }
+    }
+
     const student = new Student({
       studentId,
       userId: studentUser._id,
@@ -64,8 +91,8 @@ class StudentService {
       section: data.section || "Section A",
       parentEmail,
       parentId: parent?._id,
-      assignedTutorIds: data.assignedTutorIds || [],
-      learningSubjects: data.learningSubjects || ["Mathematics"],
+      assignedTutorIds,
+      learningSubjects,
       phone: data.phone || "",
       attendanceRate: 100,
       presentCount: 0,
@@ -73,6 +100,13 @@ class StudentService {
     });
 
     await student.save();
+
+    if (assignedTutorIds.length > 0) {
+      await Tutor.updateMany(
+        { tutorId: { $in: assignedTutorIds } },
+        { $addToSet: { assignedStudentIds: studentId } }
+      );
+    }
 
     if (parent) {
       await ParentService.addChildToParent(parentEmail, studentId);
@@ -91,7 +125,32 @@ class StudentService {
     for (const key of allowed) {
       if (updateData[key] !== undefined) filtered[key] = updateData[key];
     }
-    return Student.findOneAndUpdate({ studentId }, filtered, { new: true });
+
+    const oldStudent = await Student.findOne({ studentId });
+    const updatedStudent = await Student.findOneAndUpdate({ studentId }, filtered, { new: true });
+
+    if (updateData.assignedTutorIds !== undefined && oldStudent) {
+      const oldTutors = oldStudent.assignedTutorIds || [];
+      const newTutors = updateData.assignedTutorIds || [];
+
+      const removedTutors = oldTutors.filter(tId => !newTutors.includes(tId));
+      const addedTutors = newTutors.filter(tId => !oldTutors.includes(tId));
+
+      if (removedTutors.length > 0) {
+        await Tutor.updateMany(
+          { tutorId: { $in: removedTutors } },
+          { $pull: { assignedStudentIds: studentId } }
+        );
+      }
+      if (addedTutors.length > 0) {
+        await Tutor.updateMany(
+          { tutorId: { $in: addedTutors } },
+          { $addToSet: { assignedStudentIds: studentId } }
+        );
+      }
+    }
+
+    return updatedStudent;
   }
 
   static async deleteStudent(studentId) {

@@ -10,7 +10,7 @@ async function checkUsers() {
   
   const tutors = await Tutor.find({});
   console.log("=== TUTORS ===");
-  console.log(tutors.map(t => ({ email: t.email, tutorId: t.tutorId, name: t.name })));
+  console.log(tutors.map(t => ({ email: t.email, tutorId: t.tutorId, name: t.name, specialty: t.specialty, subjects: t.subjects })));
   
   process.exit(0);
 }

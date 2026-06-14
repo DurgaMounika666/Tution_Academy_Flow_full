@@ -68,14 +68,37 @@ class TutorService {
       if (updateData[key] !== undefined) filtered[key] = updateData[key];
     }
 
-    const tutor = await Tutor.findOne({ tutorId });
-    if (tutor && updateData.email) {
+    const oldTutor = await Tutor.findOne({ tutorId });
+    if (oldTutor && updateData.email) {
       const newEmail = updateData.email.toLowerCase().trim();
       filtered.email = newEmail;
-      await User.findByIdAndUpdate(tutor.userId, { email: newEmail });
+      await User.findByIdAndUpdate(oldTutor.userId, { email: newEmail });
     }
 
-    return Tutor.findOneAndUpdate({ tutorId }, filtered, { new: true });
+    const updatedTutor = await Tutor.findOneAndUpdate({ tutorId }, filtered, { new: true });
+
+    if (updateData.assignedStudentIds !== undefined && oldTutor) {
+      const oldStudents = oldTutor.assignedStudentIds || [];
+      const newStudents = updateData.assignedStudentIds || [];
+
+      const removedStudents = oldStudents.filter(sId => !newStudents.includes(sId));
+      const addedStudents = newStudents.filter(sId => !oldStudents.includes(sId));
+
+      if (removedStudents.length > 0) {
+        await Student.updateMany(
+          { studentId: { $in: removedStudents } },
+          { $pull: { assignedTutorIds: tutorId } }
+        );
+      }
+      if (addedStudents.length > 0) {
+        await Student.updateMany(
+          { studentId: { $in: addedStudents } },
+          { $addToSet: { assignedTutorIds: tutorId } }
+        );
+      }
+    }
+
+    return updatedTutor;
   }
 
   static async deleteTutor(tutorId) {

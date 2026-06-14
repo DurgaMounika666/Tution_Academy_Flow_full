@@ -96,18 +96,34 @@ class RegistrationController {
           );
         }
 
-        // Find tutors who teach selected courses
+        // Find tutors who teach selected courses using robust matching
         const selectedCourses = registration.selectedCourses || [];
-        const matchedTutors = await Tutor.find({
-          subjects: { $in: selectedCourses }
-        });
+        const allTutors = await Tutor.find({});
         
-        // Filter out tutors whose User accounts are inactive
+        const matchSubject = (subjectName, tutorSubject) => {
+          const s1 = subjectName.toLowerCase();
+          const s2 = tutorSubject.toLowerCase();
+          if (s1 === s2) return true;
+          if (s1.includes(s2) || s2.includes(s1)) return true;
+          
+          const words1 = s1.split(/[\s/()]+/).filter(w => w.length > 3);
+          const words2 = s2.split(/[\s/()]+/).filter(w => w.length > 3);
+          for (const w1 of words1) {
+            if (words2.includes(w1)) return true;
+          }
+          return false;
+        };
+
         const matchedTutorIds = [];
-        for (const tutor of matchedTutors) {
-          const user = await User.findById(tutor.userId);
-          if (user && user.isActive) {
-            matchedTutorIds.push(tutor.tutorId);
+        for (const tutor of allTutors) {
+          const teachesSelected = tutor.subjects?.some(sub => 
+            selectedCourses.some(course => matchSubject(course, sub))
+          );
+          if (teachesSelected) {
+            const user = await User.findById(tutor.userId);
+            if (user && user.isActive) {
+              matchedTutorIds.push(tutor.tutorId);
+            }
           }
         }
 
