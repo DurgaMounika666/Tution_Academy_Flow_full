@@ -1622,7 +1622,7 @@ export function AdminDashboard({
               Showing {filteredCourses.length} of {courses.length} institutional course modules
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-h-[70vh] overflow-hidden pr-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-h-[70vh] overflow-y-auto modal-scroll pr-1">
               {filteredCourses.map((course) => (
                 <div
                   key={course.id}
@@ -2753,7 +2753,7 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="p-6 overflow-hidden space-y-6 flex-grow text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-6 flex-grow text-xs">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl">
                   <span className="text-[9px] uppercase font-black text-slate-400 block">Attendance rate</span>
@@ -2862,7 +2862,7 @@ export function AdminDashboard({
 
       {selectedTutor && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left flex flex-col max-h-[90vh]">
             <div className="p-6 bg-[#0b1329] text-white flex justify-between items-start">
               <div className="flex gap-4 items-center">
                 <img
@@ -2884,7 +2884,7 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <div className="space-y-1.5">
                 <span className="text-[10px] uppercase font-black text-slate-400 block">Faculty Email Contact</span>
                 <span className="font-bold text-slate-800 dark:text-slate-200">{selectedTutor.email}</span>
@@ -2935,7 +2935,7 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {selectedCourse && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left flex flex-col max-h-[90vh]">
             <div className="p-6 bg-slate-900 text-white flex justify-between items-start">
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-black text-slate-400 font-mono">{selectedCourse.id} • {selectedCourse.category}</span>
@@ -2950,7 +2950,7 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <h4 className="font-extrabold text-[10px] uppercase tracking-wider text-slate-400">Class Enrolled Roster</h4>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {localStudents.filter(s => s.learningSubjects.some(sub => sub.name.toLowerCase().includes(selectedCourse.name.toLowerCase()))).map((st) => (
@@ -2985,13 +2985,13 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {showAddStudent && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleAddStudent} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+          <form onSubmit={handleAddStudent} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left max-h-[90vh] flex flex-col">
             <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
               <h3 className="text-md font-black">Enroll Student to Registry</h3>
               <button type="button" onClick={() => setShowAddStudent(false)} className="text-white hover:opacity-80"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Full Student Name</label>
                 <input
@@ -3066,13 +3066,13 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {showAddTutor && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleAddTutor} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+          <form onSubmit={handleAddTutor} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left max-h-[90vh] flex flex-col">
             <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
               <h3 className="text-md font-black">Add Faculty Tutor</h3>
               <button type="button" onClick={() => setShowAddTutor(false)} className="text-white hover:opacity-80"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Full Faculty Name</label>
                 <input
@@ -3134,13 +3134,13 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {showAddCourse && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleAddCourse} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+          <form onSubmit={handleAddCourse} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left max-h-[90vh] flex flex-col">
             <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
               <h3 className="text-md font-black">Create Course Catalog Item</h3>
               <button type="button" onClick={() => setShowAddCourse(false)} className="text-white hover:opacity-80"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Course Subject Title</label>
                 <input
@@ -3231,13 +3231,13 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {showAddBatch && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleAddBatch} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+          <form onSubmit={handleAddBatch} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left max-h-[90vh] flex flex-col">
             <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
               <h3 className="text-md font-black">Allocate New Batch Schedule</h3>
               <button type="button" onClick={() => setShowAddBatch(false)} className="text-white hover:opacity-80"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Batch Code Name</label>
                 <input
@@ -3328,13 +3328,13 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {showAddFee && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleAddFee} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+          <form onSubmit={handleAddFee} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left max-h-[90vh] flex flex-col">
             <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
               <h3 className="text-md font-black">Record Bill Fee Invoice</h3>
               <button type="button" onClick={() => setShowAddFee(false)} className="text-white hover:opacity-80"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Target Student Ward</label>
                 <select
@@ -3470,13 +3470,13 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {showPublishResult && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handlePublishResult} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+          <form onSubmit={handlePublishResult} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left max-h-[90vh] flex flex-col">
             <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
               <h3 className="text-md font-black">Publish Exam Score Report</h3>
               <button type="button" onClick={() => setShowPublishResult(false)} className="text-white hover:opacity-80"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Target Student</label>
                 <select
@@ -3584,13 +3584,13 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {showAddSchedule && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleCreateSchedule} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+          <form onSubmit={handleCreateSchedule} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left max-h-[90vh] flex flex-col">
             <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
               <h3 className="text-md font-black">Create Timetable Slot</h3>
               <button type="button" onClick={() => setShowAddSchedule(false)} className="text-white hover:opacity-80"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Faculty Instructor</label>
                 <select
@@ -3696,7 +3696,7 @@ export function AdminDashboard({
 
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Assign Student Wards (Check to assign)</label>
-                <div className="max-h-32 overflow-hidden border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 dark:bg-slate-950">
+                <div className="max-h-32 overflow-y-auto modal-scroll border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 dark:bg-slate-950">
                   {localStudents.map(s => {
                     const isChecked = newSchedule.assignedStudentIds.includes(s.id);
                     return (
@@ -3744,7 +3744,7 @@ export function AdminDashboard({
       {/* ========================================================================= */}
       {showEditSchedule && editingSchedule && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleUpdateSchedule} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left">
+          <form onSubmit={handleUpdateSchedule} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 text-left max-h-[90vh] flex flex-col">
             <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
               <h3 className="text-md font-black">Edit Timetable Slot</h3>
               <button
@@ -3759,7 +3759,7 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto modal-scroll space-y-4 flex-grow text-xs">
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Faculty Instructor</label>
                 <select
@@ -3864,7 +3864,7 @@ export function AdminDashboard({
 
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-400">Assign Student Wards (Check to assign)</label>
-                <div className="max-h-32 overflow-hidden border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 dark:bg-slate-950">
+                <div className="max-h-32 overflow-y-auto modal-scroll border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 dark:bg-slate-950">
                   {localStudents.map(s => {
                     const isChecked = (editingSchedule.assignedStudentIds || []).includes(s.id);
                     return (

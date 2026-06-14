@@ -427,7 +427,7 @@ export function TutorDashboard({
               )}
             </button>
             {showNotifications && (
-              <div className="absolute top-12 right-0 w-80 max-h-80 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl p-3 z-20">
+              <div className="absolute top-12 right-0 w-80 max-h-80 overflow-y-auto modal-scroll rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl p-3 z-20">
                 <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 pb-2">
                   Notifications
                 </p>
